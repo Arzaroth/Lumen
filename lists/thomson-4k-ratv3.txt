@@ -1,0 +1,58 @@
+# Thomson 4K Google TV (product Thomson_4K_RATV3, device cottongreen, built by Expressluck), Realtek,
+# 32-bit ARM, 1.7 GB RAM. Google TV 14 (SDK 34), build UKRC.260302.020 / 15128738, patch 2026-04-01.
+# Apply in batches: scripts/disable.sh <batch>    Undo: scripts/restore.sh
+#
+# Stock Home: com.google.android.apps.tv.launcherx (priority 2). setupwraith's RecoveryActivity also
+# claims HOME (priority 1) and outranks any sideloaded launcher, and the saved Wi-Fi networks were
+# created by it (cname=com.google.android.tungsten.setupwraith): disabling it deletes them. Forget and
+# re-join the network in Settings first; the shell cannot disable RecoveryActivity alone.
+# Live TV app: com.realtek.tv (TvActivity); HDMI 1-3 and AV from com.realtek.tv.passthrough, tuners
+# from com.realtek.dtv and com.realtek.tv.atv. Remote: Bluetooth "Thomson GTV RCU" plus IR.
+#
+# Already disabled from the factory (stays disabled on restore): com.netflix.ninja.
+#
+# Kept on purpose: com.realtek.tv, .tv.passthrough, .dtv, .dtmb, .tv.atv, .tv.atsc, .tv.isdb,
+# com.android.providers.tv, com.google.android.tv.inputplayer and overlays (Live TV, HDMI, tuners);
+# com.realtek.menu, .slices, .globalkeyhandler, com.google.android.tv.globalkeyhandler (input menu, keys);
+# com.android.bluetooth, googletvremotepairer (+ customizationsample), com.realtek.connecteddevices,
+# com.realtek.rtkvirtualkeyboard (remote pairing and keys); Gboard, Play Store, Play Services,
+# partnersetup; com.realtek.systemservice, .power, .energymode, .display.monitor, .secservice,
+# .statusbar, .media.notification, .mdnsoffload; katniss + tv.remote.service + tts (voice, by choice),
+# mediashell (Chromecast, by choice), com.realsil.ota + tv.dfuservice (remote updates, by choice).
+# Factory packages, never launched: com.expressluck.tvfactory, com.realtek.tv110factorytools.
+
+# Batch 1: telemetry, ads, demo
+tv.anoki.acr.anokiacroptin                   # automatic content recognition (Anoki ACR)
+com.google.android.feedback
+com.android.tv.feedbackconsent
+com.android.adservices.api
+com.android.ondevicepersonalization.services
+com.android.federatedcompute.services
+com.realtek.retailmode                       # store demo
+
+# Batch 2: background services a home TV does not use
+# com.android.devicelockcontroller           # refused: "Cannot disable a protected package"
+com.android.managedprovisioning              # work profile setup
+com.android.dynsystem                        # Dynamic System Updates
+com.android.healthconnect.controller
+com.android.health.connect.backuprestore
+com.google.android.syncadapters.calendar
+com.google.android.marvin.talkback
+com.android.cameraextensions
+com.android.dreams.basic
+com.netflix.tokenmanager                     # Netflix itself is disabled from the factory
+
+# Batch 3: preloads, off by choice
+com.amazon.amazonvideo.livingroom            # Prime Video
+com.google.android.youtube.tvmusic
+com.google.android.videos                    # Google TV (Play Movies)
+com.google.android.play.games
+com.realtek.kara                             # karaoke
+com.realtek.karaoke.userguide
+com.rtk.mediabrowser                         # USB media player
+com.seraphic.hbbtv.app                       # HbbTV red button
+com.seraphic.webview                         # HbbTV's engine; the system WebView is com.google.android.webview
+
+# Handover, only after scripts/install.sh made Lumen Home (it disables launcherx and setupwraith itself)
+com.google.android.apps.tv.dreamx            # Google screensaver, replaced by Lumen Clock
+com.realtek.leanbacklauncher.partnercustomizer   # feeds the stock launcher's rows
