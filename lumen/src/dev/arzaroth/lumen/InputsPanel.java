@@ -20,7 +20,7 @@ import android.view.animation.DecelerateInterpolator;
 import java.util.ArrayList;
 
 final class InputsPanel extends View {
-    private static final String[] LIVE_TV_PACKAGES = {"com.android.tv", "com.google.android.tv", "com.google.android.apps.tv.launcherx"};
+    private static final String[] LIVE_TV_PACKAGES = {"com.android.tv", "com.realtek.tv", "com.google.android.tv", "com.google.android.apps.tv.launcherx"};
 
     private static final class Item {
         final String label;
