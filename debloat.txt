@@ -1,0 +1,20 @@
+# AOSP Android TV 14 (SDK 34) emulator image, system-images;android-34;android-tv;x86
+# Apply: scripts/disable.sh debloat.txt    Undo: scripts/restore.sh
+# Stock launcher (disabled separately, only once Lumen is confirmed as Home): com.google.android.tvlauncher
+# Kept on purpose: streaming apps (YouTube, YouTube Music), voice search (katniss), Chromecast (mediashell),
+# Play Store and Play Services, Live TV (com.android.tv), TV providers, keyboard, remote service, Bluetooth,
+# firmware/config updater, every core Android package.
+
+# Ads, recommendations and personalisation
+com.google.android.tvrecommendations
+com.google.android.adservices.api
+com.google.android.federatedcompute
+
+# Telemetry
+com.google.android.tv.bugreportsender
+
+# Preloaded apps and background services a TV does not need
+com.google.android.play.games
+com.google.android.backdrop
+com.google.android.syncadapters.calendar
+com.android.printspooler
