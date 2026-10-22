@@ -4,8 +4,11 @@
 set -euo pipefail
 LABEL="${1:?usage: measure.sh <label>}"
 adb reboot
-adb wait-for-device
-until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do sleep 3; done
+sleep 10
+until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do
+  case "${ANDROID_SERIAL:-}" in *:*) adb connect "$ANDROID_SERIAL" >/dev/null 2>&1 || true ;; esac
+  sleep 3
+done
 sleep 90
 adb shell input keyevent HOME
 sleep 10
