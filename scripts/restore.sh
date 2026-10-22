@@ -35,6 +35,6 @@ echo "dream   screensaver -> ${saver:-default}"
 
 sh input keyevent HOME
 sleep 3
-echo "focus   $(sh dumpsys activity activities | grep -m1 -E 'topResumedActivity|mFocusedApp' | sed 's/^ *//')"
+echo "focus   $(sh dumpsys activity activities | grep -E 'topResumedActivity|mFocusedApp' | sed -n 's/^ *//; 1p')"
 echo "disabled now:"
 sh pm list packages -d | sed 's/^package:/  /' | sort

@@ -28,7 +28,7 @@ done
 focused_home() {
   sh input keyevent HOME
   sleep 3
-  focused=$(sh dumpsys activity activities | grep -m1 -E 'mFocusedApp|topResumedActivity' || true)
+  focused=$(sh dumpsys activity activities | grep -E 'mFocusedApp|topResumedActivity' | sed -n 1p || true)
   grep -q "$PKG" <<<"$focused"
 }
 
