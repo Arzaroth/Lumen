@@ -12,5 +12,6 @@ sleep 10
 m=$(adb shell dumpsys meminfo | tr -d '\r')
 echo "== $LABEL"
 grep -E '^ *(Used RAM|Free RAM|Total RAM):' <<<"$m"
-grep -E 'K: (com\.google\.android\.(tvlauncher|tvrecommendations|backdrop|play\.games|syncadapters\.calendar|federatedcompute|adservices\.api|tv\.bugreportsender)|dev\.arzaroth\.lumen|com\.android\.printspooler) ' <<<"$m" | sort -u || true
+pss=$(sed -n '/^Total PSS by process:/,/^$/p' <<<"$m")
+grep -E 'K: (com\.google\.android\.(tvlauncher|apps\.tv\.(launcherx|dreamx)|tungsten\.setupwraith|tvrecommendations|backdrop|play\.games|syncadapters\.calendar|federatedcompute|adservices\.api|tv\.bugreportsender)|dev\.arzaroth\.lumen|tv\.anoki\.acr\.anokiacroptin|com\.android\.printspooler)(:[a-z]+)? ' <<<"$pss" || true
 echo "processes: $(adb shell ps -A | wc -l)"
