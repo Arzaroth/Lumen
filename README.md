@@ -113,7 +113,11 @@ work; Live TV opens the Realtek tuner (no channels scanned yet, so it opens the 
   `AMATI_EXPERIENCE`, unless a read-only vendor config flag is set. With launcherx disabled they
   silently do nothing. `LumenKeys` filters them first, but any accessibility key filter stops held
   keys from repeating (volume up held went one step instead of 20 -> 31), so the filter is only
-  requested while Lumen is in front. From inside an app: Home, then the button.
+  requested while Lumen is in front. From inside an app: Home, then the button. Checked with the real
+  remote: Input, YouTube and Disney+ work from Home, and held volume ramps (20 -> 35) inside YouTube.
+- YouTube came up signed out although both Google accounts are still on the TV: Google TV hands
+  YouTube's profile choice to launcherx (`com.google.android.gms.account.ProfilePickerDelegation`),
+  which nothing answers once launcherx is disabled.
 - `adb shell input keyevent` does not go through accessibility key filters, so testing them needs the
   real remote.
 
