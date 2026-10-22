@@ -45,14 +45,28 @@ else
   echo "note    $STOCK outranks any Home choice while enabled; swapping with a guard"
 fi
 
-enabled=$(sh pm list packages -e)
-if [ "${1:-}" != "--keep-stock" ] && grep -qx "package:$STOCK" <<<"$enabled"; then
-  echo "disable $STOCK -> $(sh pm disable-user --user 0 "$STOCK")"
-  echo "$STOCK" >> "$STATE/disabled-by-us.txt"
+rivals=$(sh cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME |
+  awk '/priority=/ { split($1, a, "="); prio = a[2] } /^ *[a-z][^ ]*\// { if (prio >= 0) print $1 }' |
+  sed 's#/.*##' | grep -vx "$PKG" | sort -u || true)
+if [ "${1:-}" != "--keep-stock" ] && [ -n "$rivals" ]; then
+  wifi=$(sh dumpsys wifi)
+  for r in $rivals; do
+    if grep -qE "cname=$r([^.a-zA-Z0-9]|$)" <<<"$wifi"; then
+      echo "$r claims Home and owns saved Wi-Fi networks; disabling it would delete them." >&2
+      echo "Forget and re-join the network in Settings, then run this again." >&2
+      exit 1
+    fi
+  done
+  swapped=()
+  for r in $rivals; do
+    echo "disable $r -> $(sh pm disable-user --user 0 "$r")"
+    echo "$r" >> "$STATE/disabled-by-us.txt"
+    swapped+=("$r")
+  done
   sort -u -o "$STATE/disabled-by-us.txt" "$STATE/disabled-by-us.txt"
   if ! focused_home; then
-    echo "Lumen did not take Home after disabling $STOCK ($focused); re-enabling it." >&2
-    sh pm enable --user 0 "$STOCK"
+    echo "Lumen did not take Home after disabling ${swapped[*]} ($focused); re-enabling them." >&2
+    for r in "${swapped[@]}"; do sh pm enable --user 0 "$r"; done
     exit 1
   fi
   echo "verify  Lumen is Home"
