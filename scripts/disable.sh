@@ -21,7 +21,11 @@ for p in $PKGS; do
     echo "skip    $p (not installed)"
     continue
   fi
-  out=$(adb shell pm disable-user --user 0 "$p" 2>&1 | tr -d '\r')
+  out=$(adb shell pm disable-user --user 0 "$p" 2>&1 | tr -d '\r') || true
+  if ! grep -q 'new state: disabled' <<<"$out"; then
+    echo "fail    $p -> $(grep -m1 -E 'Exception:|Error' <<<"$out" | sed 's/^[^:]*: //')"
+    continue
+  fi
   echo "disable $p -> $out"
   echo "$p" >> "$STATE/disabled-by-us.txt"
 done
