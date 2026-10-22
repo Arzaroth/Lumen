@@ -144,4 +144,5 @@ Undo everything: `scripts/restore.sh`.
 
 Done on the emulator and on the Thomson (`192.168.5.200`, reached from a machine on the same
 `192.168.5.x` subnet; the first machine on `192.168.42.x` could not reach it through the UniFi
-gateway). Backup in `backup/`, undo with `scripts/restore.sh`.
+gateway). Backup in `backup/`, undo with `scripts/restore.sh` (turn debugging back on first). USB and
+Network debugging are off again: the TV answers ping, TCP 5555 refuses, no Wireless debugging on mDNS.
