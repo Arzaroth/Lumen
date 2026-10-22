@@ -1,0 +1,4 @@
+# Per-TV state: serials, device names, settings. Each TV gets its own.
+/backup/
+/shots/
+/lumen/build/
