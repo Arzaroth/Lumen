@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Locale;
 
 public final class LumenActivity extends Activity {
+    static final String ACTION_INPUTS = "dev.arzaroth.lumen.INPUTS";
     private static final int COLS = 5;
     private static final int ZONE_TOP = 0, ZONE_TILES = 1;
     private static final long LONG_PRESS_MS = 550;
@@ -116,6 +117,7 @@ public final class LumenActivity extends Activity {
         register(packageReceiver, pkg);
 
         reloadApps();
+        if (ACTION_INPUTS.equals(getIntent().getAction())) main.post(this::openInputs);
     }
 
     @Override
@@ -150,7 +152,14 @@ public final class LumenActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        LumenKeys.setHomeInFront(true);
+    }
+
+    @Override
     protected void onPause() {
+        LumenKeys.setHomeInFront(false);
         if (zone == ZONE_TILES && index < tiles.size()) {
             prefs.edit().putString("focus", tiles.get(index).app.key()).apply();
         }
@@ -165,6 +174,15 @@ public final class LumenActivity extends Activity {
         zone = ZONE_TILES;
         index = Math.min(lastDockIndex, Math.max(0, tiles.size() - 1));
         applyFocus(true);
+        if (ACTION_INPUTS.equals(intent.getAction())) openInputs();
+    }
+
+    private void openInputs() {
+        zone = ZONE_TOP;
+        pillIndex = Pill.INPUTS;
+        applyFocus(true);
+        inputs.reload();
+        inputs.toggle(true);
     }
 
     @Override
@@ -611,8 +629,7 @@ public final class LumenActivity extends Activity {
         if (zone == ZONE_TOP) {
             switch (pillIndex) {
                 case Pill.INPUTS:
-                    inputs.reload();
-                    inputs.toggle(true);
+                    openInputs();
                     break;
                 case Pill.WIFI:
                     if (!start(new Intent(Settings.ACTION_WIFI_SETTINGS))) start(new Intent(Settings.ACTION_SETTINGS));
