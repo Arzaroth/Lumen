@@ -94,6 +94,7 @@ final class InputsPanel extends View {
         }
         TvInputManager tim = (TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
         if (tim != null) {
+            int first = items.size();
             for (TvInputInfo info : tim.getTvInputList()) {
                 if (info.isHidden(c) || !info.isPassthroughInput() || info.getParentId() != null) continue;
                 CharSequence custom = info.loadCustomLabel(c);
@@ -102,6 +103,7 @@ final class InputsPanel extends View {
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 items.add(new Item(label, i));
             }
+            items.subList(first, items.size()).sort((a, b) -> a.label.compareToIgnoreCase(b.label));
         }
         selected = 0;
         requestLayout();
