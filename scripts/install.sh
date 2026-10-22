@@ -80,3 +80,13 @@ fi
 [ -s "$STATE/screensaver.txt" ] || sh settings get secure screensaver_components > "$STATE/screensaver.txt"
 sh settings put secure screensaver_components "$PKG/.LumenDream"
 echo "dream   Lumen Clock screensaver"
+
+KEYS="$PKG/.LumenKeys"
+a11y=$(sh settings get secure enabled_accessibility_services)
+[ -e "$STATE/accessibility.txt" ] || echo "$a11y" > "$STATE/accessibility.txt"
+if ! grep -q "$KEYS" <<<"$a11y"; then
+  if [ -z "$a11y" ] || [ "$a11y" = null ]; then a11y="$KEYS"; else a11y="$a11y:$KEYS"; fi
+  sh settings put secure enabled_accessibility_services "$a11y"
+  sh settings put secure accessibility_enabled 1
+fi
+echo "keys    remote Input and app buttons -> Lumen ($(sh settings get secure enabled_accessibility_services))"

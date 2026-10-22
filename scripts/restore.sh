@@ -33,6 +33,17 @@ else
 fi
 echo "dream   screensaver -> ${saver:-default}"
 
+if [ -e "$STATE/accessibility.txt" ]; then
+  a11y="$(tr -d '\r' < "$STATE/accessibility.txt")"
+  if [ -z "$a11y" ] || [ "$a11y" = null ]; then
+    sh settings delete secure enabled_accessibility_services >/dev/null
+    sh settings put secure accessibility_enabled 0
+  else
+    sh settings put secure enabled_accessibility_services "$a11y"
+  fi
+  echo "keys    accessibility services -> ${a11y:-none}"
+fi
+
 sh input keyevent HOME
 sleep 3
 echo "focus   $(sh dumpsys activity activities | grep -E 'topResumedActivity|mFocusedApp' | sed -n 's/^ *//; 1p')"
