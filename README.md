@@ -37,7 +37,10 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
 - The clock is alive: each digit that changes bursts into stardust that arcs out and streams into
   the next one, which lands bold with a shockwave and thins back to a hairline (wider on the tens,
   all digits and a flash on the hour); the colon beats with the seconds, a hairline fills across
-  the minute shedding sparks, a glint crosses the glass, and the glow takes the focused app's colour
+  the minute shedding sparks, and the glow takes the focused app's colour. Between minutes stars
+  twinkle in the strokes, an iridescent sheen drifts through the digits, and every few seconds a
+  different moment plays: a glint, the digits breathing heavier and back, a wave, the colon's dots
+  orbiting each other, dust lifting off and settling, or a comet that lights each digit it passes
 - Lumen Clock screensaver: the same clock, large; it plays each change, then drifts somewhere else
   against burn-in
 - Remote keys: on Google TV the remote's Input, YouTube, Netflix and Disney+ buttons are wired to the
