@@ -44,20 +44,20 @@ final class Stage extends View {
     private static final int[][] GRIDS = {{176, 99}, {144, 81}, {COLS, ROWS}};
     private static final float COVER = 0.35f;
     private static final int ENTER = 0, HOLD = 1, EXIT = 2;
-    private static final int E_CONVERGE = 0, E_RAIN = 1, E_PRINT = 2, E_WARP = 3, E_SPIRAL = 4, ENTERS = 5;
-    private static final int H_SHIMMER = 0, H_PULSE = 1, H_RIPPLE = 2, H_SHOW = 3, H_STORM = 4;
-    private static final int X_DETONATE = 0, X_VORTEX = 1, X_DUST = 2, X_MELT = 3, X_GLITCH = 4, X_LAUNCH = 5, X_HYPERSPACE = 6;
-    private static final int[] COSMOS_HOLDS = {H_SHIMMER, H_PULSE, H_RIPPLE, H_STORM};
-    private static final int[] FIREWORK_HOLDS = {H_SHIMMER, H_PULSE, H_RIPPLE, H_SHOW};
-    private static final int[] COSMOS_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_MELT, X_GLITCH, X_HYPERSPACE};
-    private static final int[] FIREWORK_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_MELT, X_GLITCH, X_LAUNCH};
-    private static final int[] QUICK_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_GLITCH};
-    private static final int[] ALL_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT, E_WARP, E_SPIRAL};
-    private static final int[] CALM_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT};
-    private static final int[] CALM_HOLDS = {H_SHIMMER, H_PULSE};
+    private static final int E_CONVERGE = 0, E_RAIN = 1, E_PRINT = 2, E_WARP = 3, E_SPIRAL = 4, E_DEPTH = 5, E_SWEEP = 6;
+    private static final int H_SHIMMER = 0, H_PULSE = 1, H_RIPPLE = 2, H_SHOW = 3, H_STORM = 4, H_FLAG = 5, H_SPIN = 6;
+    private static final int X_DETONATE = 0, X_VORTEX = 1, X_DUST = 2, X_MELT = 3, X_GLITCH = 4, X_LAUNCH = 5, X_HYPERSPACE = 6, X_ZOOM = 7, X_SHATTER = 8;
+    private static final int[] COSMOS_HOLDS = {H_SHIMMER, H_PULSE, H_RIPPLE, H_STORM, H_FLAG, H_SPIN};
+    private static final int[] FIREWORK_HOLDS = {H_SHIMMER, H_PULSE, H_RIPPLE, H_SHOW, H_FLAG, H_SPIN};
+    private static final int[] COSMOS_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_MELT, X_GLITCH, X_HYPERSPACE, X_ZOOM, X_SHATTER};
+    private static final int[] FIREWORK_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_MELT, X_GLITCH, X_LAUNCH, X_ZOOM, X_SHATTER};
+    private static final int[] QUICK_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_GLITCH, X_ZOOM, X_SHATTER};
+    private static final int[] ALL_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT, E_WARP, E_SPIRAL, E_DEPTH, E_SWEEP};
+    private static final int[] CALM_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT, E_SWEEP};
+    private static final int[] CALM_HOLDS = {H_SHIMMER, H_PULSE, H_FLAG};
     private static final int[] CALM_EXITS = {X_DUST, X_MELT};
-    private static final float[] ENTER_T = {1.3f, 1.75f, 1.6f, 1.3f, 1.9f};
-    private static final float[] EXIT_T = {2.6f, 1.9f, 2.3f, 2.5f, 1.7f, 2.7f, 1.6f};
+    private static final float[] ENTER_T = {1.3f, 1.75f, 1.6f, 1.3f, 1.9f, 1.8f, 1.5f};
+    private static final float[] EXIT_T = {2.6f, 1.9f, 2.3f, 2.5f, 1.7f, 2.7f, 1.6f, 1.7f, 2.0f};
     private static final float CHARGE_T = 0.8f, VORTEX_T = 1.45f, GLITCH_T = 0.8f;
     private static final int SPARKS = 2400, RINGS = 8, ROCKETS = 12, LIGHTS = 4, RIPPLES = 3, SPARK_COLORS = 6;
     private static final int SHELLS = 8, PEONY = 0, WILLOW = 1, HALO = 2, CROSSETTE = 3, CHRYSANTHEMUM = 4;
@@ -154,6 +154,14 @@ final class Stage extends View {
     private final float[] hAlpha = new float[GHOSTS];
     private final int[] hColor = new int[GHOSTS];
     private int ghostNext;
+
+    // The shatter exit's pieces: centre, velocity, depth and spin of each, released one by one.
+    private static final int CHUNKS_X = 5, CHUNKS_Y = 3, CHUNKS = CHUNKS_X * CHUNKS_Y;
+    private final float[] qx = new float[CHUNKS], qy = new float[CHUNKS], qz = new float[CHUNKS];
+    private final float[] qvx = new float[CHUNKS], qvy = new float[CHUNKS], qvz = new float[CHUNKS];
+    private final float[] qa = new float[CHUNKS], qw = new float[CHUNKS], qd = new float[CHUNKS];
+    private final byte[] chunk = new byte[CAP];
+    private float spinYaw;
     private final int[] faceQ = new int[3];
     private final float[] axes = new float[9];
     private float frontLight = 1f;
@@ -653,6 +661,21 @@ final class Stage extends View {
                     pa[i] = 0;
                     break;
                 }
+                case E_DEPTH:
+                    fx[i] = cx + (rnd.nextFloat() - 0.5f) * logo.width() * 2.4f;
+                    fy[i] = cy + (rnd.nextFloat() - 0.5f) * logo.height() * 2.4f;
+                    px[i] = fx[i];
+                    py[i] = fy[i];
+                    pz[i] = logo.width() * 7f;
+                    delay[i] = seed[i] * 0.5f;
+                    pa[i] = 0;
+                    break;
+                case E_SWEEP:
+                    px[i] = tx + logo.width() * 0.7f;
+                    py[i] = ty;
+                    delay[i] = (1 - gx[i]) * 0.5f + seed[i] * 0.06f;
+                    pa[i] = 0;
+                    break;
             }
         }
     }
@@ -696,6 +719,8 @@ final class Stage extends View {
         if (holdKind == H_STORM) {
             holdT = 5.5f;
             cosmos.storm(holdT);
+        } else if (holdKind == H_SPIN) {
+            holdT = Math.max(holdT, 3.7f);
         }
     }
 
@@ -732,6 +757,16 @@ final class Stage extends View {
                 case X_GLITCH:
                     delay[i] = GLITCH_T + hash01((int) (gy[i] * gridRows / 3), 7) * 0.35f;
                     break;
+                case X_ZOOM:
+                    delay[i] = (float) Math.hypot((px[i] - cx) / logo.width(), (py[i] - cy) / logo.height()) * 0.55f + seed[i] * 0.2f;
+                    break;
+                case X_SHATTER: {
+                    int c = Math.min(CHUNKS_X - 1, (int) (gx[i] * CHUNKS_X)) + CHUNKS_X * Math.min(CHUNKS_Y - 1, (int) (gy[i] * CHUNKS_Y));
+                    chunk[i] = (byte) c;
+                    fx[i] = px[i] - target((c % CHUNKS_X + 0.5f) / CHUNKS_X, true);
+                    fy[i] = py[i] - target((c / CHUNKS_X + 0.5f) / CHUNKS_Y, false);
+                    break;
+                }
                 case X_HYPERSPACE: {
                     float dx = px[i] - cx, dy = py[i] - cy;
                     float d = (float) Math.hypot(dx, dy);
@@ -746,6 +781,20 @@ final class Stage extends View {
                     delay[i] = d / logo.width();
                     break;
                 }
+            }
+        }
+        if (exitKind == X_SHATTER) {
+            for (int c = 0; c < CHUNKS; c++) {
+                float u = (c % CHUNKS_X + 0.5f) / CHUNKS_X, v = (c / CHUNKS_X + 0.5f) / CHUNKS_Y;
+                qx[c] = target(u, true);
+                qy[c] = target(v, false);
+                qz[c] = 0;
+                qvx[c] = (u - 0.5f) * 2f * (260 + rnd.nextFloat() * 260) * unit;
+                qvy[c] = -(180 + rnd.nextFloat() * 300) * unit;
+                qvz[c] = (rnd.nextFloat() - 0.5f) * 900 * unit;
+                qa[c] = 0;
+                qw[c] = (rnd.nextFloat() - 0.5f) * 5f;
+                qd[c] = 0.15f + rnd.nextFloat() * 0.5f;
             }
         }
         if (exitKind == X_LAUNCH) {
@@ -1003,6 +1052,10 @@ final class Stage extends View {
                 if (phaseT >= EXIT_T[exitKind]) startEnter();
                 break;
         }
+        if (!(phase == HOLD && holdKind == H_SPIN) && spinYaw != 0f) {
+            spinYaw = (float) Math.IEEEremainder(spinYaw, Math.PI * 2) * (float) Math.pow(0.02f, dt);
+            if (Math.abs(spinYaw) < 0.001f) spinYaw = 0f;
+        }
         float drag = (float) Math.pow(0.35f, dt);
         for (int g = 0; g < GHOSTS; g++) {
             if (hLife[g] <= 0) continue;
@@ -1069,6 +1122,24 @@ final class Stage extends View {
                     pa[i] = Math.min(1f, u * 4f);
                     break;
                 }
+                case E_DEPTH: {
+                    float u = (t - delay[i]) / 1.2f;
+                    if (u <= 0) break;
+                    float e = u >= 1 ? 1 : 1 - (float) Math.pow(1 - u, 3);
+                    place(i, fx[i] + (tx - fx[i]) * e, fy[i] + (ty - fy[i]) * e, inv);
+                    pz[i] = (1 - e) * logo.width() * 7f;
+                    pa[i] = Math.min(1f, u * 2.5f);
+                    break;
+                }
+                case E_SWEEP: {
+                    float u = (t - delay[i]) / 0.75f;
+                    if (u <= 0) break;
+                    float e = u >= 1 ? 1 : backOut(u), arc = (float) Math.sin(Math.min(1f, u) * Math.PI);
+                    place(i, tx + (1 - e) * logo.width() * 0.7f, ty + arc * cell * 2.5f * (seed[i] - 0.5f), inv);
+                    pz[i] = -arc * logo.width() * 0.12f;
+                    pa[i] = Math.min(1f, u * 3f);
+                    break;
+                }
                 case E_SPIRAL: {
                     float u = (t - delay[i]) / 1.35f;
                     if (u <= 0) continue;
@@ -1117,11 +1188,25 @@ final class Stage extends View {
             waveT[w] = 0.0001f;
             nextWave = t + 1.0f + rnd.nextFloat() * 0.4f;
         }
+        if (holdKind == H_SPIN) {
+            float u = Math.max(0f, Math.min(1f, (t - 0.5f) / 2.6f));
+            spinYaw = (u < 0.5f ? 4 * u * u * u : 1 - (float) Math.pow(-2 * u + 2, 3) / 2) * 6.2832f;
+        }
+        float spinCos = (float) Math.cos(spinYaw), spinSin = (float) Math.sin(spinYaw);
+        float flag = Math.min(1f, t / 0.6f) * Math.min(1f, Math.max(0f, (holdT - t) / 0.6f));
         float front = 560 * unit, width = 70 * unit;
         for (int i = 0; i < count; i++) {
             float tx = target(gx[i], true), ty = target(gy[i], false);
             float x = cx + (tx - cx) * scale, y = cy + (ty - cy) * scale;
             pz[i] = holdKind == H_SHIMMER ? (float) Math.sin(clock * 1.7f + gx[i] * 7f + gy[i] * 3f) * cell * 0.9f : 0f;
+            if (holdKind == H_FLAG) {
+                float wave = (float) Math.sin(gx[i] * 9f - t * 3.4f + gy[i] * 1.2f);
+                pz[i] = wave * cell * 3.5f * flag;
+                y += wave * cell * 0.25f * flag;
+            } else if (holdKind == H_SPIN) {
+                x = cx + (tx - cx) * spinCos;
+                pz[i] = (tx - cx) * spinSin;
+            }
             if (holdKind == H_SHIMMER || holdKind == H_SHOW || holdKind == H_STORM) {
                 y += (float) Math.sin(clock * 2.1f + gx[i] * 9f + gy[i] * 4f) * cell * 0.22f;
             } else if (holdKind == H_RIPPLE) {
@@ -1279,6 +1364,45 @@ final class Stage extends View {
                     px[i] += vx[i] * dt;
                     py[i] += vy[i] * dt;
                     if (t > 1.0f) pa[i] = Math.max(0, pa[i] - dt * 3f);
+                }
+                break;
+            }
+            case X_ZOOM: {
+                float focal = logo.width() * 2.4f;
+                for (int i = 0; i < count; i++) {
+                    float u = (t - delay[i]) / 1.0f;
+                    if (u <= 0) continue;
+                    float e = Math.min(1f, u);
+                    pz[i] = -e * e * focal * 0.8f;
+                    pw[i] = Math.max(pw[i], e * 0.7f);
+                    pa[i] = Math.max(0f, 1f - Math.max(0f, (u - 0.55f) / 0.45f));
+                    vx[i] = vy[i] = 0;
+                }
+                break;
+            }
+            case X_SHATTER: {
+                for (int c = 0; c < CHUNKS; c++) {
+                    if (qd[c] >= 0 && t >= qd[c]) {
+                        qd[c] = -1f;
+                        for (int k = 0; k < 6; k++) {
+                            spark(qx[c], qy[c], (rnd.nextFloat() - 0.5f) * 420 * unit, -(rnd.nextFloat() * 320) * unit,
+                                    0.5f, 1.4f, 800 * unit, 2 + rnd.nextInt(3));
+                        }
+                    }
+                    if (qd[c] >= 0) continue;
+                    qvy[c] += 900 * unit * dt;
+                    qx[c] += qvx[c] * dt;
+                    qy[c] += qvy[c] * dt;
+                    qz[c] += qvz[c] * dt;
+                    qa[c] += qw[c] * dt;
+                }
+                for (int i = 0; i < count; i++) {
+                    int c = chunk[i];
+                    float cos = (float) Math.cos(qa[c]), sin = (float) Math.sin(qa[c]);
+                    float jitter = qd[c] >= 0 ? (rnd.nextFloat() - 0.5f) * cell * 0.4f * t / Math.max(0.01f, qd[c]) : 0f;
+                    place(i, qx[c] + fx[i] * cos - fy[i] * sin + jitter, qy[c] + fx[i] * sin + fy[i] * cos, inv);
+                    pz[i] = qz[c];
+                    if (qd[c] < 0 && t > 1.2f) pa[i] = Math.max(0f, pa[i] - dt * 1.8f);
                 }
                 break;
             }
@@ -1459,7 +1583,7 @@ final class Stage extends View {
         float halo = cell * 1.6f, size = cell * 0.42f;
         boolean sweeping = phase == HOLD && (holdKind == H_SHIMMER || holdKind == H_SHOW) && lively();
         float sweep = sweeping ? (phaseT % 2.4f) / 1.6f - 0.2f : -9f;
-        float yaw = lively() ? (float) Math.sin(clock * 0.21f) * 0.34f : 0.22f;
+        float yaw = (lively() ? (float) Math.sin(clock * 0.21f) * 0.34f : 0.22f) + spinYaw;
         float pitch = lively() ? 0.2f + (float) Math.sin(clock * 0.15f + 1f) * 0.1f : 0.2f;
         float cw = (float) Math.cos(yaw), sw = (float) Math.sin(yaw), cp = (float) Math.cos(pitch), sp = (float) Math.sin(pitch);
         axes[0] = cw; axes[1] = 0; axes[2] = -sw;
@@ -1469,6 +1593,7 @@ final class Stage extends View {
         // Halos overlap several dense cells: one in three (one in two while moving) at higher strength
         // looks the same for a fraction of the fill.
         int stride = phase == HOLD ? 3 : 2;
+        float focal = logo.width() * 2.4f, lcx = logo.centerX(), lcy = logo.centerY();
         for (int i = 0; i < count; i++) {
             if (pa[i] <= 0.01f) continue;
             int color = slots[bk[i]];
@@ -1482,10 +1607,16 @@ final class Stage extends View {
             int alpha = Math.round(255 * pa[i]);
             voxel(x, y, pz[i], size, color, alpha);
             if (withGlow && i % stride == 0) {
+                float k = 1f;
+                if (pz[i] != 0f) {
+                    k = focal / Math.max(focal * 0.2f, focal + pz[i]);
+                    x = lcx + (x - lcx) * k;
+                    y = lcy + (y - lcy) * k;
+                }
                 if (moving) {
-                    segment(glowV, glowQ, x - vx[i] * tail, y - vy[i] * tail, x, y, halo, halo * 0.6f);
+                    segment(glowV, glowQ, x - vx[i] * tail, y - vy[i] * tail, x, y, halo * k, halo * 0.6f * k);
                 } else {
-                    square(glowV, glowQ, x, y, halo);
+                    square(glowV, glowQ, x, y, halo * k);
                 }
                 float strength = (stride == 3 ? 0x80 : 0x58) * pa[i] * (near > 0 ? 1f + near * 1.6f : 1f);
                 tint(glowC, glowQ++, Apps.withAlpha(color, Math.min(255, Math.round(strength))));
