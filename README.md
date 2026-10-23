@@ -41,6 +41,10 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
   twinkle in the strokes, an iridescent sheen drifts through the digits, and every few seconds a
   different moment plays: a glint, the digits breathing heavier and back, a wave, the colon's dots
   orbiting each other, dust lifting off and settling, or a comet that lights each digit it passes
+- Boot intro: the stock boot animation cannot be replaced on a locked Google TV (read-only system
+  partitions, verified boot, no root), so Lumen's first appearance after each boot is the show: the
+  stars come out one by one, the Milky Way rises, meteors burst from the radiant, the interface lifts
+  in while the clock gathers out of stardust, and the logo enters last (Lumen settings: on/off, play now)
 - Lumen Clock screensaver: the same clock, large; it plays each change, then drifts somewhere else
   against burn-in
 - Remote keys: on Google TV the remote's Input, YouTube, Netflix and Disney+ buttons are wired to the
