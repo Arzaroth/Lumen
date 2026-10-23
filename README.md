@@ -16,8 +16,11 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
 
 ## Lumen
 
-- Hero backdrop: a soft colour wash of the focused app's banner with an ambient glow sampled from it,
-  cross-fading as focus moves
+- The empty middle: the focused app's logo rebuilt as lit 3D voxels, cycling random entrances, holds
+  (shimmer, pulse, ripple, meteor storm) and exits, never the same one twice in a row; behind it a
+  night sky drawn once at screen resolution (Milky Way, ~20k stars) with twinkling stars, a meteor
+  shower from a per-app radiant, a passing satellite and an airglow chosen to contrast with the logo.
+  A fireworks style is kept in `Stage` as an alternative
 - Greeting, thin Outfit clock and date; frosted pills for Inputs (glass dropdown: Live TV + HDMI
   inputs via the TV input framework), network (Wi-Fi name or Ethernet) and Settings
 - Glass dock band of 5 apps, a spring-animated glass highlight, focused tile lifts with a real shadow
@@ -100,6 +103,15 @@ work; Live TV opens the Realtek tuner (no channels scanned yet, so it opens the 
   package out of nine. `restore.sh` reads the list up front.
 - The first backdrop painted seven full-screen layers per frame. It is now composed once per focus
   change, off the UI thread, into a 480x270 bitmap and blitted as one texture.
+- Thick `drawPoints`/`drawLines` become one path each on the GPU renderer: a few thousand logo
+  cells drew at ~9 fps. Everything that moves is now a `drawVertices` triangle mesh.
+- `Canvas.drawVertices` with a non-zero vertex offset and no texture array crashes HWUI on this
+  build (null + offset in `SkVertices::MakeCopy`): each mesh run gets its own arrays.
+- Per-pixel fractal noise in AGSL shaders (planets, a black hole) cost 10-25 ms a frame on this GPU.
+  Noise is baked into bitmaps once; the per-frame work is blits and meshes (~3 ms with the logo
+  still, ~16 ms at worst while the voxels fly).
+- An upscaled low-resolution sky looks blurry on a 4K panel even when it is "just gas": the stars
+  are drawn into a full-resolution bitmap as single pixels.
 - On the Thomson, setupwraith's `RecoveryActivity` claims HOME at priority 1, above any sideloaded
   launcher, and it owned the saved Wi-Fi networks (`dumpsys wifi | grep cname=`): disabling it would
   have deleted them and dropped ADB. Forgetting and re-joining the network in Settings moved it to
