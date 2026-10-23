@@ -128,6 +128,8 @@ work; Live TV opens the Realtek tuner (no channels scanned yet, so it opens the 
 - Per-pixel fractal noise in AGSL shaders (planets, a black hole) cost 10-25 ms a frame on this GPU.
   Noise is baked into bitmaps once; the per-frame work is blits and meshes (~3 ms with the logo
   still, ~16 ms at worst while the voxels fly).
+- Averaging a banner into cells erases wordmarks: a thin stroke covers a third of its cell, so the
+  average is mostly background. Cells are kept by coverage and coloured by their foreground pixels.
 - An upscaled low-resolution sky looks blurry on a 4K panel even when it is "just gas": the stars
   are drawn into a full-resolution bitmap as single pixels.
 - On the Thomson, setupwraith's `RecoveryActivity` claims HOME at priority 1, above any sideloaded
