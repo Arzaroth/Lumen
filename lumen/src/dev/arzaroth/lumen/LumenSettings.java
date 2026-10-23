@@ -59,7 +59,17 @@ final class LumenSettings {
     }
 
     private Menu.Page advanced() {
-        return new Menu.Page("Advanced settings", 480).add(Menu.Row.sub("Seasonal events", this::seasonal));
+        return new Menu.Page("Advanced settings", 480)
+                .add(Menu.Row.sub("Seasonal events", this::seasonal))
+                .add(Menu.Row.note("Lumen " + version()));
+    }
+
+    private String version() {
+        try {
+            return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            return "";
+        }
     }
 
     private Menu.Page seasonal() {
