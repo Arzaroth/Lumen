@@ -16,8 +16,10 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
 
 ## Lumen
 
-- The empty middle: the focused app's logo rebuilt as lit 3D voxels, cycling random entrances, holds
-  (shimmer, pulse, ripple, meteor storm) and exits, never the same one twice in a row; behind it a
+- The empty middle: the focused app's logo rebuilt as lit 3D voxels, cycling random entrances
+  (converge, rain, print, warp, spiral, depth, sweep), holds (shimmer, pulse, ripple, meteor storm,
+  flag, spin) and exits (detonate, vortex, dust, melt, glitch, hyperspace, zoom, shatter), never the
+  same one twice in a row, and a cut-short exit's cubes fade out on their own; behind it a
   night sky drawn once at screen resolution (Milky Way, ~20k stars) with twinkling stars, a meteor
   shower from a per-app radiant, a passing satellite and an airglow chosen to contrast with the logo.
   A fireworks style is kept in `Stage` as an alternative
