@@ -70,7 +70,7 @@ public final class LumenActivity extends Activity {
     private int width, height, side, gap, tileW, tileH, labelSpace, rowH, dockTop, bandTop, bandBottom, gridTop, contentH;
 
     private FrameLayout root, content;
-    private Backdrop backdrop;
+    private Stage stage;
     private Highlight highlight;
     private InputsPanel inputs;
     private TextView greeting, clock, date, title, appsHeader, hint;
@@ -155,11 +155,13 @@ public final class LumenActivity extends Activity {
     protected void onResume() {
         super.onResume();
         LumenKeys.setHomeInFront(true);
+        stage.setRunning(true);
     }
 
     @Override
     protected void onPause() {
         LumenKeys.setHomeInFront(false);
+        stage.setRunning(false);
         if (zone == ZONE_TILES && index < tiles.size()) {
             prefs.edit().putString("focus", tiles.get(index).app.key()).apply();
         }
@@ -241,8 +243,9 @@ public final class LumenActivity extends Activity {
         root = new FrameLayout(this);
         root.setClipChildren(false);
 
-        backdrop = new Backdrop(this);
-        root.addView(backdrop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        stage = new Stage(this, s);
+        stage.layoutStage(new RectF(width * 0.36f, px(196), width - side, bandTop - px(178)), bandTop - px(8), width, height);
+        root.addView(stage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         content = new FrameLayout(this);
         content.setClipChildren(false);
@@ -464,7 +467,7 @@ public final class LumenActivity extends Activity {
             float cx = tileX(index) + tileW / 2f, cy = tileY(index) + tileH / 2f;
             highlight.moveTo(new RectF(cx - halfW, cy - halfH, cx + halfW, cy + halfH), t.app.accent, animate);
             setTitle(t.app, animate);
-            backdrop.setScene(t.app.glow, t.app.accent, animate);
+            stage.setScene(t.app, animate);
             if (index < COLS) lastDockIndex = index;
         } else {
             highlight.show(false, animate);
@@ -503,7 +506,7 @@ public final class LumenActivity extends Activity {
 
     private void scroll(boolean animate) {
         boolean inGrid = focusedRow() >= 1;
-        backdrop.setDim(inGrid ? 0.28f : 1f);
+        stage.setDim(inGrid ? 0.28f : 1f);
         appsHeader.animate().alpha(inGrid ? 1f : 0f).setDuration(animate ? 300 : 0).start();
         if (firstLayout) return;
         content.animate().translationY(scrollTarget()).setDuration(animate ? 460 : 0).setInterpolator(new DecelerateInterpolator(2.2f)).start();

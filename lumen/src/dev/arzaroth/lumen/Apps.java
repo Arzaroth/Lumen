@@ -46,6 +46,17 @@ final class Apps {
         return apps;
     }
 
+    /** The app's banner (or icon) drawn at `w` x `h`, for when the tile-sized one is too small. */
+    static Bitmap banner(Context c, ComponentName cn, int w, int h) {
+        PackageManager pm = c.getPackageManager();
+        try {
+            Drawable banner = pm.getActivityBanner(cn);
+            return banner != null ? render(banner, w, h) : renderIcon(pm.getActivityIcon(cn), w, h);
+        } catch (PackageManager.NameNotFoundException e) {
+            return null;
+        }
+    }
+
     private static Bitmap render(Drawable d, int w, int h) {
         Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(b);
