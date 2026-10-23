@@ -106,7 +106,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         super.onCreate(state);
         prefs = getSharedPreferences("lumen", MODE_PRIVATE);
         restoreKey = prefs.getString("focus", null);
-        settings = new LumenSettings(this, prefs);
+        settings = new LumenSettings(this, this, prefs);
         measure();
         buildViews();
         applySettings();

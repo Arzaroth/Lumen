@@ -21,7 +21,7 @@ fi
 adb push "$HERE/lumen/build/lumen.apk" /data/local/tmp/lumen.apk >/dev/null
 echo "install $(sh pm install -r -g /data/local/tmp/lumen.apk)"
 sh rm -f /data/local/tmp/lumen.apk
-for p in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION; do
+for p in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION DUMP; do
   sh pm grant "$PKG" "android.permission.$p" 2>/dev/null || true
 done
 
