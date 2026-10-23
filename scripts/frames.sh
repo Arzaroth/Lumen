@@ -6,7 +6,7 @@ PKG="${1:?usage: frames.sh <launcher package>}"
 adb shell input keyevent HOME
 sleep 3
 adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
-for i in $(seq 1 10); do
+for _ in $(seq 1 10); do
   for k in DPAD_RIGHT DPAD_RIGHT DPAD_LEFT; do
     adb shell input keyevent "$k"
     sleep 0.35

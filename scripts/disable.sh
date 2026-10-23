@@ -10,7 +10,7 @@ PROTECTED='^(android|com\.android\.(systemui|shell|phone|settings|tv\.settings|p
 PKGS=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$LIST" | grep -v '^$' || true)
 if bad=$(printf '%s\n' "$PKGS" | grep -E "$PROTECTED"); then
   echo "refusing: protected package(s) in the list:" >&2
-  printf '  %s\n' $bad >&2
+  printf '%s\n' "$bad" | sed 's/^/  /' >&2
   exit 1
 fi
 
