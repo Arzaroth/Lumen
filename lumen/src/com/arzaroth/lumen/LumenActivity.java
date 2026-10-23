@@ -786,6 +786,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private void updateClock() {
         if (clock == null) return;
         Calendar now = Calendar.getInstance();
+        now.setTimeInMillis(Wall.millis());
         int hour = now.get(Calendar.HOUR_OF_DAY);
         greeting.setText(hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
         int format = prefs.getInt(Prefs.CLOCK, 0);
