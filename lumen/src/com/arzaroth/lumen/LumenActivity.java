@@ -660,12 +660,13 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private void navigate(int key) {
         if (menu.isOpen()) {
             if (key == KeyEvent.KEYCODE_DPAD_UP) {
-                if (menu.atTop()) menu.close();
-                else menu.move(-1);
+                menu.move(-1);
             } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
                 menu.move(1);
-            } else {
-                menu.side(key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+            } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                menu.right();
+            } else if (!menu.left()) {
+                menu.close();
             }
             return;
         }

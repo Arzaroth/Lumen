@@ -246,22 +246,42 @@ final class Menu extends View {
         anim.start();
     }
 
-    /** True when Up should leave the menu: the cursor is on the root page's first row. */
-    boolean atTop() {
-        Page p = top();
-        return stack.size() == 1 && !p.isQuestion() && p.selected == firstEnabled(p);
-    }
-
+    /** Up/Down, rolling over from the last row to the first and back, past the notes. */
     void move(int delta) {
         Page p = top();
-        if (p.isQuestion() || p.rows.isEmpty()) return;
+        int n = p.rows.size();
+        if (p.isQuestion() || n == 0) return;
         int next = p.selected;
-        do {
-            next += delta;
-        } while (next >= 0 && next < p.rows.size() && !p.rows.get(next).enabled);
-        if (next < 0 || next >= p.rows.size()) return;
+        for (int step = 0; step < n; step++) {
+            next = (next + delta + n) % n;
+            if (p.rows.get(next).enabled) break;
+        }
+        if (!p.rows.get(next).enabled || next == p.selected) return;
         p.selected = next;
         invalidate();
+    }
+
+    /** Left: steps a choice back or moves between a question's buttons, otherwise goes back a page; false at the root. */
+    boolean left() {
+        if (onChoiceOrQuestion()) {
+            side(-1);
+            return true;
+        }
+        return pop();
+    }
+
+    /** Right: steps a choice on or moves between a question's buttons, otherwise acts as OK. */
+    void right() {
+        if (onChoiceOrQuestion()) {
+            side(1);
+        } else {
+            activate();
+        }
+    }
+
+    private boolean onChoiceOrQuestion() {
+        Page p = top();
+        return p.isQuestion() || !p.rows.isEmpty() && p.rows.get(p.selected).values != null;
     }
 
     /** Left/Right: cycles a choice, or moves between a question's buttons. */

@@ -56,8 +56,10 @@ public class MenuTest {
         Robo.idle(300);
         draw();
         assertTrue(menu.isOpen());
-        assertTrue(menu.atTop());
         menu.move(-1);
+        assertEquals(3, ((Menu.Page) Robo.call(menu, "top")).selected);
+        menu.move(1);
+        assertEquals(1, ((Menu.Page) Robo.call(menu, "top")).selected);
         menu.activate();
         assertEquals("act", log.get(0));
         menu.side(1);
@@ -68,7 +70,6 @@ public class MenuTest {
         menu.activate();
         assertEquals("pick 1", log.get(1));
         assertEquals("pick 0", log.get(log.size() - 1));
-        menu.move(1);
         menu.move(1);
         menu.activate();
         Robo.idle(100);
@@ -93,7 +94,6 @@ public class MenuTest {
         menu.activate();
         menu.side(1);
         menu.move(1);
-        assertTrue(menu.atTop());
         menu.push(Menu.Page.ask("Sure?", "A question long enough to wrap onto a second line of the panel, maybe a third.",
                 "No", () -> log.add("no"), "Yes", () -> log.add("yes"), 0));
         Robo.idle(300);
@@ -109,7 +109,33 @@ public class MenuTest {
         menu.side(-1);
         menu.activate();
         assertEquals("a", log.get(1));
-        assertFalse(menu.atTop());
+    }
+
+    @Test
+    public void rightActsAsOkAndLeftAsBack() {
+        menu.open(page());
+        menu.right();
+        assertEquals("act", log.get(0));
+        menu.move(1);
+        menu.right();
+        menu.left();
+        assertEquals("pick 0", log.get(1));
+        assertEquals("pick 2", log.get(2));
+        menu.move(1);
+        menu.right();
+        menu.right();
+        assertEquals("inner", log.get(3));
+        assertTrue(menu.left());
+        assertFalse(menu.left());
+        menu.push(Menu.Page.ask("Sure?", "Really.", "No", () -> log.add("no"), "Yes", () -> log.add("yes"), 0));
+        menu.right();
+        assertEquals(1, ((Menu.Page) Robo.call(menu, "top")).selected);
+        assertTrue(menu.left());
+        assertEquals(0, ((Menu.Page) Robo.call(menu, "top")).selected);
+        menu.open(new Menu.Page("Only notes", 300).add(Menu.Row.note("one")).add(Menu.Row.note("two")));
+        menu.move(1);
+        menu.right();
+        assertFalse(menu.left());
     }
 
     @Test

@@ -133,8 +133,13 @@ public class ActivityTest {
         Menu menu = Robo.get(a, "menu");
         assertTrue(menu.isOpen());
         key(a, KeyEvent.KEYCODE_DPAD_DOWN);
-        key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
         key(a, KeyEvent.KEYCODE_DPAD_UP);
+        key(a, KeyEvent.KEYCODE_DPAD_LEFT);
+        assertFalse(menu.isOpen());
+        key(a, KeyEvent.KEYCODE_DPAD_CENTER);
+        key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
+        assertTrue(menu.isOpen());
+        key(a, KeyEvent.KEYCODE_DPAD_LEFT);
         assertFalse(menu.isOpen());
         key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
         key(a, KeyEvent.KEYCODE_DPAD_CENTER);
