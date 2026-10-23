@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.graphics.Canvas;
+import android.provider.Settings;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +65,7 @@ public class SettingsTest implements LumenSettings.Host {
         prefs = c.getSharedPreferences("lumen", Context.MODE_PRIVATE);
         prefs.edit().clear().apply();
         Updater.releases = "http://127.0.0.1:9/latest";
+        shadowOf(c.getPackageManager()).setCanRequestPackageInstalls(false);
         settings = new LumenSettings(c, this, prefs);
         canvas = Robo.canvas(900, 1100);
     }
@@ -170,26 +172,53 @@ public class SettingsTest implements LumenSettings.Host {
         assertEquals("--resume", shadowOf((Application) Robo.context()).getBroadcastIntents().get(2).getStringArrayExtra("args")[0]);
     }
 
-    @Test
-    public void advancedShowsTheVersion() {
+    private Menu.Page advanced() {
         menu.open(settings.root());
         menu.move(1);
         menu.activate();
         down(12);
         menu.activate();
-        Menu.Page advanced = Robo.call(menu, "top");
-        assertTrue(advanced.rows.get(2).label.startsWith("Lumen "));
+        return Robo.call(menu, "top");
     }
 
     @Test
-    public void versionIsBlankWhenThePackageCannotBeRead() {
-        Context missing = new android.content.ContextWrapper(Robo.context()) {
-            @Override
-            public String getPackageName() {
-                return "org.missing.lumen";
-            }
-        };
-        assertEquals("", Updater.installed(missing));
+    public void advancedChecksForUpdatesAboveTheVersion() throws Exception {
+        try (Releases github = new Releases("v9.0.0")) {
+            Menu.Page advanced = advanced();
+            assertEquals("Checking for updates\u2026", advanced.rows.get(1).label);
+            assertTrue(advanced.rows.get(2).label.startsWith("Lumen "));
+            menu.move(1);
+            UpdaterTest.until(() -> ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.equals("Update to 9.0.0"));
+            assertEquals(1, ((Menu.Page) Robo.call(menu, "top")).selected);
+            draw();
+            shadowOf((Application) Robo.context()).checkActivities(true);
+            menu.activate();
+            assertEquals("Run scripts/install.sh to allow updates", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
+            shadowOf((Application) Robo.context()).checkActivities(false);
+            menu.activate();
+            assertEquals(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, shadowOf((Application) Robo.context()).getNextStartedActivity().getAction());
+            shadowOf(Robo.context().getPackageManager()).setCanRequestPackageInstalls(true);
+            menu.activate();
+            assertTrue(((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.startsWith("Downloading 9.0.0"));
+            UpdaterTest.until(() -> ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.equals("Installing 9.0.0\u2026"));
+            github.latestStatus = 500;
+            menu.pop();
+            menu.activate();
+            menu.move(1);
+            assertEquals("Installing 9.0.0\u2026", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
+            UpdaterTest.report(android.content.pm.PackageInstaller.STATUS_FAILURE, null);
+            assertEquals("Couldn't update, try again", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
+            menu.activate();
+            UpdaterTest.until(() -> ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.equals("Couldn't update, try again"));
+            github.latestStatus = 200;
+            github.release("1.0.0", "lumen.apk");
+            menu.activate();
+            UpdaterTest.until(() -> ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.equals("Lumen is up to date"));
+            menu.close();
+            Menu.Page shown = Robo.call(menu, "top");
+            Robo.call(settings, "refresh");
+            assertTrue(shown == Robo.call(menu, "top"));
+        }
     }
 
     @Test

@@ -13,7 +13,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowNetworkCapabilities;
 
-/** Android 9: before transport info, the location-aware network callback and receiver export flags. */
+/** Android 9: before transport info, the location-aware network callback, receiver export flags and mutable pending intents. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 28, qualifiers = "w960dp-h540dp-land-mdpi")
 public class OlderAndroidTest {
@@ -30,6 +30,18 @@ public class OlderAndroidTest {
         for (ConnectivityManager.NetworkCallback cb : shadowOf(cm).getNetworkCallbacks()) {
             cb.onCapabilitiesChanged(null, wifi);
             cb.onLost(null);
+        }
+    }
+
+    @Test
+    public void updatesOnAndroid9() throws Exception {
+        try (Releases github = new Releases("9.0.0")) {
+            Updater updater = new Updater(Robo.context(), () -> { });
+            shadowOf(Robo.context().getPackageManager()).setCanRequestPackageInstalls(true);
+            updater.check();
+            UpdaterTest.until(() -> updater.state() == Updater.State.AVAILABLE);
+            updater.update();
+            UpdaterTest.until(() -> updater.state() == Updater.State.INSTALLING);
         }
     }
 }
