@@ -15,6 +15,7 @@ import android.graphics.Shader;
 import android.os.SystemClock;
 import android.view.View;
 
+import java.util.Locale;
 import java.util.Random;
 
 /**
@@ -148,7 +149,7 @@ final class DateView extends View {
 
     /** Shows `value`; once something is shown, a new value dissolves the old one into the new. */
     void setText(CharSequence value) {
-        String next = upper ? value.toString().toUpperCase() : value.toString();
+        String next = upper ? value.toString().toUpperCase(Locale.getDefault()) : value.toString();
         if (next.length() > MAX) next = next.substring(0, MAX);
         if (next.equals(now)) return;
         boolean animate = !now.isEmpty() && running;

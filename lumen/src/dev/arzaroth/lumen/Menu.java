@@ -15,6 +15,7 @@ import android.view.animation.DecelerateInterpolator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -335,7 +336,7 @@ final class Menu extends View {
         canvas.translate(slide * 40 * s, 0);
         int alpha = Math.round(255 * (1 - Math.min(1f, Math.abs(slide))));
         header.setAlpha(Math.round(0x80 * alpha / 255f));
-        canvas.drawText(p.title.toUpperCase(), pad + inset, headerH * 0.78f, header);
+        canvas.drawText(p.title.toUpperCase(Locale.getDefault()), pad + inset, headerH * 0.78f, header);
         if (p.isQuestion()) {
             drawQuestion(canvas, p, w, alpha);
         } else {

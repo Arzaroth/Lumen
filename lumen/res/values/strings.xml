@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="keys_description">Lets the remote\'s Input, YouTube, Netflix and Disney+ buttons work with Lumen as Home.</string>
+    <string name="all_apps">ALL APPS</string>
+    <string name="rearrange_hint">Move with the arrows  ·  press OK when done</string>
 </resources>

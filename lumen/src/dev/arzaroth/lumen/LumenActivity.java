@@ -1,6 +1,7 @@
 package dev.arzaroth.lumen;
 
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.ActivityNotFoundException;
@@ -273,6 +274,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         }
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void register(BroadcastReceiver r, IntentFilter f) {
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(r, f, Context.RECEIVER_NOT_EXPORTED);
@@ -385,7 +387,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
 
         appsHeader = text(600, 20, 0x66FFFFFF);
         appsHeader.setLetterSpacing(0.16f);
-        appsHeader.setText("ALL APPS");
+        appsHeader.setText(R.string.all_apps);
         appsHeader.setAlpha(0f);
         FrameLayout.LayoutParams alp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         alp.leftMargin = side;
@@ -402,7 +404,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         root.addView(menu, mlp);
 
         hint = text(500, 24, 0xE6FFFFFF);
-        hint.setText("Move with the arrows  ·  press OK when done");
+        hint.setText(R.string.rearrange_hint);
         hint.setPadding(px(30), px(16), px(30), px(16));
         GradientDrawable hintBg = new GradientDrawable();
         hintBg.setColor(0xE616161C);
