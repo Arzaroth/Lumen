@@ -711,7 +711,7 @@ final class Stage extends View {
         holdT = 3.0f + rnd.nextFloat() * 1.4f;
         beats = 0;
         nextRocket = holdKind == H_SHOW ? 0.2f : 1.2f + rnd.nextFloat() * 2f;
-        nextWave = 0;
+        nextWave = 0.25f;
         for (int i = 0; i < count; i++) {
             pa[i] = 1;
             vx[i] = vy[i] = 0;
@@ -1216,7 +1216,8 @@ final class Stage extends View {
                     float d = (float) Math.sqrt(dx * dx + dy * dy) + 0.001f;
                     float off = Math.abs(d - waveT[w] * front);
                     if (off > width) continue;
-                    float k = (1 - off / width) * (1 - waveT[w] / 2.2f);
+                    float grow = Math.min(1f, waveT[w] / 0.35f);
+                    float k = (0.5f + 0.5f * (float) Math.cos(Math.PI * off / width)) * (1 - waveT[w] / 2.2f) * grow * grow;
                     x += dx / d * k * cell * 1.8f;
                     y += dy / d * k * cell * 1.8f;
                     pw[i] = Math.max(pw[i], k * 0.7f);
