@@ -222,7 +222,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private boolean firstSinceBoot() {
         if (prefs.getInt(Prefs.INTRO, 0) != 0 || !ValueAnimator.areAnimatorsEnabled()) return false;
         int boot = Settings.Global.getInt(getContentResolver(), Settings.Global.BOOT_COUNT, -1);
-        long id = boot >= 0 ? boot : (System.currentTimeMillis() - SystemClock.elapsedRealtime()) / 600_000;
+        long id = boot >= 0 ? boot : (Wall.millis() - SystemClock.elapsedRealtime()) / 600_000;
         if (prefs.getLong(Prefs.INTRO_BOOT, Long.MIN_VALUE) == id) return false;
         prefs.edit().putLong(Prefs.INTRO_BOOT, id).apply();
         return true;

@@ -571,7 +571,7 @@ final class Cosmos {
      * Drawn at that fractional offset, so it glides rather than stepping a pixel at a time.
      */
     private double turned() {
-        return turning ? System.currentTimeMillis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG : 0.0;
+        return turning ? Wall.millis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG : 0.0;
     }
 
     /** The whole sky, behind the logo. */

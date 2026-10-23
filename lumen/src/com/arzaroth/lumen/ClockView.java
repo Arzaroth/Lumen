@@ -138,7 +138,7 @@ final class ClockView extends View {
         setAccent(accent);
         measureColon();
         h24 = DateFormat.is24HourFormat(c);
-        tick(System.currentTimeMillis(), false);
+        tick(Wall.millis(), false);
     }
 
     private static Bitmap sprite() {
@@ -160,7 +160,7 @@ final class ClockView extends View {
         if (h24 == twentyFour) return;
         h24 = twentyFour;
         lastSecond = -1;
-        tick(System.currentTimeMillis(), true);
+        tick(Wall.millis(), true);
         invalidate();
     }
 
@@ -246,7 +246,7 @@ final class ClockView extends View {
         running = run;
         lastFrame = SystemClock.uptimeMillis();
         lastSecond = -1;
-        tick(System.currentTimeMillis(), false);
+        tick(Wall.millis(), false);
         if (run) postInvalidateOnAnimation();
     }
 
@@ -542,7 +542,7 @@ final class ClockView extends View {
     /** Starts, plays and ends the idle moments; the comet's own light is drawn here. */
     private int drawEvent(Canvas c, int q, float baseline, int tint, float dt) {
         if (event < 0) {
-            long ms = System.currentTimeMillis() % 60_000;
+            long ms = Wall.millis() % 60_000;
             if (clock >= nextEvent && !morphing() && ms > 2500 && ms < 55_000) {
                 int e;
                 do {
@@ -621,7 +621,7 @@ final class ClockView extends View {
         long frame = SystemClock.uptimeMillis();
         float dt = Math.min(0.05f, Math.max(0f, (frame - lastFrame) / 1000f));
         lastFrame = frame;
-        long millis = System.currentTimeMillis();
+        long millis = Wall.millis();
         if (running) {
             clock += dt;
             tick(millis, true);

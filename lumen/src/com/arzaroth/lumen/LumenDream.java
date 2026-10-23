@@ -80,7 +80,7 @@ public final class LumenDream extends DreamService {
         }
 
         private void schedule() {
-            long now = System.currentTimeMillis();
+            long now = Wall.millis();
             postDelayed(tick, 60_000 - now % 60_000 + 2500);
         }
 
