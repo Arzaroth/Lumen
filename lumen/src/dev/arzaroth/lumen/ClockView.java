@@ -182,13 +182,25 @@ final class ClockView extends View {
                 null, Shader.TileMode.REPEAT);
     }
 
-    /** The colon's two dots, measured from the thin glyph's ink: their heights above the baseline and size. */
+    /**
+     * The colon's two dots: their size and spacing from the thin glyph's ink, centred on the
+     * digits' own middle (the font sets its colon lower, for lowercase text).
+     */
     private void measureColon() {
-        weights[0].getTextBounds(":", 0, 1, ink);
-        float d = ink.width();
-        dotR = d / 2f;
-        dotTop = ink.top + dotR;
-        dotBottom = ink.bottom - dotR;
+        Paint p = weights[0];
+        p.getTextBounds(":", 0, 1, ink);
+        dotR = ink.width() / 2f;
+        float half = (ink.height() - ink.width()) / 2f;
+        p.getTextBounds("0", 0, 1, ink);
+        float middle = (ink.top + ink.bottom) / 2f;
+        dotTop = middle - half;
+        dotBottom = middle + half;
+    }
+
+    /** Faded as a whole by drawing every stroke fainter, never through a buffer that would clip the dust. */
+    @Override
+    public boolean hasOverlappingRendering() {
+        return false;
     }
 
     /** Midway between the ink of the digits either side of the colon, whatever their widths. */

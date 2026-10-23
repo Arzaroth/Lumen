@@ -50,7 +50,12 @@ public final class LumenDream extends DreamService {
             date.setTextColor(0x80FFFFFF);
             date.setLetterSpacing(0.08f);
             date.setIncludeFontPadding(false);
-            holder = new LinearLayout(c);
+            holder = new LinearLayout(c) {
+                @Override
+                public boolean hasOverlappingRendering() {
+                    return false;
+                }
+            };
             holder.setOrientation(LinearLayout.VERTICAL);
             holder.setGravity(Gravity.CENTER_HORIZONTAL);
             holder.setClipChildren(false);
