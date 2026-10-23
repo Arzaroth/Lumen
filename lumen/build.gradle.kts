@@ -19,11 +19,11 @@ val signing = Properties().apply {
 val hasReleaseKey = signing.getProperty("storeFile")?.let { File(it).exists() } == true
 
 android {
-    namespace = "dev.arzaroth.lumen"
+    namespace = "com.arzaroth.lumen"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "dev.arzaroth.lumen"
+        applicationId = "com.arzaroth.lumen"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

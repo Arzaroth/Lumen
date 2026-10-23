@@ -1,4 +1,4 @@
-package dev.arzaroth.lumen;
+package com.arzaroth.lumen;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;

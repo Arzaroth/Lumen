@@ -1,4 +1,4 @@
-package dev.arzaroth.lumen;
+package com.arzaroth.lumen;
 
 import android.animation.ValueAnimator;
 import android.content.Context;

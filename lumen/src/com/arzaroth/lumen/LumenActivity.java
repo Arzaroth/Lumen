@@ -1,4 +1,4 @@
-package dev.arzaroth.lumen;
+package com.arzaroth.lumen;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Locale;
 
 public final class LumenActivity extends Activity implements LumenSettings.Host {
-    static final String ACTION_INPUTS = "dev.arzaroth.lumen.INPUTS";
+    static final String ACTION_INPUTS = "com.arzaroth.lumen.INPUTS";
     private static final int COLS = 5;
     private static final int ZONE_TOP = 0, ZONE_TILES = 1;
     private static final long LONG_PRESS_MS = 550;

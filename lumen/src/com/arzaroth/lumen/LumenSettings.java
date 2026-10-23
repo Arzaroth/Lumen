@@ -1,4 +1,4 @@
-package dev.arzaroth.lumen;
+package com.arzaroth.lumen;
 
 import android.Manifest;
 import android.content.Context;

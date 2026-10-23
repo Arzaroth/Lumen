@@ -4,7 +4,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 STATE="$HERE/backup"
-PKG=dev.arzaroth.lumen
+PKG=com.arzaroth.lumen
 HOME_COMPONENT="$PKG/.LumenActivity"
 STOCK="$(sed 's#/.*##' "$STATE/home.txt" 2>/dev/null | tr -d '\r' || true)"
 STOCK="${STOCK:-com.google.android.tvlauncher}"

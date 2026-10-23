@@ -1,4 +1,4 @@
-package dev.arzaroth.lumen;
+package com.arzaroth.lumen;
 
 /** Keys of Lumen's settings in the "lumen" shared preferences: choice indexes, and the boot the intro last played on. */
 final class Prefs {

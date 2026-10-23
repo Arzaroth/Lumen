@@ -21,7 +21,7 @@ for p in "${PKGS[@]}"; do
 done
 
 if [ "${1:-}" != "--keep-lumen" ]; then
-  echo "remove  dev.arzaroth.lumen -> $(sh pm uninstall dev.arzaroth.lumen)"
+  echo "remove  com.arzaroth.lumen -> $(sh pm uninstall com.arzaroth.lumen)"
 fi
 echo "home    $STOCK_HOME -> $(sh cmd package set-home-activity --user 0 "$STOCK_HOME")"
 
