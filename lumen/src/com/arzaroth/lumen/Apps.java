@@ -34,11 +34,7 @@ final class Apps {
             if (ai == null || ai.packageName.equals(c.getPackageName())) continue;
             ComponentName cn = new ComponentName(ai.packageName, ai.name);
             if (!seen.add(cn.flattenToShortString())) continue;
-            Drawable banner = null;
-            try {
-                banner = pm.getActivityBanner(cn);
-            } catch (PackageManager.NameNotFoundException ignored) {
-            }
+            Drawable banner = bannerOf(pm, cn);
             Bitmap bmp = banner != null ? render(banner, w, h) : renderIcon(ri.loadIcon(pm), w, h);
             int accent = accent(bmp);
             apps.add(new AppEntry(cn, String.valueOf(ri.loadLabel(pm)), bmp, accent));
@@ -49,9 +45,18 @@ final class Apps {
     /** The app's banner (or icon) drawn at `w` x `h`, for when the tile-sized one is too small. */
     static Bitmap banner(Context c, ComponentName cn, int w, int h) {
         PackageManager pm = c.getPackageManager();
+        Drawable banner = bannerOf(pm, cn);
+        if (banner != null) return render(banner, w, h);
         try {
-            Drawable banner = pm.getActivityBanner(cn);
-            return banner != null ? render(banner, w, h) : renderIcon(pm.getActivityIcon(cn), w, h);
+            return renderIcon(pm.getActivityIcon(cn), w, h);
+        } catch (PackageManager.NameNotFoundException e) {
+            return null;
+        }
+    }
+
+    private static Drawable bannerOf(PackageManager pm, ComponentName cn) {
+        try {
+            return pm.getActivityBanner(cn);
         } catch (PackageManager.NameNotFoundException e) {
             return null;
         }
