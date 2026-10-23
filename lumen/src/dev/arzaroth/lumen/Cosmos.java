@@ -12,27 +12,33 @@ import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 
+import java.util.Arrays;
 import java.util.Random;
 
 /**
- * Deep space behind the logo: a night sky rendered once at screen resolution (thousands of stars,
- * the Milky Way with its star clouds and dust lanes), bright stars that scintillate, and a meteor
- * shower streaming out of a radiant. Each app gets its own radiant, meteor colour and airglow,
- * chosen to stand apart from the logo.
+ * Deep space behind the logo, alive. A night sky rendered once at screen resolution (faint stars,
+ * the Milky Way with its star clouds and dust lanes), on which the brightest stars are drawn live,
+ * a few of them scintillating harder near the horizon; a nebula of the app's own, generated for it,
+ * drifts very slowly in two layers; meteors stream out of a radiant, satellites and the odd
+ * satellite train cross, and now and then a star flares up like a nova. Each app gets its own
+ * nebula, radiant, meteor colour and airglow, chosen to stand apart from the logo.
  */
 final class Cosmos {
-    private static final int TWINKLERS = 240, SPIKED = 10, METEORS = 48, SPRITE = 64;
-    private static final int QUADS = TWINKLERS + 2 * SPIKED + METEORS + 1;
-    private static final float TRAVEL_T = 1.2f;
+    private static final int LIVE = 800, TWINKLERS = 120, SPIKED = 10, METEORS = 48, TRAIN = 14, SPRITE = 64;
+    private static final int QUADS = TWINKLERS + 2 * SPIKED + METEORS + TRAIN + 3, INDEXED = Math.max(QUADS, LIVE);
+    private static final float TRAVEL_T = 1.2f, NOVA_T = 9f;
     private static final double SIDEREAL_DEG_PER_S = 360.0 / 86164.0905, VIEW_DEG = 50.0;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
+    private static final int NEB_W = 400, NEB_H = 225;
 
     /** One app's sky: where its meteors come from, their glow, and the airglow on the horizon. */
     static final class Theme {
         final float radiantX, radiantY, rate;
         final int tint, airglow;
+        final Bitmap nebula;
 
-        Theme(float radiantX, float radiantY, float rate, int tint, int airglow) {
+        Theme(float radiantX, float radiantY, float rate, int tint, int airglow, Bitmap nebula) {
+            this.nebula = nebula;
             this.radiantX = radiantX;
             this.radiantY = radiantY;
             this.rate = rate;
@@ -41,23 +47,37 @@ final class Cosmos {
         }
     }
 
+    /** The sky, built once: the faint field, and the live stars by brightness. */
+    private static final class Sky {
+        final Bitmap field;
+        final float[] x, y, b;
+        final int[] color;
+
+        Sky(Bitmap field, float[] x, float[] y, float[] b, int[] color) {
+            this.field = field;
+            this.x = x;
+            this.y = y;
+            this.b = b;
+            this.color = color;
+        }
+    }
+
     private final float s;
     private final Random rnd = new Random();
     private final RectF logo = new RectF();
     private int width, height;
-    private volatile Bitmap sky;
+    private volatile Sky sky;
     private float skyIn, introT = -1f;
-    private final float[] tBirth = new float[TWINKLERS];
     private int burst;
 
     private Theme theme, previous;
     private Shader glowNow, glowBefore;
-    private float travel = 1f, clock, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
-    private boolean still;
+    private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
+    private boolean still, turning;
 
-    private final float[] tx = new float[TWINKLERS], ty = new float[TWINKLERS], tz = new float[TWINKLERS];
-    private final float[] tPhase = new float[TWINKLERS], tRate = new float[TWINKLERS];
-    private final int[] tTint = new int[TWINKLERS];
+    private final float[] liveRate = new float[LIVE], livePhase = new float[LIVE], liveBirth = new float[LIVE], liveAmp = new float[LIVE];
+    private int nova = -1;
+    private float novaT, nextNova = 20f;
 
     private final float[] mx = new float[METEORS], my = new float[METEORS], mdx = new float[METEORS], mdy = new float[METEORS];
     private final float[] mSpeed = new float[METEORS], mLen = new float[METEORS], mLife = new float[METEORS];
@@ -66,31 +86,38 @@ final class Cosmos {
     private int meteorNext;
 
     private float satX, satY, satDx, satDy, satLife;
+    private float trainX, trainY, trainDx, trainDy, trainLife, nextTrain = 150f;
 
     private final float[] spriteV = new float[QUADS * 8], spriteT = new float[QUADS * 8];
     private final int[] spriteC = new int[QUADS * 4];
+    private final float[] liveV = new float[LIVE * 8];
+    private final int[] liveC = new int[LIVE * 4];
     private final float[] trailV = new float[METEORS * 8];
     private final int[] trailC = new int[METEORS * 4];
-    private final short[] quads = new short[QUADS * 6];
+    private final short[] quads = new short[INDEXED * 6];
 
     private final Paint spritePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint trailPaint = new Paint();
+    private final Paint addPaint = new Paint();
     private final Paint blit = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private boolean turning;
     private final Paint glowPaint = new Paint();
+    private final Paint nebulaPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    private final android.graphics.Matrix nebulaMatrix = new android.graphics.Matrix();
 
     Cosmos(float scale) {
         s = scale;
         PorterDuffXfermode add = new PorterDuffXfermode(PorterDuff.Mode.ADD);
         spritePaint.setShader(new BitmapShader(sprite(), Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
         spritePaint.setXfermode(add);
-        trailPaint.setXfermode(add);
-        for (int q = 0; q < QUADS; q++) {
+        addPaint.setXfermode(add);
+
+        for (int q = 0; q < INDEXED; q++) {
             int v = q * 4, t = q * 8, i = q * 6;
-            spriteT[t + 2] = SPRITE;
-            spriteT[t + 4] = SPRITE;
-            spriteT[t + 5] = SPRITE;
-            spriteT[t + 7] = SPRITE;
+            if (q < QUADS) {
+                spriteT[t + 2] = SPRITE;
+                spriteT[t + 4] = SPRITE;
+                spriteT[t + 5] = SPRITE;
+                spriteT[t + 7] = SPRITE;
+            }
             quads[i] = (short) v;
             quads[i + 1] = (short) (v + 1);
             quads[i + 2] = (short) (v + 2);
@@ -98,15 +125,13 @@ final class Cosmos {
             quads[i + 4] = (short) (v + 2);
             quads[i + 5] = (short) (v + 3);
         }
-        for (int i = 0; i < TWINKLERS; i++) {
-            tx[i] = rnd.nextFloat();
-            ty[i] = rnd.nextFloat() * 0.92f;
-            tz[i] = i < SPIKED ? 0.85f + rnd.nextFloat() * 0.15f : (float) Math.pow(rnd.nextFloat(), 2.2f);
-            tPhase[i] = rnd.nextFloat() * 100f;
-            tRate[i] = 2f + rnd.nextFloat() * 7f;
-            float k = rnd.nextFloat();
-            tTint[i] = k < 0.5f ? 0xFFFFFFFF : k < 0.75f ? 0xFFC4D8FF : k < 0.92f ? 0xFFFFE6C0 : 0xFFFFC2A0;
+        for (int i = 0; i < LIVE; i++) {
+            liveRate[i] = 3f + rnd.nextFloat() * 9f;
+            livePhase[i] = rnd.nextFloat() * 100f;
+            liveBirth[i] = 0.15f + (float) Math.pow(rnd.nextFloat(), 0.8f) * 1.7f;
+            liveAmp[i] = rnd.nextFloat() < 0.33f ? 0.35f + rnd.nextFloat() * 0.45f : 0.05f;
         }
+        nebulaPaint.setXfermode(add);
     }
 
     private static Bitmap sprite() {
@@ -164,10 +189,11 @@ final class Cosmos {
     /**
      * The sky at screen resolution, twice the screen wide and seamless across its ends so it can
      * turn forever: a dark gradient, the Milky Way as the arc a great circle makes on a panorama
-     * (soft light computed coarse, star clouds and the dark rift on top), then every star as single
-     * crisp pixels, denser inside the band.
+     * (soft light computed coarse, star clouds and the dark rift on top), then every faint star as
+     * single crisp pixels, denser inside the band. The brightest stars are kept out of the picture
+     * and returned to be drawn live.
      */
-    private static Bitmap sky(int w, int h) {
+    private static Sky sky(int w, int h) {
         int tw = (2 * w + 3) / 4 * 4, gw = tw / 4, gh = h / 4 + 2;
         float[] gr = new float[gw * gh], gg = new float[gw * gh], gb = new float[gw * gh], dens = new float[gw * gh];
         double turn = 2 * Math.PI / tw;
@@ -211,16 +237,41 @@ final class Cosmos {
             }
         }
         Random r = new Random(7);
-        int stars = tw * h / 35;
-        for (int n = 0; n < stars; n++) {
+        int stars = tw * h / 52;
+        float[] sx = new float[stars], sy = new float[stars], sb = new float[stars];
+        int[] sc = new int[stars];
+        int n = 0;
+        for (int k = 0; k < stars; k++) {
             int x = r.nextInt(tw), y = r.nextInt(h);
             float d = dens[(y / 4) * gw + x / 4];
             if (r.nextFloat() > 0.35f + 0.65f * d) continue;
-            float b = (float) Math.pow(r.nextFloat(), 4.2f) * 1.2f + 0.06f + d * 0.05f;
-            float k = r.nextFloat();
-            float cr = k < 0.15f ? 0.72f : k < 0.8f ? 0.95f : 1f;
-            float cg = k < 0.15f ? 0.83f : k < 0.8f ? 0.96f : 0.86f;
-            float cb = k < 0.15f ? 1f : k < 0.8f ? 1f : 0.66f;
+            sx[n] = x;
+            sy[n] = y;
+            sb[n] = (float) Math.pow(r.nextFloat(), 4.2f) * 1.2f + 0.06f + d * 0.05f;
+            float t = r.nextFloat();
+            sc[n] = t < 0.15f ? 0xFFB8D4FF : t < 0.8f ? 0xFFF2F5FF : 0xFFFFDCA8;
+            n++;
+        }
+        Integer[] order = new Integer[n];
+        for (int k = 0; k < n; k++) order[k] = k;
+        final float[] bright = sb;
+        Arrays.sort(order, (a, b) -> Float.compare(bright[b], bright[a]));
+        int live = Math.min(LIVE, n);
+        float[] lx = new float[live], ly = new float[live], lb = new float[live];
+        int[] lc = new int[live];
+        boolean[] isLive = new boolean[n];
+        for (int k = 0; k < live; k++) {
+            int i = order[k];
+            isLive[i] = true;
+            lx[k] = sx[i];
+            ly[k] = sy[i];
+            lb[k] = sb[i];
+            lc[k] = sc[i];
+        }
+        for (int i = 0; i < n; i++) {
+            if (isLive[i]) continue;
+            int x = (int) sx[i], y = (int) sy[i];
+            float b = sb[i], cr = Color.red(sc[i]) / 255f, cg = Color.green(sc[i]) / 255f, cb = Color.blue(sc[i]) / 255f;
             add(px, tw, h, x, y, b * cr, b * cg, b * cb);
             if (b > 0.32f) {
                 float e = b * 0.33f, f = b * 0.1f;
@@ -234,9 +285,9 @@ final class Cosmos {
                 add(px, tw, h, x - 1, y + 1, f * cr, f * cg, f * cb);
             }
         }
-        Bitmap bmp = Bitmap.createBitmap(tw, h, Bitmap.Config.ARGB_8888);
-        bmp.setPixels(px, 0, tw, 0, 0, tw, h);
-        return bmp;
+        Bitmap field = Bitmap.createBitmap(tw, h, Bitmap.Config.ARGB_8888);
+        field.setPixels(px, 0, tw, 0, 0, tw, h);
+        return new Sky(field, lx, ly, lb, lc);
     }
 
     /** Fractal noise at (x, v) that repeats every `tw` pixels across: two copies blended over the period. */
@@ -279,9 +330,60 @@ final class Cosmos {
                 tint = c;
             }
         }
-        int airglow = Color.HSVToColor(new float[] {(logoHue + 150 + look.nextFloat() * 60) % 360, 0.6f, 1f});
+        float hue = (logoHue + 150 + look.nextFloat() * 60) % 360;
+        int airglow = Color.HSVToColor(new float[] {hue, 0.6f, 1f});
         return new Theme(0.15f + look.nextFloat() * 0.7f, -0.35f + look.nextFloat() * 0.45f,
-                0.8f + look.nextFloat() * 0.6f, tint, airglow);
+                0.8f + look.nextFloat() * 0.6f, tint, airglow, nebula(hue, look));
+    }
+
+    /**
+     * An app's own nebula: gas clouds folded by domain warping, a second gas in a neighbouring hue,
+     * dark dust lanes through both, gathered into one or two regions placed at random. Faint by
+     * design: it tints the sky rather than filling it.
+     */
+    private static Bitmap nebula(float hue, Random look) {
+        int seed = look.nextInt(1 << 20);
+        float[] a = rgb(Color.HSVToColor(new float[] {hue, 0.75f, 1f}));
+        float[] b = rgb(Color.HSVToColor(new float[] {(hue + 35 + look.nextFloat() * 50) % 360, 0.65f, 1f}));
+        int regions = 1 + look.nextInt(2);
+        float[] rx = new float[regions], ry = new float[regions], rw = new float[regions], rh = new float[regions], ra = new float[regions];
+        for (int k = 0; k < regions; k++) {
+            rx[k] = 0.15f + look.nextFloat() * 0.7f;
+            ry[k] = 0.1f + look.nextFloat() * 0.55f;
+            rw[k] = 0.22f + look.nextFloat() * 0.3f;
+            rh[k] = 0.15f + look.nextFloat() * 0.2f;
+            ra[k] = (look.nextFloat() - 0.5f) * 2.4f;
+        }
+        float strength = 0.2f + look.nextFloat() * 0.08f;
+        int[] px = new int[NEB_W * NEB_H];
+        for (int y = 0; y < NEB_H; y++) {
+            for (int x = 0; x < NEB_W; x++) {
+                float u = x / (float) NEB_W, v = y / (float) NEB_H;
+                float shape = 0;
+                for (int k = 0; k < regions; k++) {
+                    float dx = (u - rx[k]) * 1.78f, dy = v - ry[k];
+                    float cs = (float) Math.cos(ra[k]), sn = (float) Math.sin(ra[k]);
+                    float p = (dx * cs + dy * sn) / rw[k], q = (-dx * sn + dy * cs) / rh[k];
+                    shape = Math.max(shape, (float) Math.exp(-(p * p + q * q)));
+                }
+                if (shape < 0.01f) continue;
+                float wx = fbm(u * 3f, v * 3f, seed, 3) * 2f, wy = fbm(u * 3f + 5f, v * 3f, seed + 9, 3) * 2f;
+                float gas = fbm(u * 4f + wx, v * 4f + wy, seed + 17, 5);
+                float other = fbm(u * 5f - wy, v * 5f + wx, seed + 29, 4);
+                float dust = smooth(0.55f, 0.72f, fbm(u * 7f + wx, v * 7f, seed + 41, 4));
+                float g = smooth(0.38f, 0.8f, gas) * shape * (1f - 0.75f * dust) * strength;
+                float o = smooth(0.45f, 0.85f, other) * shape * (1f - 0.75f * dust) * strength * 0.7f;
+                px[y * NEB_W + x] = Color.rgb(c255(a[0] * g + b[0] * o), c255(a[1] * g + b[1] * o), c255(a[2] * g + b[2] * o));
+            }
+        }
+        for (int i = 0; i < px.length; i++) if (px[i] == 0) px[i] = 0xFF000000;
+        Bitmap bmp = Bitmap.createBitmap(NEB_W, NEB_H, Bitmap.Config.ARGB_8888);
+        bmp.setPixels(px, 0, NEB_W, 0, 0, NEB_W, NEB_H);
+        return bmp;
+    }
+
+    private static float[] rgb(int c) {
+        return new float[] {Color.red(c) / 255f, Color.green(c) / 255f, Color.blue(c) / 255f};
     }
 
     private Shader airglow(Theme t) {
@@ -315,6 +417,11 @@ final class Cosmos {
         meteors = rate;
     }
 
+    /** Turns the sky with the Earth, or holds it still. */
+    void setTurning(boolean on) {
+        turning = on;
+    }
+
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
     boolean moving() {
         if (introT >= 0f || !still || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
@@ -329,7 +436,6 @@ final class Cosmos {
     void intro() {
         introT = 0f;
         skyIn = 0f;
-        for (int i = 0; i < TWINKLERS; i++) tBirth[i] = 0.15f + (float) Math.pow(rnd.nextFloat(), 0.8f) * 1.7f;
         burst = 26;
         nextMeteor = 1.5f;
     }
@@ -368,6 +474,7 @@ final class Cosmos {
 
     void update(float dt) {
         clock += dt;
+        if (!still) drift += dt;
         if (introT >= 0f) {
             introT += dt;
             float rise = smooth(0.3f, 2.4f, introT);
@@ -388,8 +495,9 @@ final class Cosmos {
             nextMeteor = burst > 0 ? 0.02f + rnd.nextFloat() * 0.05f : (float) (-Math.log(1 - rnd.nextFloat() * 0.99f) / rate);
             if (burst > 0) burst--;
         }
+        if (still) return;
         nextSatellite -= dt;
-        if (nextSatellite <= 0 && width > 0 && !still) {
+        if (nextSatellite <= 0 && width > 0) {
             boolean ltr = rnd.nextBoolean();
             satX = ltr ? -10 : width + 10;
             satY = height * (0.1f + rnd.nextFloat() * 0.45f);
@@ -404,18 +512,30 @@ final class Cosmos {
             satX += satDx * dt;
             satY += satDy * dt;
         }
-        if (warp > 0) {
-            float ox = logo.centerX() / Math.max(1, width), oy = logo.centerY() / Math.max(1, height);
-            for (int i = 0; i < TWINKLERS; i++) {
-                float dx = tx[i] - ox, dy = ty[i] - oy, d = (float) Math.sqrt(dx * dx + dy * dy) + 0.001f;
-                float v = warp * dt * (0.3f + tz[i]) * 1.6f;
-                tx[i] += dx / d * v;
-                ty[i] += dy / d * v;
-                if (tx[i] < -0.05f || tx[i] > 1.05f || ty[i] < -0.05f || ty[i] > 1.05f) {
-                    tx[i] = ox + (rnd.nextFloat() - 0.5f) * 0.15f;
-                    ty[i] = oy + (rnd.nextFloat() - 0.5f) * 0.15f;
-                }
-            }
+        nextTrain -= dt;
+        if (nextTrain <= 0 && width > 0) {
+            boolean ltr = rnd.nextBoolean();
+            trainX = ltr ? -40 * s : width + 40 * s;
+            trainY = height * (0.08f + rnd.nextFloat() * 0.35f);
+            float a = (rnd.nextFloat() - 0.5f) * 0.4f, v = (70 + rnd.nextFloat() * 30) * s;
+            trainDx = (float) Math.cos(a) * v * (ltr ? 1 : -1);
+            trainDy = (float) Math.sin(a) * v;
+            trainLife = (width + 40 * s * TRAIN) / Math.abs(trainDx);
+            nextTrain = 150f + rnd.nextFloat() * 150f;
+        }
+        if (trainLife > 0) {
+            trainLife -= dt;
+            trainX += trainDx * dt;
+            trainY += trainDy * dt;
+        }
+        Sky sk = sky;
+        if (nova >= 0) {
+            novaT += dt;
+            if (novaT > NOVA_T) nova = -1;
+        } else if (sk != null && (nextNova -= dt) <= 0) {
+            nova = rnd.nextInt(Math.min(sk.x.length, 900));
+            novaT = 0f;
+            nextNova = 30f + rnd.nextFloat() * 40f;
         }
     }
 
@@ -445,17 +565,30 @@ final class Cosmos {
         c[o + 3] = color;
     }
 
+    /**
+     * How far the sky has turned, in pixels, at the Earth's real rate (one turn per sidereal day)
+     * for a view about 50 degrees wide; taken from the wall clock so it carries on across restarts.
+     * Drawn at that fractional offset, so it glides rather than stepping a pixel at a time.
+     */
+    private double turned() {
+        return turning ? System.currentTimeMillis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG : 0.0;
+    }
+
     /** The whole sky, behind the logo. */
     void drawBack(Canvas c) {
         c.drawColor(0xFF000000);
-        Bitmap b = sky;
-        if (b != null) {
-            blit.setAlpha(Math.round(255 * skyIn * (1f - 0.7f * warp)));
-            int tw = b.getWidth();
-            float left = (float) (turned() % tw);
-            c.drawBitmap(b, left - tw, 0, blit);
-            c.drawBitmap(b, left, 0, blit);
+        Sky sk = sky;
+        float fade = skyIn * (1f - 0.7f * warp);
+        float left = 0f;
+        if (sk != null) {
+            int tw = sk.field.getWidth();
+            left = (float) (turned() % tw);
+            blit.setAlpha(Math.round(255 * fade));
+            if (left > 0f) c.drawBitmap(sk.field, left - tw, 0, blit);
+            if (left < width) c.drawBitmap(sk.field, left, 0, blit);
         }
+        if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade);
+        if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade);
         if (glowBefore != null && travel < 1f) {
             glowPaint.setShader(glowBefore);
             glowPaint.setAlpha(Math.round(255 * (1 - travel)));
@@ -466,42 +599,84 @@ final class Cosmos {
             glowPaint.setAlpha(Math.round(255 * travel * skyIn * (0.85f + 0.15f * (float) Math.sin(clock * 0.3f))));
             c.drawRect(0, height * 0.45f, width, height, glowPaint);
         }
-        drawSprites(c);
+        if (sk != null) drawLive(c, sk, left, fade);
+        drawSprites(c, sk, left);
         drawTrails(c);
     }
 
-    /** Turns the sky with the Earth, or holds it still. */
-    void setTurning(boolean on) {
-        turning = on;
+    /** The nebula, drifting and breathing very slowly. */
+    private void drawNebula(Canvas c, Bitmap nebula, float alpha) {
+        if (nebula == null || alpha <= 0.01f || width == 0) return;
+        float sx = (float) width / NEB_W, sy = (float) height / NEB_H;
+        float zoom = 1.06f + 0.03f * (float) Math.sin(drift * 0.013f);
+        float ox = (float) Math.sin(drift * 0.021f) * width * 0.015f, oy = (float) Math.cos(drift * 0.017f) * height * 0.012f;
+        nebulaMatrix.setScale(sx * zoom, sy * zoom);
+        nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox, -(zoom - 1) * height / 2 + oy);
+        nebulaPaint.setAlpha(Math.round(255 * alpha));
+        c.drawBitmap(nebula, nebulaMatrix, nebulaPaint);
+    }
+
+    /** Where a star of the sky (in its own, wider, coordinates) is on screen now; NaN when off screen. */
+    private float screenX(Sky sk, int i, float left) {
+        float tw = sk.field.getWidth(), x = (sk.x[i] + left) % tw;
+        return x < width + 4 ? x : Float.NaN;
     }
 
     /**
-     * How far the sky has turned, in pixels, at the Earth's real rate (one turn per sidereal day)
-     * for a view about 50 degrees wide; taken from the wall clock so it carries on across restarts.
-     * Drawn at that fractional offset, so it glides rather than stepping a pixel at a time.
+     * The bright stars, live: each scintillates at its own rhythm, harder the lower it sits, as
+     * starlight crosses more air near the horizon; one may be flaring as a nova.
      */
-    private double turned() {
-        return turning ? System.currentTimeMillis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG : 0.0;
-    }
-
-    private void drawSprites(Canvas c) {
-        int q = 0;
-        float cx = logo.centerX(), cy = logo.centerY();
-        float drift = width > 0 ? (float) (turned() % width) : 0f;
-        for (int i = 0; i < TWINKLERS; i++) {
-            float x = (tx[i] * width + drift) % width, y = ty[i] * height, z = tz[i];
-            float scint = still ? 0.85f : 0.7f + 0.3f * (float) Math.sin(clock * tRate[i] + tPhase[i])
-                    * (float) Math.sin(clock * tRate[i] * 0.37f + tPhase[i] * 2f);
-            float size = (1.4f + 3.4f * z) * s;
+    private void drawLive(Canvas c, Sky sk, float left, float fade) {
+        int q = 0, n = sk.x.length;
+        for (int i = 0; i < n; i++) {
+            float x = screenX(sk, i, left);
+            if (Float.isNaN(x)) continue;
+            float y = sk.y[i], b = sk.b[i];
+            float depth = 0.3f + 0.7f * y / height;
+            float scint = still ? 1f : 1f + liveAmp[i] * depth * (0.6f * (float) Math.sin(clock * liveRate[i] + livePhase[i])
+                    + 0.4f * (float) Math.sin(clock * liveRate[i] * 1.7f + livePhase[i] * 3f));
             float shown = 1f;
             if (introT >= 0f) {
-                float age = introT - tBirth[i];
+                float age = introT - liveBirth[i];
+                if (age <= 0f) continue;
+                shown = Math.min(1f, age / 0.15f);
+                scint = Math.max(scint, 1f + 2f * (float) Math.exp(-age * 6f));
+            }
+            if (i == nova) scint *= 1f + 5f * novaGlow();
+            float r = 0.55f + 0.75f * Math.min(1.2f, b);
+            int alpha = Math.round(255 * Math.min(1f, b * 0.85f * scint) * shown * (introT >= 0f ? 1f : fade));
+            if (alpha <= 2) continue;
+            quad(liveV, q, x - r, y, x + r, y, r, r, 0);
+            tint(liveC, q++, Apps.withAlpha(sk.color[i], alpha));
+        }
+        if (q > 0) c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, liveV, 0, null, 0, liveC, 0, quads, 0, q * 6, addPaint);
+    }
+
+    /** A nova's light curve: a fast rise, then a slow fade. */
+    private float novaGlow() {
+        return Math.min(1f, novaT / 1.5f) * (float) Math.exp(-Math.max(0f, novaT - 1.5f) * 0.55f);
+    }
+
+    private void drawSprites(Canvas c, Sky sk, float left) {
+        int q = 0;
+        float cx = logo.centerX(), cy = logo.centerY();
+        int bright = sk == null ? 0 : Math.min(TWINKLERS, sk.x.length);
+        for (int i = 0; i < bright; i++) {
+            float x = screenX(sk, i, left);
+            if (Float.isNaN(x)) continue;
+            float y = sk.y[i], z = Math.min(1f, sk.b[i] / 1.2f);
+            float depth = 0.3f + 0.7f * y / height;
+            float scint = still ? 0.85f : 0.85f + 0.15f * liveAmp[i] * depth * 2f * (float) Math.sin(clock * liveRate[i] + livePhase[i]);
+            float size = (1.6f + 3.6f * z) * s;
+            float shown = 1f;
+            if (introT >= 0f) {
+                float age = introT - liveBirth[i];
                 if (age <= 0f) continue;
                 shown = Math.min(1f, age / 0.15f);
                 size *= 1f + 2.2f * (float) Math.exp(-age * 7f);
                 scint = Math.max(scint, (float) Math.exp(-age * 5f));
             }
-            int color = Apps.withAlpha(tTint[i], Math.round((70 + 185 * z) * scint * shown * (introT >= 0f ? 1f : skyIn)));
+            int color = Apps.withAlpha(sk.color[i], Math.round((40 + 120 * z) * scint * shown * (introT >= 0f ? 1f : skyIn)));
             if (warp > 0.05f) {
                 float dx = x - cx, dy = y - cy, d = (float) Math.sqrt(dx * dx + dy * dy) + 0.001f;
                 float len = warp * (30 + 260 * z) * s;
@@ -512,11 +687,19 @@ final class Cosmos {
             tint(spriteC, q++, color);
             if (i < SPIKED && warp <= 0.05f) {
                 float spike = size * (4f + 2f * scint);
-                int faint = Apps.withAlpha(tTint[i], Math.round(90 * scint * skyIn));
+                int faint = Apps.withAlpha(sk.color[i], Math.round(80 * scint * skyIn));
                 quad(spriteV, q, x - spike, y, x + spike, y, size * 0.22f, size * 0.22f, 0);
                 tint(spriteC, q++, faint);
                 quad(spriteV, q, x, y - spike, x, y + spike, size * 0.22f, size * 0.22f, 0);
                 tint(spriteC, q++, faint);
+            }
+        }
+        if (sk != null && nova >= 0) {
+            float x = screenX(sk, nova, left), g = novaGlow();
+            if (!Float.isNaN(x)) {
+                float r = (6f + 22f * g) * s;
+                quad(spriteV, q, x - r, sk.y[nova], x + r, sk.y[nova], r, r, 0);
+                tint(spriteC, q++, Apps.withAlpha(0xFFFFF2E6, Math.round(200 * g * skyIn)));
             }
         }
         for (int i = 0; i < METEORS; i++) {
@@ -533,7 +716,16 @@ final class Cosmos {
             quad(spriteV, q, satX - r, satY, satX + r, satY, r, r, 0);
             tint(spriteC, q++, Apps.withAlpha(0xFFFFF4E0, Math.round(110 + 145 * flare)));
         }
-        c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, spriteV, 0, spriteT, 0, spriteC, 0, quads, 0, q * 6, spritePaint);
+        if (trainLife > 0) {
+            float len = (float) Math.sqrt(trainDx * trainDx + trainDy * trainDy) + 0.001f;
+            for (int k = 0; k < TRAIN; k++) {
+                float back = k * 34f * s, x = trainX - trainDx / len * back, y = trainY - trainDy / len * back;
+                float r = (1.3f + 0.5f * ((k * 7) % 3)) * s;
+                quad(spriteV, q, x - r, y, x + r, y, r, r, 0);
+                tint(spriteC, q++, Apps.withAlpha(0xFFF4F1E8, 70 + (k * 37) % 50));
+            }
+        }
+        if (q > 0) c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, spriteV, 0, spriteT, 0, spriteC, 0, quads, 0, q * 6, spritePaint);
     }
 
     /** Brightens fast as the meteor hits the air, then burns out. */
@@ -561,7 +753,7 @@ final class Cosmos {
             q++;
         }
         if (q > 0) {
-            c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, trailV, 0, null, 0, trailC, 0, quads, 0, q * 6, trailPaint);
+            c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, trailV, 0, null, 0, trailC, 0, quads, 0, q * 6, addPaint);
         }
     }
 }
