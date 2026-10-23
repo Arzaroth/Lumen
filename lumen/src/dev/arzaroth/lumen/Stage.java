@@ -40,7 +40,9 @@ final class Stage extends View {
     private static final String TAG = "lumen";
     static final int COSMOS = 0, FIREWORKS = 1;
     static final int LIVELY = 0, CALM = 1, STILL = 2;
-    private static final int COLS = 112, ROWS = 63, MAX = COLS * ROWS, CAP = 4000, K = 8;
+    private static final int COLS = 112, ROWS = 63, CAP = 4000, K = 8;
+    private static final int[][] GRIDS = {{176, 99}, {144, 81}, {COLS, ROWS}};
+    private static final float COVER = 0.35f;
     private static final int ENTER = 0, HOLD = 1, EXIT = 2;
     private static final int E_CONVERGE = 0, E_RAIN = 1, E_PRINT = 2, E_WARP = 3, E_SPIRAL = 4, ENTERS = 5;
     private static final int H_SHIMMER = 0, H_PULSE = 1, H_RIPPLE = 2, H_SHOW = 3, H_STORM = 4;
@@ -72,10 +74,14 @@ final class Stage extends View {
         final int[] palette;
         final int[] sparks;
         final float bottom;
+        final int cols, rows;
         final Cosmos.Theme theme;
 
-        Mosaic(int count, float[] gx, float[] gy, byte[] bucket, int[] palette, int[] sparks, float bottom, Cosmos.Theme theme) {
+        Mosaic(int count, int cols, int rows, float[] gx, float[] gy, byte[] bucket, int[] palette, int[] sparks, float bottom,
+               Cosmos.Theme theme) {
             this.count = count;
+            this.cols = cols;
+            this.rows = rows;
             this.gx = gx;
             this.gy = gy;
             this.bucket = bucket;
@@ -170,6 +176,7 @@ final class Stage extends View {
 
     private final RectF logo = new RectF();
     private float cell, floorY, clipBottom, unit;
+    private int gridRows = ROWS;
     private boolean laidOut;
     private int accent = 0xFF8FA6C8;
 
@@ -338,37 +345,84 @@ final class Stage extends View {
 
     // ------------------------------------------------------------------ mosaic, off the UI thread
 
+    /**
+     * The banner as cells. Each cell is kept when enough of its pixels stand out from the banner's
+     * background, and takes those pixels' colour alone, so thin strokes (a wordmark) stay whole and
+     * crisp instead of averaging away into the background. Small logos get the finest grid that
+     * fits under CAP; big full-bleed banners fall back to coarser ones.
+     */
     private static Mosaic build(Context context, AppEntry app, int artW, int artH) {
         Bitmap art = Apps.banner(context, app.component, artW, artH);
-        Bitmap small = Bitmap.createScaledBitmap(art != null ? art : app.banner, COLS, ROWS, true);
-        if (art != null && art != small) art.recycle();
-        int[] cells = new int[MAX];
-        small.getPixels(cells, 0, COLS, 0, 0, COLS, ROWS);
-        small.recycle();
+        Bitmap src = art != null ? art : app.banner;
+        int w = src.getWidth(), h = src.getHeight();
+        int[] px = new int[w * h];
+        src.getPixels(px, 0, w, 0, 0, w, h);
+        if (art != null) art.recycle();
 
         long r = 0, g = 0, b = 0;
-        int n = 0;
-        for (int i = 0; i < MAX; i++) {
-            int col = i % COLS, row = i / COLS;
-            if (col > 2 && col < COLS - 3 && row > 2 && row < ROWS - 3) continue;
-            r += Color.red(cells[i]);
-            g += Color.green(cells[i]);
-            b += Color.blue(cells[i]);
-            n++;
+        int n = 0, band = Math.max(2, Math.min(w, h) / 30);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (x >= band && x < w - band && y >= band && y < h - band) continue;
+                int c = px[y * w + x];
+                r += Color.red(c);
+                g += Color.green(c);
+                b += Color.blue(c);
+                n++;
+            }
         }
         int bg = Color.rgb((int) (r / n), (int) (g / n), (int) (b / n));
+        int[] far = new int[px.length];
+        for (int i = 0; i < px.length; i++) far[i] = Color.alpha(px[i]) < 128 ? 0 : (int) Math.min(Integer.MAX_VALUE, dist2(px[i], bg));
 
         // The tightest background cut that still leaves a logo: some banners (Kodi) paint a
         // textured backdrop that a single threshold either keeps whole or wipes out entirely.
-        boolean[] keep = new boolean[MAX];
-        int kept = 0;
+        long min = 0;
         for (int threshold : new int[] {83, 60, 42, 28}) {
-            kept = pick(cells, keep, bg, threshold);
-            if (kept >= MAX * 0.03f && kept <= MAX * 0.62f) break;
+            min = (long) threshold * threshold * 3;
+            int on = 0;
+            for (int f : far) if (f > min) on++;
+            if (on >= px.length * 0.02f && on <= px.length * 0.6f) break;
+        }
+
+        int cols = COLS, rows = ROWS, kept = 0;
+        boolean[] keep = null;
+        int[] cellColor = null;
+        for (int[] grid : GRIDS) {
+            cols = grid[0];
+            rows = grid[1];
+            int cells = cols * rows;
+            long[] cr = new long[cells], cg = new long[cells], cb = new long[cells];
+            int[] on = new int[cells], all = new int[cells];
+            for (int y = 0; y < h; y++) {
+                int row = y * rows / h;
+                for (int x = 0; x < w; x++) {
+                    int i = row * cols + x * cols / w, p = y * w + x;
+                    all[i]++;
+                    if (far[p] <= min) continue;
+                    on[i]++;
+                    cr[i] += Color.red(px[p]);
+                    cg[i] += Color.green(px[p]);
+                    cb[i] += Color.blue(px[p]);
+                }
+            }
+            keep = new boolean[cells];
+            cellColor = new int[cells];
+            kept = 0;
+            for (int i = 0; i < cells; i++) {
+                if (all[i] == 0 || on[i] < all[i] * COVER) continue;
+                keep[i] = true;
+                cellColor[i] = Color.rgb((int) (cr[i] / on[i]), (int) (cg[i] / on[i]), (int) (cb[i] / on[i]));
+                kept++;
+            }
+            if (kept <= CAP) break;
         }
         if (kept < 40) {
-            for (int i = 0; i < MAX; i++) keep[i] = true;
-            kept = MAX;
+            Bitmap small = Bitmap.createScaledBitmap(src == art ? app.banner : src, cols, rows, true);
+            small.getPixels(cellColor, 0, cols, 0, 0, cols, rows);
+            if (small != src && small != app.banner) small.recycle();
+            for (int i = 0; i < keep.length; i++) keep[i] = true;
+            kept = keep.length;
         }
 
         float[] hsv = new float[3];
@@ -376,9 +430,9 @@ final class Stage extends View {
         float[] gxs = new float[kept], gys = new float[kept];
         float bottom = 0;
         int j = 0;
-        for (int i = 0; i < MAX; i++) {
+        for (int i = 0; i < keep.length; i++) {
             if (!keep[i]) continue;
-            Color.colorToHSV(cells[i], hsv);
+            Color.colorToHSV(cellColor[i], hsv);
             if (hsv[1] < 0.2f) {
                 hsv[1] *= 0.5f;
                 hsv[2] = Math.max(hsv[2], 0.9f);
@@ -387,8 +441,8 @@ final class Stage extends View {
                 hsv[2] = Math.max(hsv[2], 0.7f);
             }
             colors[j] = Color.HSVToColor(hsv);
-            gxs[j] = (i % COLS + 0.5f) / COLS;
-            gys[j] = (i / COLS + 0.5f) / ROWS;
+            gxs[j] = (i % cols + 0.5f) / cols;
+            gys[j] = (i / cols + 0.5f) / rows;
             bottom = Math.max(bottom, gys[j]);
             j++;
         }
@@ -431,20 +485,8 @@ final class Stage extends View {
 
         int[] sparks = sparkPalette(centroid, app.accent);
         Random look = new Random(app.key().hashCode() * 31L + 7);
-        return new Mosaic(Math.min(kept, CAP), gxs, gys, bucket, centroid, sparks, bottom,
+        return new Mosaic(Math.min(kept, CAP), cols, rows, gxs, gys, bucket, centroid, sparks, bottom,
                 Cosmos.theme(sparks, app.accent, look));
-    }
-
-    private static int pick(int[] cells, boolean[] keep, int bg, int threshold) {
-        int kept = 0;
-        long min = (long) threshold * threshold * 3;
-        for (int i = 0; i < MAX; i++) {
-            int c = cells[i];
-            float lum = (0.299f * Color.red(c) + 0.587f * Color.green(c) + 0.114f * Color.blue(c)) / 255f;
-            keep[i] = lum > 0.05f && dist2(c, bg) > min;
-            if (keep[i]) kept++;
-        }
-        return kept;
     }
 
     private static long dist2(int a, int b) {
@@ -499,6 +541,8 @@ final class Stage extends View {
         half = newHalf;
         System.arraycopy(m.sparks, 0, sparkColors, 0, SPARK_COLORS);
         bottom = m.bottom;
+        gridRows = m.rows;
+        cell = logo.width() / m.cols;
         floorY = logo.top + m.bottom * logo.height() + cell * 5f;
         flashShader = new RadialGradient(0, 0, 1, new int[] {0xFFFFFFFF, Apps.withAlpha(m.sparks[2], 0xC0), 0x00000000},
                 new float[] {0f, 0.35f, 1f}, Shader.TileMode.CLAMP);
@@ -650,7 +694,7 @@ final class Stage extends View {
                     delay[i] = gx[i] * 0.55f + seed[i] * 0.5f;
                     break;
                 case X_GLITCH:
-                    delay[i] = GLITCH_T + hash01((int) (gy[i] * ROWS / 3), 7) * 0.35f;
+                    delay[i] = GLITCH_T + hash01((int) (gy[i] * gridRows / 3), 7) * 0.35f;
                     break;
                 case X_HYPERSPACE: {
                     float dx = px[i] - cx, dy = py[i] - cy;
@@ -1152,7 +1196,7 @@ final class Stage extends View {
                 int step = (int) (t / 0.07f);
                 chroma = Math.max(chroma, t < GLITCH_T ? 0.12f : 0f);
                 for (int i = 0; i < count; i++) {
-                    int row = (int) (gy[i] * ROWS / 3);
+                    int row = (int) (gy[i] * gridRows / 3);
                     if (t < delay[i]) {
                         float h = hash01(row, step);
                         float off = h < 0.32f ? (h * 25f - 4f) * cell * 1.8f : 0;
