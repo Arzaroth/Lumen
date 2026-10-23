@@ -23,6 +23,12 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
   A fireworks style is kept in `Stage` as an alternative
 - Greeting, thin Outfit clock and date; frosted pills for Inputs (glass dropdown: Live TV + HDMI
   inputs via the TV input framework), network (Wi-Fi name or Ethernet) and Settings
+- Settings dropdown: the TV's System settings, or Lumen settings (Left/Right to change, applied at
+  once and remembered): backdrop (night sky, fireworks, still sky), animations (lively, calm, off),
+  meteors, 3D or flat logo, greeting, clock format, the remote's buttons on Home and whether the
+  YouTube button opens YouTube or SmartTube, and a tile order reset. Advanced settings › Seasonal
+  events › Spooky doot turns [doot](https://github.com/boubou666/doot) off after two questions
+  (the second one swaps its buttons) and one last doot, or back on
 - Glass dock band of 5 apps, a spring-animated glass highlight, focused tile lifts with a real shadow
   and shows its name; all apps in a grid below that scrolls the dock up like tvOS
 - Deterministic D-pad: Up/Down move exactly one row, Up from the dock reaches the top bar, Back
@@ -42,7 +48,7 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
 | `mise.toml` | Pinned JDK 17 and Android SDK command-line tools |
 | `scripts/backup.sh` | Captures packages, settings, getprop, Home and screensaver before any change |
 | `scripts/disable.sh` | Disables a list, one `pm disable-user` per package, refuses protected core packages |
-| `scripts/install.sh` | Builds Lumen, installs it, makes it Home, disables the stock launcher only behind a guard that re-enables it if Lumen does not take Home |
+| `scripts/install.sh` | Builds Lumen, installs it, makes it Home, disables the stock launcher only behind a guard that re-enables it if Lumen does not take Home; grants `DUMP`, which doot's receiver requires of whoever sends it a doot |
 | `scripts/restore.sh` | Re-enables everything, gives Home back, restores the screensaver, uninstalls Lumen (`--keep-lumen` to keep it) |
 | `scripts/measure.sh`, `scripts/frames.sh` | Reboot + RAM measurement, D-pad frame-time measurement |
 | `lumen/` | Launcher source; `lumen/build.sh` builds with the bare SDK (aapt2, javac, d8, apksigner) |
