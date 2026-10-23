@@ -1,7 +1,9 @@
 import java.util.Properties
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 
 plugins {
     id("com.android.application")
+    jacoco
 }
 
 // The release key: from the environment in CI (secrets), from ~/.config/lumen/signing.properties
@@ -34,6 +36,7 @@ android {
         res.srcDirs("res")
         assets.srcDirs("assets")
     }
+    sourceSets["test"].java.srcDirs("test")
 
     androidResources {
         noCompress += "ttf"
@@ -51,6 +54,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
@@ -62,6 +68,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                it.systemProperty("robolectric.graphicsMode", "NATIVE")
+                it.maxHeapSize = "2g"
+            }
+        }
+    }
+
     lint {
         abortOnError = true
         warningsAsErrors = true
@@ -71,4 +87,17 @@ android {
 
 base {
     archivesName.set("lumen")
+}
+
+// Robolectric loads the app's classes through its own class loader, which JaCoCo skips by default.
+tasks.withType<Test>().configureEach {
+    extensions.configure(JacocoTaskExtension::class.java) {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
 }
