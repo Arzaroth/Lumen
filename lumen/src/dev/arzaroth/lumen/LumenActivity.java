@@ -76,7 +76,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private Highlight highlight;
     private Menu menu;
     private boolean resumed;
-    private TextView greeting, date, title, appsHeader, hint;
+    private TextView greeting, title, appsHeader, hint;
+    private DateView date;
     private ClockView clock;
 
     private int zone = ZONE_TILES, index, pillIndex, lastDockIndex;
@@ -163,6 +164,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         resumed = true;
         LumenKeys.setHomeInFront(true);
         clock.setRunning(true);
+        date.setRunning(true);
         stage.setRunning(true);
     }
 
@@ -171,6 +173,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         resumed = false;
         LumenKeys.setHomeInFront(false);
         clock.setRunning(false);
+        date.setRunning(false);
         stage.setRunning(false);
         if (zone == ZONE_TILES && index < tiles.size()) {
             prefs.edit().putString("focus", tiles.get(index).app.key()).apply();
@@ -237,7 +240,10 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         content.setAlpha(0f);
         content.setTranslationY(target + px(90));
         content.animate().alpha(1f).translationY(target).setStartDelay(2400).setDuration(900)
-                .setInterpolator(new DecelerateInterpolator(2.2f)).withStartAction(clock::intro).start();
+                .setInterpolator(new DecelerateInterpolator(2.2f)).withStartAction(() -> {
+                    clock.intro();
+                    date.intro();
+                }).start();
     }
 
     @Override
@@ -326,7 +332,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         greeting = text(500, 28, 0x99FFFFFF);
         greeting.setLetterSpacing(0.02f);
         clock = new ClockView(this, 148 * s, true);
-        date = text(400, 30, 0xB3FFFFFF);
+        date = new DateView(this, 30 * s, 400, 0xB3FFFFFF, 0f, false);
         header.addView(greeting);
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         clp.topMargin = px(6) - Math.round(clock.inset());
@@ -334,7 +340,9 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         clp.bottomMargin = -Math.round(clock.inset());
         header.addView(clock, clp);
         LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        dlp.topMargin = px(10);
+        dlp.topMargin = px(10) - Math.round(date.inset());
+        dlp.leftMargin = -Math.round(date.inset());
+        dlp.bottomMargin = -Math.round(date.inset());
         header.addView(date, dlp);
         FrameLayout.LayoutParams hlp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         hlp.leftMargin = side;
@@ -541,6 +549,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             highlight.moveTo(new RectF(cx - halfW, cy - halfH, cx + halfW, cy + halfH), t.app.accent, animate);
             setTitle(t.app, animate);
             clock.setAccent(t.app.accent);
+            date.setAccent(t.app.accent);
             stage.setScene(t.app, animate);
             if (index < COLS) lastDockIndex = index;
         } else {

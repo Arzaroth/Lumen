@@ -4,12 +4,10 @@ import android.content.Context;
 import android.service.dreams.DreamService;
 import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -34,7 +32,7 @@ public final class LumenDream extends DreamService {
         private final Runnable tick = this::tick;
         private final LinearLayout holder;
         private final ClockView clock;
-        private final TextView date;
+        private final DateView date;
 
         ClockFace(Context c) {
             super(c);
@@ -44,12 +42,8 @@ public final class LumenDream extends DreamService {
             float h = Math.min(dm.widthPixels, dm.heightPixels);
             clock = new ClockView(c, h * 0.22f, false);
             clock.setAccent(0xFFB8C6E8);
-            date = new TextView(c);
-            date.setTypeface(Fonts.outfit(c, 400));
-            date.setTextSize(TypedValue.COMPLEX_UNIT_PX, h * 0.032f);
-            date.setTextColor(0x80FFFFFF);
-            date.setLetterSpacing(0.08f);
-            date.setIncludeFontPadding(false);
+            date = new DateView(c, h * 0.032f, 400, 0x80FFFFFF, 0.08f, true);
+            date.setAccent(0xFFB8C6E8);
             holder = new LinearLayout(c) {
                 @Override
                 public boolean hasOverlappingRendering() {
@@ -61,7 +55,7 @@ public final class LumenDream extends DreamService {
             holder.setClipChildren(false);
             holder.addView(clock);
             LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            dlp.topMargin = -Math.round(clock.inset() * 0.8f);
+            dlp.topMargin = -Math.round(clock.inset() * 0.8f + date.inset());
             holder.addView(date, dlp);
             holder.setAlpha(0f);
             addView(holder, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -72,6 +66,7 @@ public final class LumenDream extends DreamService {
             super.onAttachedToWindow();
             clock.setFormat(DateFormat.is24HourFormat(getContext()));
             clock.setRunning(true);
+            date.setRunning(true);
             post(this::place);
             schedule();
         }
@@ -80,6 +75,7 @@ public final class LumenDream extends DreamService {
         protected void onDetachedFromWindow() {
             removeCallbacks(tick);
             clock.setRunning(false);
+            date.setRunning(false);
             super.onDetachedFromWindow();
         }
 
@@ -95,7 +91,7 @@ public final class LumenDream extends DreamService {
 
         private void place() {
             date.setText(DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"),
-                    Calendar.getInstance()).toString().toUpperCase(Locale.getDefault()));
+                    Calendar.getInstance()));
             float fx = 0.3f + random.nextFloat() * 0.4f, fy = 0.35f + random.nextFloat() * 0.3f;
             holder.setTranslationX(getWidth() * fx - holder.getWidth() / 2f);
             holder.setTranslationY(getHeight() * fy - holder.getHeight() / 2f);
