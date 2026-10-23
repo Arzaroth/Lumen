@@ -1,7 +1,7 @@
-# tv-lab
+# Lumen
 
-Debloat an Android TV / Google TV and replace its home screen with **Lumen**, an Apple TV 4K style
-launcher, everything reversible. Built on a local Android TV 14 emulator, then run on a real
+An Apple TV 4K style home screen for Android TV / Google TV, with the scripts that debloat the TV
+and swap Lumen in as Home, everything reversible. Built on a local Android TV 14 emulator, then run on a real
 Thomson 4K Google TV.
 
 Inspired by the wave of "I vibe-coded my TV" posts (x.com/SimbasJungles/status/2112231637840765012) and
