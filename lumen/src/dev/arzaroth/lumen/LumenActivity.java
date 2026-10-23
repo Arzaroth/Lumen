@@ -205,6 +205,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         int backdrop = prefs.getInt(Prefs.BACKDROP, 0);
         stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
         stage.setSkyStill(backdrop == 2);
+        stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
         stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
         stage.setFlat(prefs.getInt(Prefs.LOGO, 0) == 1);

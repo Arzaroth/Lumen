@@ -75,7 +75,8 @@ final class Cosmos {
 
     private final Paint spritePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint trailPaint = new Paint();
-    private final Paint blit = new Paint();
+    private final Paint blit = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private boolean turning;
     private final Paint glowPaint = new Paint();
 
     Cosmos(float scale) {
@@ -450,7 +451,8 @@ final class Cosmos {
         Bitmap b = sky;
         if (b != null) {
             blit.setAlpha(Math.round(255 * skyIn * (1f - 0.7f * warp)));
-            int tw = b.getWidth(), left = (int) Math.floor(turned() % tw);
+            int tw = b.getWidth();
+            float left = (float) (turned() % tw);
             c.drawBitmap(b, left - tw, 0, blit);
             c.drawBitmap(b, left, 0, blit);
         }
@@ -468,12 +470,18 @@ final class Cosmos {
         drawTrails(c);
     }
 
+    /** Turns the sky with the Earth, or holds it still. */
+    void setTurning(boolean on) {
+        turning = on;
+    }
+
     /**
      * How far the sky has turned, in pixels, at the Earth's real rate (one turn per sidereal day)
      * for a view about 50 degrees wide; taken from the wall clock so it carries on across restarts.
+     * Drawn at that fractional offset, so it glides rather than stepping a pixel at a time.
      */
     private double turned() {
-        return System.currentTimeMillis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG;
+        return turning ? System.currentTimeMillis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG : 0.0;
     }
 
     private void drawSprites(Canvas c) {

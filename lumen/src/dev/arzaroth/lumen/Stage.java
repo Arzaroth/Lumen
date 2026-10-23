@@ -294,6 +294,10 @@ final class Stage extends View {
         if (running) postInvalidateOnAnimation();
     }
 
+    void setSkyTurning(boolean on) {
+        cosmos.setTurning(on);
+    }
+
     /** Freezes the sky: no twinkling, no meteors. */
     void setSkyStill(boolean still) {
         cosmos.setStill(still);

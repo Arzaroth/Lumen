@@ -46,6 +46,7 @@ final class LumenSettings {
                 .add(choice("Backdrop", Prefs.BACKDROP, 0, "Night sky", "Fireworks", "Still sky"))
                 .add(choice("Animations", Prefs.PACE, 0, "Lively", "Calm", "Off"))
                 .add(choice("Meteors", Prefs.METEORS, Prefs.METEORS_DEFAULT, "Off", "Few", "Shower", "Storm"))
+                .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"))
                 .add(choice("Logo", Prefs.LOGO, 0, "3D voxels", "Flat"))
                 .add(choice("Greeting", Prefs.GREETING, 0, "On", "Off"))
                 .add(choice("Clock", Prefs.CLOCK, 0, "System", "24-hour", "12-hour"))

@@ -4,7 +4,7 @@ package dev.arzaroth.lumen;
 final class Prefs {
     static final String BACKDROP = "backdrop", PACE = "pace", METEORS = "meteors", LOGO = "logo";
     static final String GREETING = "greeting", CLOCK = "clock", KEYS = "keys", YOUTUBE = "youtube";
-    static final String INTRO = "intro", INTRO_BOOT = "intro_boot";
+    static final String INTRO = "intro", INTRO_BOOT = "intro_boot", TURN = "turn";
     static final int METEORS_DEFAULT = 2;
 
     private Prefs() {
