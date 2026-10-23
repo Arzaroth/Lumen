@@ -64,7 +64,7 @@ final class Stage extends View {
     private static final int PALM = 5, BROCADE = 6, LOGO = 7;
     private static final int TWINKLE = 1, SPLIT = 2, CRACKLE = 4, TRAIL = 8, SMOKE = 16;
     private static final int SPRITE = 64;
-    private static final int GLOW_QUADS = CAP + SPARKS;
+    private static final int GLOW_QUADS = CAP + SPARKS, GHOSTS = CAP, INDEXED = Math.max(GLOW_QUADS, CAP + GHOSTS);
 
     /** A banner reduced to a lit mosaic: target cells, an 8-colour palette, and its sky. */
     static final class Mosaic {
@@ -144,8 +144,16 @@ final class Stage extends View {
 
     // Meshes: voxel faces (untextured; side, top/bottom and front faces in three painter-ordered
     // runs) and everything that glows (one soft sprite, tinted per vertex).
-    private final float[][] coreV = {new float[CAP * 8], new float[CAP * 8], new float[CAP * 8]};
-    private final int[][] coreC = {new int[CAP * 4], new int[CAP * 4], new int[CAP * 4]};
+    private final float[][] coreV = {new float[(CAP + GHOSTS) * 8], new float[(CAP + GHOSTS) * 8], new float[(CAP + GHOSTS) * 8]};
+    private final int[][] coreC = {new int[(CAP + GHOSTS) * 4], new int[(CAP + GHOSTS) * 4], new int[(CAP + GHOSTS) * 4]};
+
+    // Ghosts: the previous logo's cells still in flight when the next one takes the cells over.
+    // They keep their momentum and fade out instead of vanishing mid-move.
+    private final float[] hx = new float[GHOSTS], hy = new float[GHOSTS], hz = new float[GHOSTS];
+    private final float[] hvx = new float[GHOSTS], hvy = new float[GHOSTS], hLife = new float[GHOSTS], hMax = new float[GHOSTS];
+    private final float[] hAlpha = new float[GHOSTS];
+    private final int[] hColor = new int[GHOSTS];
+    private int ghostNext;
     private final int[] faceQ = new int[3];
     private final float[] axes = new float[9];
     private float frontLight = 1f;
@@ -153,7 +161,7 @@ final class Stage extends View {
     private final float[] glowT = new float[GLOW_QUADS * 8];
     private final int[] glowC = new int[GLOW_QUADS * 4];
     private int glowQ;
-    private final short[] quads = new short[GLOW_QUADS * 6];
+    private final short[] quads = new short[INDEXED * 6];
     private final float[] point = new float[2];
 
     private final Paint corePaint = new Paint();
@@ -221,12 +229,14 @@ final class Stage extends View {
         ring.setXfermode(add);
         light.setXfermode(add);
 
-        for (int q = 0; q < GLOW_QUADS; q++) {
+        for (int q = 0; q < INDEXED; q++) {
             int v = q * 4, t = q * 8, i = q * 6;
-            glowT[t + 2] = SPRITE;
-            glowT[t + 4] = SPRITE;
-            glowT[t + 5] = SPRITE;
-            glowT[t + 7] = SPRITE;
+            if (q < GLOW_QUADS) {
+                glowT[t + 2] = SPRITE;
+                glowT[t + 4] = SPRITE;
+                glowT[t + 5] = SPRITE;
+                glowT[t + 7] = SPRITE;
+            }
             quads[i] = (short) v;
             quads[i + 1] = (short) (v + 1);
             quads[i + 2] = (short) (v + 2);
@@ -584,6 +594,9 @@ final class Stage extends View {
     }
 
     private void startEnter() {
+        if (lively()) enterKind = chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
+        int reused = lively() && enterKind == E_CONVERGE ? (hasPending ? Math.min(count, pending.count) : count) : 0;
+        ghost(reused);
         if (hasPending) adopt();
         for (int i = 0; i < count; i++) {
             pz[i] = 0;
@@ -604,7 +617,6 @@ final class Stage extends View {
             invalidate();
             return;
         }
-        enterKind = chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
         float cx = logo.centerX(), cy = logo.centerY();
         for (int i = 0; i < count; i++) {
             float tx = target(gx[i], true), ty = target(gy[i], false);
@@ -642,6 +654,30 @@ final class Stage extends View {
                     break;
                 }
             }
+        }
+    }
+
+    /** Hands every visible cell from `from` on to a ghost that drifts on and fades. */
+    private void ghost(int from) {
+        float still = 40 * s;
+        for (int i = from; i < count; i++) {
+            if (pa[i] <= 0.03f) continue;
+            int g = ghostNext;
+            ghostNext = (ghostNext + 1) % GHOSTS;
+            hx[g] = px[i];
+            hy[g] = py[i];
+            hz[g] = pz[i];
+            hvx[g] = vx[i];
+            hvy[g] = vy[i];
+            if (vx[i] * vx[i] + vy[i] * vy[i] < still * still) {
+                float a = seed[i] * 6.2832f, v = (40 + 90 * seed[(i * 7) % count]) * unit;
+                hvx[g] = (float) Math.cos(a) * v;
+                hvy[g] = (float) Math.sin(a) * v - 30 * unit;
+            }
+            hMax[g] = hLife[g] = 0.45f + 0.45f * seed[i];
+            hAlpha[g] = pa[i];
+            hColor[g] = pw[i] > 0 ? Apps.mix(slots[bk[i]], 0xFFFFFFFF, Math.min(1f, pw[i])) : slots[bk[i]];
+            pa[i] = 0;
         }
     }
 
@@ -966,6 +1002,15 @@ final class Stage extends View {
                 exit(t);
                 if (phaseT >= EXIT_T[exitKind]) startEnter();
                 break;
+        }
+        float drag = (float) Math.pow(0.35f, dt);
+        for (int g = 0; g < GHOSTS; g++) {
+            if (hLife[g] <= 0) continue;
+            hLife[g] -= dt;
+            hvx[g] *= drag;
+            hvy[g] *= drag;
+            hx[g] += hvx[g] * dt;
+            hy[g] += hvy[g] * dt;
         }
         effects(dt);
         if (!(phase == EXIT && exitKind == X_HYPERSPACE)) warp = Math.max(0, warp - dt * 1.5f);
@@ -1445,6 +1490,11 @@ final class Stage extends View {
                 float strength = (stride == 3 ? 0x80 : 0x58) * pa[i] * (near > 0 ? 1f + near * 1.6f : 1f);
                 tint(glowC, glowQ++, Apps.withAlpha(color, Math.min(255, Math.round(strength))));
             }
+        }
+        for (int g = 0; g < GHOSTS; g++) {
+            if (hLife[g] <= 0) continue;
+            float k = hLife[g] / hMax[g];
+            voxel(hx[g], hy[g], hz[g], size * (0.55f + 0.45f * k), hColor[g], Math.round(255 * hAlpha[g] * k * k));
         }
         float sparkW = Math.max(1.5f, 3.2f * s);
         for (int i = 0; i < SPARKS; i++) {
