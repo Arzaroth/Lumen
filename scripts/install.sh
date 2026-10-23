@@ -5,6 +5,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 STATE="$HERE/backup"
 PKG=com.arzaroth.lumen
+LEGACY=dev.arzaroth.lumen
 HOME_COMPONENT="$PKG/.LumenActivity"
 STOCK="$(sed 's#/.*##' "$STATE/home.txt" 2>/dev/null | tr -d '\r' || true)"
 STOCK="${STOCK:-com.google.android.tvlauncher}"
@@ -21,6 +22,9 @@ fi
 adb push "$HERE/lumen/build/outputs/apk/release/lumen-release.apk" /data/local/tmp/lumen.apk >/dev/null
 echo "install $(sh pm install -r -g /data/local/tmp/lumen.apk)"
 sh rm -f /data/local/tmp/lumen.apk
+if sh pm path "$LEGACY" | grep -q package:; then
+  echo "retire  $LEGACY -> $(sh pm uninstall "$LEGACY")"
+fi
 for p in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION DUMP; do
   sh pm grant "$PKG" "android.permission.$p" 2>/dev/null || true
 done
@@ -82,7 +86,7 @@ sh settings put secure screensaver_components "$PKG/.LumenDream"
 echo "dream   Lumen Clock screensaver"
 
 KEYS="$PKG/.LumenKeys"
-a11y=$(sh settings get secure enabled_accessibility_services)
+a11y=$(sh settings get secure enabled_accessibility_services | sed -E "s#(^|:)$LEGACY/[^:]*##g; s#^:##")
 [ -e "$STATE/accessibility.txt" ] || echo "$a11y" > "$STATE/accessibility.txt"
 if ! grep -q "$KEYS" <<<"$a11y"; then
   if [ -z "$a11y" ] || [ "$a11y" = null ]; then a11y="$KEYS"; else a11y="$a11y:$KEYS"; fi
