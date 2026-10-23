@@ -13,7 +13,6 @@ import android.graphics.RadialGradient;
 import android.graphics.Shader;
 import android.os.SystemClock;
 import android.text.format.DateFormat;
-import android.util.SparseArray;
 import android.view.View;
 
 import java.util.Arrays;
@@ -40,7 +39,6 @@ final class ClockView extends View {
     private static final int[] DUST = {0xFFFFFFFF, 0, 0xFFFFD8A0, 1};
     private static final float MORPH_T = 1.75f, FLIGHT = 0.75f, SWEEP = 0.65f;
     private static final int[] WEIGHTS = {200, 240, 280, 320, 360, 400, 450, 500, 600};
-    private static final SparseArray<float[]> GLYPHS = new SparseArray<>();
 
     private final float size, pad;
     private final boolean seconds;
@@ -344,54 +342,9 @@ final class ClockView extends View {
         }
     }
 
-    /**
-     * POINTS points on the glyph's strokes, relative to its cell and baseline, ordered by angle
-     * around its centre so two glyphs pair up stroke for stroke.
-     */
+    /** POINTS points on a character's strokes, sampled from its regular weight for a fuller shape. */
     private float[] glyph(char ch) {
-        float[] pts = GLYPHS.get(ch | Math.round(size) << 16);
-        if (pts != null) return pts;
-        Paint p = weights[0];
-        float w = ch == ':' ? colonW : digitW;
-        int bw = (int) Math.ceil(w) + 4, bh = (int) Math.ceil(ascent + p.descent()) + 4;
-        Bitmap b = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(b);
-        Paint thick = new Paint(p);
-        thick.setTypeface(weights[2].getTypeface());
-        one[0] = ch;
-        c.drawText(one, 0, 1, 2 + (w - thick.measureText(one, 0, 1)) / 2, 2 + ascent, thick);
-        int[] px = new int[bw * bh];
-        b.getPixels(px, 0, bw, 0, 0, bw, bh);
-        b.recycle();
-        int n = 0;
-        for (int v : px) if (v >>> 24 > 128) n++;
-        int[] on = new int[Math.max(1, n)];
-        n = 0;
-        for (int i = 0; i < px.length; i++) if (px[i] >>> 24 > 128) on[n++] = i;
-        Random pick = new Random(ch);
-        pts = new float[POINTS * 2];
-        float cx = 0, cy = 0;
-        for (int k = 0; k < POINTS; k++) {
-            int i = n > 0 ? on[pick.nextInt(n)] : 0;
-            pts[2 * k] = i % bw - 2 + pick.nextFloat() - 0.5f;
-            pts[2 * k + 1] = i / bw - 2 - ascent + pick.nextFloat() - 0.5f;
-            cx += pts[2 * k];
-            cy += pts[2 * k + 1];
-        }
-        final float mx = cx / POINTS, my = cy / POINTS;
-        Integer[] order = new Integer[POINTS];
-        for (int k = 0; k < POINTS; k++) order[k] = k;
-        final float[] src = pts;
-        Arrays.sort(order, (a, bb) -> Float.compare(
-                (float) Math.atan2(src[2 * a + 1] - my, src[2 * a] - mx),
-                (float) Math.atan2(src[2 * bb + 1] - my, src[2 * bb] - mx)));
-        float[] sorted = new float[POINTS * 2];
-        for (int k = 0; k < POINTS; k++) {
-            sorted[2 * k] = src[2 * order[k]];
-            sorted[2 * k + 1] = src[2 * order[k] + 1];
-        }
-        GLYPHS.put(ch | Math.round(size) << 16, sorted);
-        return sorted;
+        return Glyphs.sample(weights[5], ch, ch == ':' ? colonW : digitW, POINTS);
     }
 
     // ------------------------------------------------------------------ drawing
