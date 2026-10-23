@@ -223,13 +223,8 @@ final class ClockView extends View {
 
     /** Midway between the ink of the digits either side of the colon, whatever their widths. */
     private void placeColon() {
-        int colon = indexOf(now, nowLen);
-        if (colon <= 0 || colon >= nowLen - 1) {
-            colonTarget = colon < nowLen ? nowX[colon] + colonW / 2 : 0;
-        } else {
-            float right = inkEdge(colon - 1, true), left = inkEdge(colon + 1, false);
-            colonTarget = (right + left) / 2;
-        }
+        int colon = indexOf(now);
+        colonTarget = (inkEdge(colon - 1, true) + inkEdge(colon + 1, false)) / 2;
         if (colonX < 0) colonX = colonTarget;
     }
 
@@ -281,7 +276,7 @@ final class ClockView extends View {
             Arrays.fill(morph, -1f);
             return;
         }
-        int colon = indexOf(now, nowLen), oldColon = indexOf(before, beforeLen);
+        int colon = indexOf(now), oldColon = indexOf(before);
         hourly = false;
         boolean tens = false;
         for (int i = 0; i < nowLen; i++) {
@@ -306,9 +301,11 @@ final class ClockView extends View {
         }
     }
 
-    private static int indexOf(char[] chars, int len) {
-        for (int i = 0; i < len; i++) if (chars[i] == ':') return i;
-        return len;
+    /** Where the colon is; the times shown, HH:mm or h:mm, always have one between digits. */
+    private static int indexOf(char[] chars) {
+        int i = 0;
+        while (chars[i] != ':') i++;
+        return i;
     }
 
     /**
