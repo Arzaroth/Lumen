@@ -24,14 +24,22 @@ import java.util.Random;
  * The time, alive. Each digit that changes breaks into stardust that streams, swirling, into the
  * next one, which lands heavy and thins out to the clock's hairline weight; on the hour the whole
  * time takes off at once. The colon beats with the seconds, a hairline under the digits fills
- * across the minute and sheds sparks from its head, and now and then a glint runs over the glass.
+ * across the minute and sheds sparks from its head.
+ *
+ * In between, the digits never sit still: stars twinkle inside their strokes, an iridescent sheen
+ * drifts through them, and every few seconds one of six moments plays (never the same twice in a
+ * row): a glint, the digits breathing heavier and back, a wave, the colon's dots orbiting each
+ * other, dust lifting off and settling back, or a comet crossing that lights each digit it passes.
  */
 final class ClockView extends View {
     private static final int SLOTS = 5, POINTS = 200, SPARKS = 48, SPRITE = 48;
-    private static final int QUADS = SLOTS * POINTS + SLOTS + SPARKS + 2;
+    private static final int TWINKLES = 26, EVAP = 36, TRAIL = 18, ORBIT_TRAIL = 8;
+    private static final int QUADS = SLOTS * POINTS + SLOTS + SPARKS + 2 + TWINKLES * 3 + SLOTS * EVAP + TRAIL + 2 * ORBIT_TRAIL + SLOTS;
+    private static final int GLINT = 0, BREATHE = 1, WAVE = 2, ORBIT = 3, EVAPORATE = 4, COMET = 5, EVENTS = 6;
+    private static final float[] EVENT_T = {1.3f, 2.3f, 1.5f, 1.5f, 2.8f, 2.0f};
     private static final int[] DUST = {0xFFFFFFFF, 0, 0xFFFFD8A0, 1};
-    private static final float MORPH_T = 1.5f, GLINT_EVERY = 9f, GLINT_T = 1.3f;
-    private static final int[] WEIGHTS = {200, 300, 400, 500, 600};
+    private static final float MORPH_T = 1.5f;
+    private static final int[] WEIGHTS = {200, 240, 280, 320, 360, 400, 450, 500, 600};
     private static final SparseArray<float[]> GLYPHS = new SparseArray<>();
 
     private final float size, pad;
@@ -45,7 +53,10 @@ final class ClockView extends View {
     private final RadialGradient flashShader = new RadialGradient(0, 0, 1,
             new int[] {0x66FFFFFF, 0x22FFFFFF, 0x00FFFFFF}, new float[] {0f, 0.4f, 1f}, Shader.TileMode.CLAMP);
     private final Matrix matrix = new Matrix();
-    private LinearGradient glintShader;
+    private LinearGradient glintShader, sheenShader;
+    private final Paint sheen = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private float dotTopX, dotTopY, dotBottomX, dotBottomY, dotR;
     private final Random rnd = new Random();
     private final float ascent, digitW, colonW;
     private boolean h24, running;
@@ -73,8 +84,12 @@ final class ClockView extends View {
     private final short[] indices = new short[QUADS * 6];
     private final char[] one = new char[1];
 
+    private final int[] twSlot = new int[TWINKLES], twPoint = new int[TWINKLES];
+    private final float[] twLife = new float[TWINKLES], twMax = new float[TWINKLES];
+
     private long lastSecond = -1, lastFrame;
-    private float clock, glintAt = 3f;
+    private float clock, nextEvent = 3f, eventT;
+    private int event = -1, lastEvent = -1;
 
     /** `size` is the digits' text size in pixels; `seconds` draws the minute hairline. */
     ClockView(Context c, float size, boolean seconds) {
@@ -97,6 +112,9 @@ final class ClockView extends View {
         colonW = base.measureText(":") * 1.1f;
         glint.set(base);
         glint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+        sheen.set(base);
+        sheen.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+        dot.setColor(0xFFFFFFFF);
         sprites.setShader(new BitmapShader(sprite(), Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
         sprites.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
         line.setStrokeCap(Paint.Cap.ROUND);
@@ -119,6 +137,7 @@ final class ClockView extends View {
         }
         Arrays.fill(morph, -1f);
         setAccent(accent);
+        measureColon();
         h24 = DateFormat.is24HourFormat(c);
         tick(System.currentTimeMillis(), false);
     }
@@ -151,6 +170,45 @@ final class ClockView extends View {
         int tint = Apps.mix(accent, 0xFFFFFFFF, 0.55f);
         glintShader = new LinearGradient(-size * 0.5f, 0, size * 0.5f, size * 0.4f,
                 new int[] {0x00000000, Apps.withAlpha(tint, 0x90), 0x00000000}, null, Shader.TileMode.CLAMP);
+        float[] hsv = new float[3];
+        android.graphics.Color.colorToHSV(accent, hsv);
+        hsv[0] = (hsv[0] + 150) % 360;
+        hsv[1] = Math.min(hsv[1], 0.6f);
+        hsv[2] = 1f;
+        int other = android.graphics.Color.HSVToColor(hsv);
+        sheenShader = new LinearGradient(0, 0, size * 2.6f, 0,
+                new int[] {Apps.withAlpha(accent, 0x46), 0x00000000, Apps.withAlpha(other, 0x3C), 0x14FFFFFF, Apps.withAlpha(accent, 0x46)},
+                null, Shader.TileMode.REPEAT);
+    }
+
+    /** Where the colon's two dots sit in its cell, and how big they are. */
+    private void measureColon() {
+        float[] pts = glyph(':');
+        float my = 0;
+        for (int k = 0; k < POINTS; k++) my += pts[2 * k + 1];
+        my /= POINTS;
+        float tx = 0, ty = 0, bx = 0, by = 0;
+        int nt = 0, nb = 0;
+        for (int k = 0; k < POINTS; k++) {
+            if (pts[2 * k + 1] < my) {
+                tx += pts[2 * k];
+                ty += pts[2 * k + 1];
+                nt++;
+            } else {
+                bx += pts[2 * k];
+                by += pts[2 * k + 1];
+                nb++;
+            }
+        }
+        dotTopX = tx / Math.max(1, nt);
+        dotTopY = ty / Math.max(1, nt);
+        dotBottomX = bx / Math.max(1, nb);
+        dotBottomY = by / Math.max(1, nb);
+        float r = 0;
+        for (int k = 0; k < POINTS; k++) {
+            if (pts[2 * k + 1] < my) r = Math.max(r, (float) Math.hypot(pts[2 * k] - dotTopX, pts[2 * k + 1] - dotTopY));
+        }
+        dotR = Math.max(1.5f, r * 0.8f);
     }
 
     void setRunning(boolean run) {
@@ -370,6 +428,196 @@ final class ClockView extends View {
         sLife[i] = 0.6f + rnd.nextFloat() * 0.6f;
     }
 
+    private int digitOrder(int i) {
+        int n = 0;
+        for (int k = 0; k < i; k++) if (now[k] != ':') n++;
+        return n;
+    }
+
+    private boolean morphing() {
+        for (int i = 0; i < nowLen; i++) if (morph[i] >= 0) return true;
+        return false;
+    }
+
+    /** 0..1..0 over [start, start + span] of the current event, 0 outside. */
+    private float bump(float start, float span) {
+        float u = (eventT - start) / span;
+        return u <= 0 || u >= 1 ? 0f : (float) Math.sin(Math.PI * u);
+    }
+
+    private float cometX() {
+        float u = eventT / EVENT_T[COMET];
+        return -0.15f * getWidth() + u * 1.3f * getWidth();
+    }
+
+    private float cometY(float baseline, float u) {
+        return baseline - ascent * (0.45f + 0.25f * (float) Math.sin(u * Math.PI * 1.5f));
+    }
+
+    /** A digit at rest, shaped by whatever moment is playing. */
+    private int drawIdle(Canvas c, int q, int i, int order, float baseline, int tint) {
+        Paint p = weights[0];
+        float lift = 0f, glow = 0f, dim = 1f;
+        if (event == BREATHE) {
+            float b = bump(order * 0.2f, 1.4f);
+            p = weights[Math.round(b * 5)];
+            glow = b * 0.5f;
+        } else if (event == WAVE) {
+            float b = bump(order * 0.16f, 0.6f);
+            lift = b * size * 0.1f;
+            glow = b * 0.8f;
+        } else if (event == EVAPORATE) {
+            dim = 1f - 0.4f * bump(0f, EVENT_T[EVAPORATE]);
+        } else if (event == COMET) {
+            float d = (nowX[i] + digitW / 2 - cometX()) / (digitW * 0.7f);
+            glow = (float) Math.exp(-d * d) * 1.1f;
+        }
+        if (p != weights[0]) p.setShadowLayer(size * 0.14f, 0, 0, Apps.withAlpha(accent, 0x50));
+        p.setAlpha(Math.round(255 * dim));
+        float x = nowX[i] + (digitW - p.measureText(one, 0, 1)) / 2, y = baseline - lift;
+        c.drawText(one, 0, 1, x, y, p);
+        p.setAlpha(255);
+        if (p != weights[0]) p.clearShadowLayer();
+        drawSheen(c, p, i, baseline, lift);
+        if (glow > 0.02f) {
+            glint.setTypeface(p.getTypeface());
+            glint.setShader(null);
+            glint.setColor(Apps.withAlpha(tint, Math.round(200 * Math.min(1f, glow))));
+            c.drawText(one, 0, 1, x, y, glint);
+            glint.setColor(0xFFFFFFFF);
+            glint.setTypeface(weights[0].getTypeface());
+            quad(q++, nowX[i] + digitW / 2, y - ascent * 0.38f, digitW * 0.8f, Apps.withAlpha(tint, Math.round(70 * Math.min(1f, glow))));
+        }
+        if (event == EVAPORATE) q = drawEvaporate(q, i, baseline, tint);
+        return q;
+    }
+
+    private void drawSheen(Canvas c, Paint shape, int i, float baseline, float lift) {
+        if (!running) return;
+        matrix.setRotate(-24f);
+        matrix.postTranslate(clock * size * 0.3f, 0);
+        sheenShader.setLocalMatrix(matrix);
+        sheen.setShader(sheenShader);
+        sheen.setTypeface(shape.getTypeface());
+        float cell = now[i] == ':' ? colonW : digitW;
+        c.drawText(one, 0, 1, nowX[i] + (cell - sheen.measureText(one, 0, 1)) / 2, baseline - lift, sheen);
+    }
+
+    /** The colon's dots swing round each other, trailing light. */
+    private int drawOrbit(Canvas c, int q, int i, float baseline, float beat, int tint) {
+        float u = Math.min(1f, eventT / EVENT_T[ORBIT]);
+        float e = u < 0.5f ? 4 * u * u * u : 1 - (float) Math.pow(-2 * u + 2, 3) / 2;
+        float mx = nowX[i] + (dotTopX + dotBottomX) / 2, my = baseline + (dotTopY + dotBottomY) / 2;
+        float r = (dotBottomY - dotTopY) / 2;
+        for (int k = ORBIT_TRAIL; k >= 0; k--) {
+            float ek = Math.max(0f, e - k * 0.035f);
+            double a = Math.PI * ek;
+            float dx = (float) Math.sin(a) * r * 1.15f, dy = -(float) Math.cos(a) * r;
+            if (k == 0) {
+                dot.setAlpha(Math.round(255 * beat));
+                c.drawCircle(mx + dx, my + dy, dotR, dot);
+                c.drawCircle(mx - dx, my - dy, dotR, dot);
+            } else if (u < 1f) {
+                int alpha = Math.round(150 * (1f - (float) k / ORBIT_TRAIL) * (float) Math.sin(Math.PI * u));
+                quad(q++, mx + dx, my + dy, dotR * 2.2f, Apps.withAlpha(tint, alpha));
+                quad(q++, mx - dx, my - dy, dotR * 2.2f, Apps.withAlpha(tint, alpha));
+            }
+        }
+        return q;
+    }
+
+    /** Dust lifting off a digit's strokes, drifting up and settling back. */
+    private int drawEvaporate(int q, int i, float baseline, int tint) {
+        float[] pts = glyph(now[i]);
+        for (int k = 0; k < EVAP; k++) {
+            int pk = (k * POINTS / EVAP + i * 7) % POINTS;
+            float h = ((k * 37 + i * 11) % 23) / 23f;
+            float b = bump(h * 0.9f, 1.6f);
+            if (b <= 0.01f) continue;
+            float x = nowX[i] + pts[2 * pk] + (float) Math.sin(eventT * 5f + k) * size * 0.05f * b;
+            float y = baseline + pts[2 * pk + 1] - size * (0.2f + 0.35f * h) * b;
+            quad(q++, x, y, size * (0.02f + 0.015f * (k % 2)), Apps.withAlpha(k % 3 == 0 ? 0xFFFFFFFF : tint, Math.round(220 * b)));
+        }
+        return q;
+    }
+
+    /** Starts, plays and ends the idle moments; the comet's own light is drawn here. */
+    private int drawEvent(Canvas c, int q, float baseline, int tint, float dt) {
+        if (event < 0) {
+            long ms = System.currentTimeMillis() % 60_000;
+            if (clock >= nextEvent && !morphing() && ms > 2500 && ms < 55_000) {
+                int e;
+                do {
+                    e = rnd.nextInt(EVENTS);
+                } while (e == lastEvent);
+                event = lastEvent = e;
+                eventT = 0f;
+            }
+            return q;
+        }
+        eventT += dt;
+        if (eventT >= EVENT_T[event] || morphing()) {
+            event = -1;
+            nextEvent = clock + 5.5f + rnd.nextFloat() * 4.5f;
+            return q;
+        }
+        if (event == GLINT) {
+            float w = getWidth(), cx = -0.3f * w + eventT / EVENT_T[GLINT] * 1.6f * w;
+            matrix.setTranslate(cx, 0);
+            glintShader.setLocalMatrix(matrix);
+            glint.setShader(glintShader);
+            for (int i = 0; i < nowLen; i++) {
+                one[0] = now[i];
+                float cell = now[i] == ':' ? colonW : digitW;
+                c.drawText(one, 0, 1, nowX[i] + (cell - glint.measureText(one, 0, 1)) / 2, baseline, glint);
+            }
+            glint.setShader(null);
+        } else if (event == COMET) {
+            float total = EVENT_T[COMET];
+            for (int k = TRAIL - 1; k >= 0; k--) {
+                float u1 = (eventT - k * 0.02f) / total, u0 = (eventT - (k + 1) * 0.02f) / total;
+                if (u0 < 0) continue;
+                float x1 = -0.15f * getWidth() + u1 * 1.3f * getWidth(), x0 = -0.15f * getWidth() + u0 * 1.3f * getWidth();
+                float fade = 1f - (float) k / TRAIL;
+                streak(q++, x0, cometY(baseline, u0), x1, cometY(baseline, u1), size * 0.022f * fade,
+                        Apps.withAlpha(k < 3 ? 0xFFFFFFFF : tint, Math.round(220 * fade)));
+            }
+            float u = eventT / total, hx = cometX(), hy = cometY(baseline, u);
+            quad(q++, hx, hy, size * 0.09f, 0xFFFFFFFF);
+            if (rnd.nextFloat() < dt * 30f) spark(hx, hy);
+        }
+        return q;
+    }
+
+    /** Stars caught in the glass: brief glints on the strokes of the digits at rest. */
+    private int drawTwinkles(int q, float baseline, int tint, float dt) {
+        for (int n = 0; n < TWINKLES; n++) {
+            twLife[n] -= dt;
+            int i = twSlot[n];
+            boolean valid = i < nowLen && now[i] != ':' && morph[i] < 0;
+            if (twLife[n] <= 0 || !valid) {
+                if (nowLen == 0) return q;
+                twSlot[n] = rnd.nextInt(nowLen);
+                twPoint[n] = rnd.nextInt(POINTS);
+                twMax[n] = 0.5f + rnd.nextFloat() * 1.1f;
+                twLife[n] = twMax[n] * (valid ? 1f : rnd.nextFloat());
+                continue;
+            }
+            float[] pts = glyph(now[i]);
+            float x = nowX[i] + pts[2 * twPoint[n]], y = baseline + pts[2 * twPoint[n] + 1];
+            float a = (float) Math.sin(Math.PI * twLife[n] / twMax[n]);
+            a *= a;
+            int color = Apps.withAlpha(n % 3 == 0 ? tint : 0xFFFFFFFF, Math.round(255 * a));
+            quad(q++, x, y, size * (0.025f + 0.02f * (n % 3)), color);
+            if (n % 4 == 0) {
+                float len = size * 0.13f * a, w = size * 0.006f;
+                streak(q++, x - len, y, x + len, y, w, color);
+                streak(q++, x, y - len, x, y + len, w, color);
+            }
+        }
+        return q;
+    }
+
     @Override
     protected void onDraw(Canvas c) {
         long frame = SystemClock.uptimeMillis();
@@ -401,15 +649,20 @@ final class ClockView extends View {
             char ch = now[i];
             one[0] = ch;
             if (ch == ':') {
-                float beat = 0.35f + 0.65f * (float) Math.exp(-frac * 5f);
-                thin.setAlpha(Math.round(255 * (running ? beat : 1f)));
-                c.drawText(one, 0, 1, nowX[i] + (colonW - thin.measureText(one, 0, 1)) / 2, baseline, thin);
-                thin.setAlpha(255);
+                float beat = running ? 0.35f + 0.65f * (float) Math.exp(-frac * 5f) : 1f;
+                if (event == ORBIT) {
+                    q = drawOrbit(c, q, i, baseline, beat, tint);
+                } else {
+                    thin.setAlpha(Math.round(255 * beat));
+                    c.drawText(one, 0, 1, nowX[i] + (colonW - thin.measureText(one, 0, 1)) / 2, baseline, thin);
+                    thin.setAlpha(255);
+                    drawSheen(c, thin, i, baseline, 0);
+                }
                 continue;
             }
             float t = morph[i];
             if (t < 0) {
-                c.drawText(one, 0, 1, nowX[i] + (digitW - thin.measureText(one, 0, 1)) / 2, baseline, thin);
+                q = drawIdle(c, q, i, digitOrder(i), baseline, tint);
                 continue;
             }
             int j = source[i];
@@ -468,22 +721,8 @@ final class ClockView extends View {
         thin.clearShadowLayer();
 
         if (running) {
-            float since = clock - glintAt;
-            if (since > GLINT_T) {
-                glintAt = clock + GLINT_EVERY * (0.6f + rnd.nextFloat() * 0.8f) - GLINT_T;
-            } else if (since > 0) {
-                float w = getWidth(), cx = -0.3f * w + since / GLINT_T * 1.6f * w;
-                matrix.setTranslate(cx, 0);
-                glintShader.setLocalMatrix(matrix);
-                glint.setShader(glintShader);
-                for (int i = 0; i < nowLen; i++) {
-                    if (morph[i] >= 0) continue;
-                    one[0] = now[i];
-                    float cell = now[i] == ':' ? colonW : digitW;
-                    c.drawText(one, 0, 1, nowX[i] + (cell - glint.measureText(one, 0, 1)) / 2, baseline, glint);
-                }
-                glint.setShader(null);
-            }
+            q = drawEvent(c, q, baseline, tint, dt);
+            q = drawTwinkles(q, baseline, tint, dt);
         }
 
         if (seconds && nowLen > 0) {
