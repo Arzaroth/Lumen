@@ -72,7 +72,7 @@ public final class LumenActivity extends Activity {
     private FrameLayout root, content;
     private Stage stage;
     private Highlight highlight;
-    private InputsPanel inputs;
+    private Menu menu;
     private TextView greeting, clock, date, title, appsHeader, hint;
 
     private int zone = ZONE_TILES, index, pillIndex, lastDockIndex;
@@ -147,7 +147,7 @@ public final class LumenActivity extends Activity {
             netCallback = null;
         }
         if (moving) stopMoving();
-        if (inputs.isOpen()) inputs.toggle(false);
+        if (menu.isOpen()) menu.close();
         super.onStop();
     }
 
@@ -171,7 +171,7 @@ public final class LumenActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (inputs.isOpen()) inputs.toggle(false);
+        if (menu.isOpen()) menu.close();
         if (moving) stopMoving();
         zone = ZONE_TILES;
         index = Math.min(lastDockIndex, Math.max(0, tiles.size() - 1));
@@ -183,8 +183,11 @@ public final class LumenActivity extends Activity {
         zone = ZONE_TOP;
         pillIndex = Pill.INPUTS;
         applyFocus(true);
-        inputs.reload();
-        inputs.toggle(true);
+        menu.open(Inputs.page(this, this::launchFromMenu));
+    }
+
+    private void launchFromMenu(Intent i) {
+        if (start(i)) menu.close();
     }
 
     @Override
@@ -318,11 +321,11 @@ public final class LumenActivity extends Activity {
         highlight = new Highlight(this, s);
         content.addView(highlight, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        inputs = new InputsPanel(this, s);
-        FrameLayout.LayoutParams ilp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
-        ilp.topMargin = px(76 + 60 + 18);
-        ilp.rightMargin = side;
-        root.addView(inputs, ilp);
+        menu = new Menu(this, s);
+        FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
+        mlp.topMargin = px(76 + 60 + 18);
+        mlp.rightMargin = side;
+        root.addView(menu, mlp);
 
         hint = text(500, 24, 0xE6FFFFFF);
         hint.setText("Move with the arrows  ·  press OK when done");
@@ -523,7 +526,7 @@ public final class LumenActivity extends Activity {
                 if (down) {
                     if (e.getRepeatCount() == 0) {
                         longFired = false;
-                    } else if (!longFired && !moving && zone == ZONE_TILES && !inputs.isOpen()
+                    } else if (!longFired && !moving && zone == ZONE_TILES && !menu.isOpen()
                             && (e.isLongPress() || e.getEventTime() - e.getDownTime() >= LONG_PRESS_MS)) {
                         longFired = true;
                         startMoving();
@@ -547,7 +550,7 @@ public final class LumenActivity extends Activity {
                 if (e.getAction() == KeyEvent.ACTION_UP && !e.isCanceled()) back();
                 return true;
             case KeyEvent.KEYCODE_MENU:
-                if (e.getAction() == KeyEvent.ACTION_UP && zone == ZONE_TILES && !inputs.isOpen() && !tiles.isEmpty()) {
+                if (e.getAction() == KeyEvent.ACTION_UP && zone == ZONE_TILES && !menu.isOpen() && !tiles.isEmpty()) {
                     if (moving) stopMoving();
                     else startMoving();
                 }
@@ -573,12 +576,14 @@ public final class LumenActivity extends Activity {
     }
 
     private void navigate(int key) {
-        if (inputs.isOpen()) {
+        if (menu.isOpen()) {
             if (key == KeyEvent.KEYCODE_DPAD_UP) {
-                if (inputs.atTop()) inputs.toggle(false);
-                else inputs.move(-1);
+                if (menu.atTop()) menu.close();
+                else menu.move(-1);
             } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
-                inputs.move(1);
+                menu.move(1);
+            } else {
+                menu.side(key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
             }
             return;
         }
@@ -621,8 +626,8 @@ public final class LumenActivity extends Activity {
     }
 
     private void activate() {
-        if (inputs.isOpen()) {
-            if (inputs.launchSelected()) inputs.toggle(false);
+        if (menu.isOpen()) {
+            menu.activate();
             return;
         }
         if (moving) {
@@ -666,8 +671,8 @@ public final class LumenActivity extends Activity {
     }
 
     private void back() {
-        if (inputs.isOpen()) {
-            inputs.toggle(false);
+        if (menu.isOpen()) {
+            if (!menu.pop()) menu.close();
             return;
         }
         if (moving) {
