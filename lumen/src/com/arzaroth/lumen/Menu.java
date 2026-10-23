@@ -175,6 +175,18 @@ final class Menu extends View {
         pageChanged(1);
     }
 
+    /** Whether `page` is the one on screen. */
+    boolean showing(Page page) {
+        return shown && top() == page;
+    }
+
+    /** Redraws the current page as `page`, in place, keeping the cursor where it was. */
+    void swap(Page page) {
+        page.selected = top().selected;
+        stack.set(stack.size() - 1, page);
+        pageChanged(0);
+    }
+
     /** Back one page; false at the root. */
     boolean pop() {
         if (stack.size() <= 1) return false;

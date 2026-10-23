@@ -28,11 +28,14 @@ final class LumenSettings {
     private final Host host;
     private final SharedPreferences prefs;
     private final Handler main = new Handler(Looper.getMainLooper());
+    private final Updater updater;
+    private Menu.Page advanced;
 
     LumenSettings(Context context, Host host, SharedPreferences prefs) {
         this.context = context;
         this.host = host;
         this.prefs = prefs;
+        updater = new Updater(context, this::refresh);
     }
 
     Menu.Page root() {
@@ -59,17 +62,37 @@ final class LumenSettings {
     }
 
     private Menu.Page advanced() {
-        return new Menu.Page("Advanced settings", 480)
+        if (updater.state() == Updater.State.IDLE) updater.check();
+        advanced = new Menu.Page("Advanced settings", 520)
                 .add(Menu.Row.sub("Seasonal events", this::seasonal))
-                .add(Menu.Row.note("Lumen " + version()));
+                .add(updateRow())
+                .add(Menu.Row.note("Lumen " + Updater.installed(context)));
+        return advanced;
     }
 
-    private String version() {
-        try {
-            return context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
-        } catch (PackageManager.NameNotFoundException e) {
-            return "";
+    private Menu.Row updateRow() {
+        String latest = updater.latest();
+        switch (updater.state()) {
+            case CURRENT:
+                return Menu.Row.action("Lumen is up to date", updater::check);
+            case AVAILABLE:
+                return Menu.Row.action("Update to " + latest, updater::update);
+            case BLOCKED:
+                return Menu.Row.action("Run scripts/install.sh to allow updates", updater::update);
+            case DOWNLOADING:
+                return Menu.Row.action("Downloading " + latest + "\u2026 " + updater.progress() + "%", () -> { });
+            case INSTALLING:
+                return Menu.Row.action("Installing " + latest + "\u2026", () -> { });
+            case FAILED:
+                return Menu.Row.action("Couldn't update, try again", updater::check);
+            default:
+                return Menu.Row.action("Checking for updates\u2026", () -> { });
         }
+    }
+
+    private void refresh() {
+        Menu menu = host.menu();
+        if (advanced != null && menu.showing(advanced)) menu.swap(advanced());
     }
 
     private Menu.Page seasonal() {

@@ -28,6 +28,7 @@ fi
 for p in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION DUMP; do
   sh pm grant "$PKG" "android.permission.$p" 2>/dev/null || true
 done
+sh appops set "$PKG" REQUEST_INSTALL_PACKAGES allow 2>/dev/null || true
 
 focused_home() {
   sh input keyevent HOME

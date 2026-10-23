@@ -63,6 +63,7 @@ public class SettingsTest implements LumenSettings.Host {
         menu = new Menu(c, 1f);
         prefs = c.getSharedPreferences("lumen", Context.MODE_PRIVATE);
         prefs.edit().clear().apply();
+        Updater.releases = "http://127.0.0.1:9/latest";
         settings = new LumenSettings(c, this, prefs);
         canvas = Robo.canvas(900, 1100);
     }
@@ -177,7 +178,7 @@ public class SettingsTest implements LumenSettings.Host {
         down(12);
         menu.activate();
         Menu.Page advanced = Robo.call(menu, "top");
-        assertTrue(advanced.rows.get(1).label.startsWith("Lumen "));
+        assertTrue(advanced.rows.get(2).label.startsWith("Lumen "));
     }
 
     @Test
@@ -188,7 +189,7 @@ public class SettingsTest implements LumenSettings.Host {
                 return "org.missing.lumen";
             }
         };
-        assertEquals("", Robo.call(new LumenSettings(missing, this, prefs), "version"));
+        assertEquals("", Updater.installed(missing));
     }
 
     @Test
