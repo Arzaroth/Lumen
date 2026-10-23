@@ -42,7 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-public final class LumenActivity extends Activity {
+public final class LumenActivity extends Activity implements LumenSettings.Host {
     static final String ACTION_INPUTS = "dev.arzaroth.lumen.INPUTS";
     private static final int COLS = 5;
     private static final int ZONE_TOP = 0, ZONE_TILES = 1;
@@ -73,11 +73,13 @@ public final class LumenActivity extends Activity {
     private Stage stage;
     private Highlight highlight;
     private Menu menu;
+    private boolean resumed;
     private TextView greeting, clock, date, title, appsHeader, hint;
 
     private int zone = ZONE_TILES, index, pillIndex, lastDockIndex;
     private boolean moving, longFired, firstLayout = true;
     private SharedPreferences prefs;
+    private LumenSettings settings;
     private ConnectivityManager.NetworkCallback netCallback;
     private String restoreKey;
     private int loadGeneration;
@@ -104,9 +106,10 @@ public final class LumenActivity extends Activity {
         super.onCreate(state);
         prefs = getSharedPreferences("lumen", MODE_PRIVATE);
         restoreKey = prefs.getString("focus", null);
+        settings = new LumenSettings(this, prefs);
         measure();
         buildViews();
-        updateClock();
+        applySettings();
 
         IntentFilter pkg = new IntentFilter();
         pkg.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -154,12 +157,14 @@ public final class LumenActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         LumenKeys.setHomeInFront(true);
         stage.setRunning(true);
     }
 
     @Override
     protected void onPause() {
+        resumed = false;
         LumenKeys.setHomeInFront(false);
         stage.setRunning(false);
         if (zone == ZONE_TILES && index < tiles.size()) {
@@ -188,6 +193,35 @@ public final class LumenActivity extends Activity {
 
     private void launchFromMenu(Intent i) {
         if (start(i)) menu.close();
+    }
+
+    @Override
+    public void applySettings() {
+        int backdrop = prefs.getInt(Prefs.BACKDROP, 0);
+        stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
+        stage.setSkyStill(backdrop == 2);
+        stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
+        stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
+        stage.setFlat(prefs.getInt(Prefs.LOGO, 0) == 1);
+        greeting.setVisibility(prefs.getInt(Prefs.GREETING, 0) == 0 ? View.VISIBLE : View.INVISIBLE);
+        updateClock();
+        if (resumed) LumenKeys.setHomeInFront(true);
+    }
+
+    @Override
+    public void resetOrder() {
+        prefs.edit().remove("order").apply();
+        reloadApps();
+    }
+
+    @Override
+    public void openSystemSettings() {
+        if (start(new Intent(Settings.ACTION_SETTINGS))) menu.close();
+    }
+
+    @Override
+    public Menu menu() {
+        return menu;
     }
 
     @Override
@@ -643,7 +677,7 @@ public final class LumenActivity extends Activity {
                     if (!start(new Intent(Settings.ACTION_WIFI_SETTINGS))) start(new Intent(Settings.ACTION_SETTINGS));
                     break;
                 default:
-                    start(new Intent(Settings.ACTION_SETTINGS));
+                    menu.open(settings.root());
                     break;
             }
             return;
@@ -706,7 +740,9 @@ public final class LumenActivity extends Activity {
         Calendar now = Calendar.getInstance();
         int hour = now.get(Calendar.HOUR_OF_DAY);
         greeting.setText(hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
-        clock.setText(DateFormat.format(DateFormat.is24HourFormat(this) ? "HH:mm" : "h:mm", now));
+        int format = prefs.getInt(Prefs.CLOCK, 0);
+        boolean h24 = format == 0 ? DateFormat.is24HourFormat(this) : format == 1;
+        clock.setText(DateFormat.format(h24 ? "HH:mm" : "h:mm", now));
         date.setText(DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), now));
     }
 

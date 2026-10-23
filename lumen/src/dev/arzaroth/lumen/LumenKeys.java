@@ -12,15 +12,21 @@ public final class LumenKeys extends AccessibilityService {
     private static LumenKeys instance;
     private static boolean homeInFront;
 
+    static final String SMARTTUBE = "org.smarttube.stable";
+
     static void setHomeInFront(boolean front) {
         homeInFront = front;
-        if (instance != null) instance.filterKeys(front);
+        if (instance != null) instance.filterKeys(front && instance.enabled());
     }
 
     @Override
     protected void onServiceConnected() {
         instance = this;
-        filterKeys(homeInFront);
+        filterKeys(homeInFront && enabled());
+    }
+
+    private boolean enabled() {
+        return getSharedPreferences("lumen", MODE_PRIVATE).getInt(Prefs.KEYS, 0) == 0;
     }
 
     @Override
@@ -48,7 +54,8 @@ public final class LumenKeys extends AccessibilityService {
                 app = null;
                 break;
             case KeyEvent.KEYCODE_BUTTON_3:
-                app = "com.google.android.youtube.tv";
+                boolean smart = getSharedPreferences("lumen", MODE_PRIVATE).getInt(Prefs.YOUTUBE, 0) == 1;
+                app = smart ? SMARTTUBE : "com.google.android.youtube.tv";
                 break;
             case KeyEvent.KEYCODE_BUTTON_4:
                 app = "com.netflix.ninja";

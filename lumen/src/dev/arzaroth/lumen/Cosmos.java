@@ -49,7 +49,8 @@ final class Cosmos {
 
     private Theme theme, previous;
     private Shader glowNow, glowBefore;
-    private float travel = 1f, clock, warp, storm, nextMeteor = 1f, nextSatellite = 12f;
+    private float travel = 1f, clock, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
+    private boolean still;
 
     private final float[] tx = new float[TWINKLERS], ty = new float[TWINKLERS], tz = new float[TWINKLERS];
     private final float[] tPhase = new float[TWINKLERS], tRate = new float[TWINKLERS];
@@ -284,13 +285,28 @@ final class Cosmos {
         theme = next;
         glowNow = airglow(next);
         travel = previous == null ? 1f : 0f;
-        if (animate) {
+        if (animate && !still && meteors > 0) {
             for (int k = 0; k < 2; k++) meteor(false);
         }
     }
 
     void setWarp(float w) {
         warp = w;
+    }
+
+    void setStill(boolean s) {
+        still = s;
+    }
+
+    void setMeteors(float rate) {
+        meteors = rate;
+    }
+
+    /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
+    boolean moving() {
+        if (!still || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
+        for (int i = 0; i < METEORS; i++) if (mAge[i] < mLife[i]) return true;
+        return false;
     }
 
     /** A meteor storm for the next `seconds`. */
@@ -334,13 +350,13 @@ final class Cosmos {
             if (mAge[i] < mLife[i]) mAge[i] += dt;
         }
         nextMeteor -= dt;
-        if (nextMeteor <= 0 && theme != null) {
+        if (nextMeteor <= 0 && theme != null && !still && meteors > 0) {
             meteor(rnd.nextInt(30) == 0);
-            float rate = theme.rate * (storm > 0 ? 9f * Math.min(1f, storm) : 1f);
+            float rate = theme.rate * meteors * (storm > 0 ? 9f * Math.min(1f, storm) : 1f);
             nextMeteor = (float) (-Math.log(1 - rnd.nextFloat() * 0.99f) / rate);
         }
         nextSatellite -= dt;
-        if (nextSatellite <= 0 && width > 0) {
+        if (nextSatellite <= 0 && width > 0 && !still) {
             boolean ltr = rnd.nextBoolean();
             satX = ltr ? -10 : width + 10;
             satY = height * (0.1f + rnd.nextFloat() * 0.45f);
@@ -423,7 +439,7 @@ final class Cosmos {
         float cx = logo.centerX(), cy = logo.centerY();
         for (int i = 0; i < TWINKLERS; i++) {
             float x = tx[i] * width, y = ty[i] * height, z = tz[i];
-            float scint = 0.7f + 0.3f * (float) Math.sin(clock * tRate[i] + tPhase[i])
+            float scint = still ? 0.85f : 0.7f + 0.3f * (float) Math.sin(clock * tRate[i] + tPhase[i])
                     * (float) Math.sin(clock * tRate[i] * 0.37f + tPhase[i] * 2f);
             float size = (1.4f + 3.4f * z) * s;
             int color = Apps.withAlpha(tTint[i], Math.round((70 + 185 * z) * scint * skyIn));

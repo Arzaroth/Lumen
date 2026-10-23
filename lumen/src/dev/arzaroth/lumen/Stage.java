@@ -39,6 +39,7 @@ import java.util.WeakHashMap;
 final class Stage extends View {
     private static final String TAG = "lumen";
     static final int COSMOS = 0, FIREWORKS = 1;
+    static final int LIVELY = 0, CALM = 1, STILL = 2;
     private static final int COLS = 112, ROWS = 63, MAX = COLS * ROWS, CAP = 4000, K = 8;
     private static final int ENTER = 0, HOLD = 1, EXIT = 2;
     private static final int E_CONVERGE = 0, E_RAIN = 1, E_PRINT = 2, E_WARP = 3, E_SPIRAL = 4, ENTERS = 5;
@@ -49,6 +50,10 @@ final class Stage extends View {
     private static final int[] COSMOS_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_MELT, X_GLITCH, X_HYPERSPACE};
     private static final int[] FIREWORK_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_MELT, X_GLITCH, X_LAUNCH};
     private static final int[] QUICK_EXITS = {X_DETONATE, X_VORTEX, X_DUST, X_GLITCH};
+    private static final int[] ALL_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT, E_WARP, E_SPIRAL};
+    private static final int[] CALM_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT};
+    private static final int[] CALM_HOLDS = {H_SHIMMER, H_PULSE};
+    private static final int[] CALM_EXITS = {X_DUST, X_MELT};
     private static final float[] ENTER_T = {1.3f, 1.75f, 1.6f, 1.3f, 1.9f};
     private static final float[] EXIT_T = {2.6f, 1.9f, 2.3f, 2.5f, 1.7f, 2.7f, 1.6f};
     private static final float CHARGE_T = 0.8f, VORTEX_T = 1.45f, GLITCH_T = 0.8f;
@@ -180,6 +185,8 @@ final class Stage extends View {
 
     private boolean running;
     private final boolean motion;
+    private int pace = LIVELY;
+    private boolean flat;
     private long last;
     private float slowFrames;
     private int quality = 2;
@@ -237,6 +244,32 @@ final class Stage extends View {
     /** COSMOS (night sky and meteors) or FIREWORKS (rockets and shells). */
     void setStyle(int newStyle) {
         style = newStyle;
+    }
+
+    /** LIVELY (every choreography), CALM (the gentle ones) or STILL (the logo stands still). */
+    void setPace(int newPace) {
+        if (pace == newPace) return;
+        boolean wasStill = pace == STILL;
+        pace = newPace;
+        if (laidOut && count > 0 && (wasStill || pace == STILL)) startEnter();
+        if (running) postInvalidateOnAnimation();
+    }
+
+    /** Flat squares instead of lit cubes. */
+    void setFlat(boolean f) {
+        flat = f;
+        invalidate();
+    }
+
+    /** Freezes the sky: no twinkling, no meteors. */
+    void setSkyStill(boolean still) {
+        cosmos.setStill(still);
+        if (running) postInvalidateOnAnimation();
+    }
+
+    /** How many meteors cross the sky, 1 being the normal shower. */
+    void setMeteors(float rate) {
+        cosmos.setMeteors(rate);
     }
 
     /** Where the logo lives (the empty middle), and where its reflection must stop. */
@@ -438,7 +471,7 @@ final class Stage extends View {
         hasPending = true;
         accent = newAccent;
         cosmos.setTheme(m.theme, animate && count > 0 && motion);
-        if (count == 0 || !animate || !motion) {
+        if (count == 0 || !animate || !lively()) {
             startEnter();
             return;
         }
@@ -482,6 +515,10 @@ final class Stage extends View {
         count = m.count;
     }
 
+    private boolean lively() {
+        return motion && pace != STILL;
+    }
+
     private int chooseFrom(int previous, int[] options) {
         int k;
         do {
@@ -502,7 +539,7 @@ final class Stage extends View {
         phase = ENTER;
         phaseT = 0;
         speed = 1f;
-        if (!motion) {
+        if (!lively()) {
             for (int i = 0; i < count; i++) {
                 px[i] = target(gx[i], true);
                 py[i] = target(gy[i], false);
@@ -515,11 +552,7 @@ final class Stage extends View {
             invalidate();
             return;
         }
-        int k;
-        do {
-            k = rnd.nextInt(ENTERS);
-        } while (k == enterKind);
-        enterKind = k;
+        enterKind = chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
         float cx = logo.centerX(), cy = logo.centerY();
         for (int i = 0; i < count; i++) {
             float tx = target(gx[i], true), ty = target(gy[i], false);
@@ -563,7 +596,7 @@ final class Stage extends View {
     private void startHold() {
         phase = HOLD;
         phaseT = 0;
-        holdKind = chooseFrom(holdKind, style == COSMOS ? COSMOS_HOLDS : FIREWORK_HOLDS);
+        holdKind = chooseFrom(holdKind, pace == CALM ? CALM_HOLDS : style == COSMOS ? COSMOS_HOLDS : FIREWORK_HOLDS);
         holdT = 3.0f + rnd.nextFloat() * 1.4f;
         beats = 0;
         nextRocket = holdKind == H_SHOW ? 0.2f : 1.2f + rnd.nextFloat() * 2f;
@@ -586,7 +619,7 @@ final class Stage extends View {
             } while (k == exitKind);
             exitKind = k;
         } else {
-            exitKind = chooseFrom(exitKind, style == COSMOS ? COSMOS_EXITS : FIREWORK_EXITS);
+            exitKind = chooseFrom(exitKind, pace == CALM ? CALM_EXITS : style == COSMOS ? COSMOS_EXITS : FIREWORK_EXITS);
         }
         phase = EXIT;
         phaseT = 0;
@@ -958,6 +991,14 @@ final class Stage extends View {
     }
 
     private void hold(float dt) {
+        if (!lively()) {
+            for (int i = 0; i < count; i++) {
+                px[i] = target(gx[i], true);
+                py[i] = target(gy[i], false);
+                pz[i] = 0;
+            }
+            return;
+        }
         float t = phaseT, cx = logo.centerX(), cy = logo.centerY();
         float scale = 1f;
         if (holdKind == H_PULSE) {
@@ -1319,10 +1360,10 @@ final class Stage extends View {
         glowQ = 0;
         float still = 40 * s, tail = 0.028f;
         float halo = cell * 1.6f, size = cell * 0.42f;
-        boolean sweeping = phase == HOLD && (holdKind == H_SHIMMER || holdKind == H_SHOW) && motion;
+        boolean sweeping = phase == HOLD && (holdKind == H_SHIMMER || holdKind == H_SHOW) && lively();
         float sweep = sweeping ? (phaseT % 2.4f) / 1.6f - 0.2f : -9f;
-        float yaw = motion ? (float) Math.sin(clock * 0.21f) * 0.34f : 0.22f;
-        float pitch = motion ? 0.2f + (float) Math.sin(clock * 0.15f + 1f) * 0.1f : 0.2f;
+        float yaw = lively() ? (float) Math.sin(clock * 0.21f) * 0.34f : 0.22f;
+        float pitch = lively() ? 0.2f + (float) Math.sin(clock * 0.15f + 1f) * 0.1f : 0.2f;
         float cw = (float) Math.cos(yaw), sw = (float) Math.sin(yaw), cp = (float) Math.cos(pitch), sp = (float) Math.sin(pitch);
         axes[0] = cw; axes[1] = 0; axes[2] = -sw;
         axes[3] = sp * sw; axes[4] = cp; axes[5] = sp * cw;
@@ -1377,6 +1418,11 @@ final class Stage extends View {
      * camera, each shaded by a light from the upper left, into the side, top/bottom and front runs.
      */
     private void voxel(float x, float y, float z, float h, int color, int alpha) {
+        if (flat) {
+            square(coreV[2], faceQ[2], x, y, h);
+            tint(coreC[2], faceQ[2]++, Apps.withAlpha(color, alpha));
+            return;
+        }
         float focal = logo.width() * 2.4f, cx = logo.centerX(), cy = logo.centerY();
         float ax = axes[0], ay = axes[1], az = axes[2], bx = axes[3], by = axes[4], bz = axes[5];
         float dx = x - cx, dy = y - cy, dz = z + focal;
@@ -1517,7 +1563,7 @@ final class Stage extends View {
         }
         if (dim < 0.999f) c.drawColor(Apps.withAlpha(0xFF000000, Math.round(255 * (1 - dim))));
 
-        if (running && motion) postInvalidateOnAnimation();
+        if (running && motion && (pace != STILL || cosmos.moving())) postInvalidateOnAnimation();
     }
 
     // Drop the reflection, then the glow, if the TV cannot keep up; never come back mid-session.
