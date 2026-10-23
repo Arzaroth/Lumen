@@ -34,7 +34,12 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
 - Deterministic D-pad: Up/Down move exactly one row, Up from the dock reaches the top bar, Back
   returns to the dock, Home always lands on the dock; last focus remembered across restarts
 - Long-press OK (or Menu) to rearrange: arrows move the tile, OK saves
-- Lumen Clock screensaver: thin drifting clock, moves every minute against burn-in
+- The clock is alive: each digit that changes bursts into stardust that arcs out and streams into
+  the next one, which lands bold with a shockwave and thins back to a hairline (wider on the tens,
+  all digits and a flash on the hour); the colon beats with the seconds, a hairline fills across
+  the minute shedding sparks, a glint crosses the glass, and the glow takes the focused app's colour
+- Lumen Clock screensaver: the same clock, large; it plays each change, then drifts somewhere else
+  against burn-in
 - Remote keys: on Google TV the remote's Input, YouTube, Netflix and Disney+ buttons are wired to the
   stock launcher; an accessibility service (`LumenKeys`) takes them while Lumen is on screen
 - Plain Java, no dependencies, no INTERNET permission, 156 KB APK, minSdk 26
