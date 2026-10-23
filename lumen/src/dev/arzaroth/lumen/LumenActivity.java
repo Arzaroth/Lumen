@@ -74,7 +74,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private Highlight highlight;
     private Menu menu;
     private boolean resumed;
-    private TextView greeting, clock, date, title, appsHeader, hint;
+    private TextView greeting, date, title, appsHeader, hint;
+    private ClockView clock;
 
     private int zone = ZONE_TILES, index, pillIndex, lastDockIndex;
     private boolean moving, longFired, firstLayout = true;
@@ -159,6 +160,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         super.onResume();
         resumed = true;
         LumenKeys.setHomeInFront(true);
+        clock.setRunning(true);
         stage.setRunning(true);
     }
 
@@ -166,6 +168,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     protected void onPause() {
         resumed = false;
         LumenKeys.setHomeInFront(false);
+        clock.setRunning(false);
         stage.setRunning(false);
         if (zone == ZONE_TILES && index < tiles.size()) {
             prefs.edit().putString("focus", tiles.get(index).app.key()).apply();
@@ -293,13 +296,13 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         header.setOrientation(LinearLayout.VERTICAL);
         greeting = text(500, 28, 0x99FFFFFF);
         greeting.setLetterSpacing(0.02f);
-        clock = text(200, 148, 0xFFFFFFFF);
-        clock.setLetterSpacing(-0.02f);
+        clock = new ClockView(this, 148 * s, true);
         date = text(400, 30, 0xB3FFFFFF);
         header.addView(greeting);
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        clp.topMargin = px(6);
-        clp.leftMargin = -px(6);
+        clp.topMargin = px(6) - Math.round(clock.inset());
+        clp.leftMargin = -px(6) - Math.round(clock.inset());
+        clp.bottomMargin = -Math.round(clock.inset());
         header.addView(clock, clp);
         LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         dlp.topMargin = px(10);
@@ -504,6 +507,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             float cx = tileX(index) + tileW / 2f, cy = tileY(index) + tileH / 2f;
             highlight.moveTo(new RectF(cx - halfW, cy - halfH, cx + halfW, cy + halfH), t.app.accent, animate);
             setTitle(t.app, animate);
+            clock.setAccent(t.app.accent);
             stage.setScene(t.app, animate);
             if (index < COLS) lastDockIndex = index;
         } else {
@@ -742,7 +746,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         greeting.setText(hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
         int format = prefs.getInt(Prefs.CLOCK, 0);
         boolean h24 = format == 0 ? DateFormat.is24HourFormat(this) : format == 1;
-        clock.setText(DateFormat.format(h24 ? "HH:mm" : "h:mm", now));
+        clock.setFormat(h24);
         date.setText(DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), now));
     }
 
