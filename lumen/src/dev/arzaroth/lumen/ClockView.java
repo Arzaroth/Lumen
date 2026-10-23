@@ -33,12 +33,12 @@ import java.util.Random;
  */
 final class ClockView extends View {
     private static final int SLOTS = 5, POINTS = 200, SPARKS = 48, SPRITE = 48;
-    private static final int TWINKLES = 26, EVAP = 36, TRAIL = 18, ORBIT_TRAIL = 8;
+    private static final int TWINKLES = 26, EVAP = 36, TRAIL = 18, ORBIT_TRAIL = 14;
     private static final int QUADS = SLOTS * POINTS + SLOTS + SPARKS + 2 + TWINKLES * 3 + SLOTS * EVAP + TRAIL + 2 * ORBIT_TRAIL + SLOTS;
     private static final int GLINT = 0, BREATHE = 1, WAVE = 2, ORBIT = 3, EVAPORATE = 4, COMET = 5, EVENTS = 6;
     private static final float[] EVENT_T = {1.3f, 2.3f, 1.5f, 1.5f, 2.8f, 2.0f};
     private static final int[] DUST = {0xFFFFFFFF, 0, 0xFFFFD8A0, 1};
-    private static final float MORPH_T = 1.5f;
+    private static final float MORPH_T = 1.75f, FLIGHT = 0.75f, SWEEP = 0.65f;
     private static final int[] WEIGHTS = {200, 240, 280, 320, 360, 400, 450, 500, 600};
     private static final SparseArray<float[]> GLYPHS = new SparseArray<>();
 
@@ -56,7 +56,8 @@ final class ClockView extends View {
     private LinearGradient glintShader, sheenShader;
     private final Paint sheen = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private float dotTopX, dotTopY, dotBottomX, dotBottomY, dotR;
+    private final android.graphics.Rect ink = new android.graphics.Rect();
+    private float dotTop, dotBottom, dotR, colonX = -1, colonTarget;
     private final Random rnd = new Random();
     private final float ascent, digitW, colonW;
     private boolean h24, running;
@@ -181,34 +182,33 @@ final class ClockView extends View {
                 null, Shader.TileMode.REPEAT);
     }
 
-    /** Where the colon's two dots sit in its cell, and how big they are. */
+    /** The colon's two dots, measured from the thin glyph's ink: their heights above the baseline and size. */
     private void measureColon() {
-        float[] pts = glyph(':');
-        float my = 0;
-        for (int k = 0; k < POINTS; k++) my += pts[2 * k + 1];
-        my /= POINTS;
-        float tx = 0, ty = 0, bx = 0, by = 0;
-        int nt = 0, nb = 0;
-        for (int k = 0; k < POINTS; k++) {
-            if (pts[2 * k + 1] < my) {
-                tx += pts[2 * k];
-                ty += pts[2 * k + 1];
-                nt++;
-            } else {
-                bx += pts[2 * k];
-                by += pts[2 * k + 1];
-                nb++;
-            }
+        weights[0].getTextBounds(":", 0, 1, ink);
+        float d = ink.width();
+        dotR = d / 2f;
+        dotTop = ink.top + dotR;
+        dotBottom = ink.bottom - dotR;
+    }
+
+    /** Midway between the ink of the digits either side of the colon, whatever their widths. */
+    private void placeColon() {
+        int colon = indexOf(now, nowLen);
+        if (colon <= 0 || colon >= nowLen - 1) {
+            colonTarget = colon < nowLen ? nowX[colon] + colonW / 2 : 0;
+        } else {
+            float right = inkEdge(colon - 1, true), left = inkEdge(colon + 1, false);
+            colonTarget = (right + left) / 2;
         }
-        dotTopX = tx / Math.max(1, nt);
-        dotTopY = ty / Math.max(1, nt);
-        dotBottomX = bx / Math.max(1, nb);
-        dotBottomY = by / Math.max(1, nb);
-        float r = 0;
-        for (int k = 0; k < POINTS; k++) {
-            if (pts[2 * k + 1] < my) r = Math.max(r, (float) Math.hypot(pts[2 * k] - dotTopX, pts[2 * k + 1] - dotTopY));
-        }
-        dotR = Math.max(1.5f, r * 0.8f);
+        if (colonX < 0) colonX = colonTarget;
+    }
+
+    private float inkEdge(int i, boolean right) {
+        Paint p = weights[0];
+        one[0] = now[i];
+        p.getTextBounds(one, 0, 1, ink);
+        float x = nowX[i] + (digitW - p.measureText(one, 0, 1)) / 2;
+        return x + (right ? ink.right : ink.left);
     }
 
     void setRunning(boolean run) {
@@ -245,6 +245,8 @@ final class ClockView extends View {
             x += now[i] == ':' ? colonW : digitW;
         }
         requestLayout();
+        placeColon();
+        if (!animate) colonX = colonTarget;
         if (!animate || beforeLen == 0) {
             Arrays.fill(morph, -1f);
             return;
@@ -263,7 +265,7 @@ final class ClockView extends View {
         for (int i = 0; i < nowLen; i++) {
             int j = i - colon + oldColon;
             boolean changed = j < 0 || j >= beforeLen || before[j] != now[i] || beforeX[j] != nowX[i];
-            if (changed) begin(i, j >= 0 && j < beforeLen ? j : -1, level);
+            if (changed && now[i] != ':') begin(i, j >= 0 && j < beforeLen ? j : -1, level);
         }
         if (hourly) {
             flash = 1f;
@@ -302,7 +304,7 @@ final class ClockView extends View {
                 fromX[p] = nowX[i] + digitW / 2 + (rnd.nextFloat() - 0.5f) * size * 0.1f;
                 fromY[p] = baseline - ascent * 0.35f + (rnd.nextFloat() - 0.5f) * size * 0.1f;
             }
-            delay[p] = (float) k / POINTS * 0.32f + rnd.nextFloat() * 0.1f;
+            delay[p] = (float) k / POINTS * SWEEP + rnd.nextFloat() * 0.06f;
             double a = rnd.nextDouble() * Math.PI * 2;
             float reach = spread * (0.35f + 0.65f * rnd.nextFloat());
             midX[p] = (fromX[p] + toX[p]) / 2 + (float) Math.cos(a) * reach;
@@ -503,26 +505,37 @@ final class ClockView extends View {
         c.drawText(one, 0, 1, nowX[i] + (cell - sheen.measureText(one, 0, 1)) / 2, baseline - lift, sheen);
     }
 
-    /** The colon's dots swing round each other, trailing light. */
-    private int drawOrbit(Canvas c, int q, int i, float baseline, float beat, int tint) {
-        float u = Math.min(1f, eventT / EVENT_T[ORBIT]);
-        float e = u < 0.5f ? 4 * u * u * u : 1 - (float) Math.pow(-2 * u + 2, 3) / 2;
-        float mx = nowX[i] + (dotTopX + dotBottomX) / 2, my = baseline + (dotTopY + dotBottomY) / 2;
-        float r = (dotBottomY - dotTopY) / 2;
-        for (int k = ORBIT_TRAIL; k >= 0; k--) {
-            float ek = Math.max(0f, e - k * 0.035f);
-            double a = Math.PI * ek;
-            float dx = (float) Math.sin(a) * r * 1.15f, dy = -(float) Math.cos(a) * r;
-            if (k == 0) {
-                dot.setAlpha(Math.round(255 * beat));
-                c.drawCircle(mx + dx, my + dy, dotR, dot);
-                c.drawCircle(mx - dx, my - dy, dotR, dot);
-            } else if (u < 1f) {
-                int alpha = Math.round(150 * (1f - (float) k / ORBIT_TRAIL) * (float) Math.sin(Math.PI * u));
-                quad(q++, mx + dx, my + dy, dotR * 2.2f, Apps.withAlpha(tint, alpha));
-                quad(q++, mx - dx, my - dy, dotR * 2.2f, Apps.withAlpha(tint, alpha));
+    /**
+     * The colon, always as its two dots so it never changes shape between rest and the orbit,
+     * where they swing round each other half a turn, trailing arcs of light.
+     */
+    private int drawColon(Canvas c, int q, float baseline, float beat, int tint) {
+        float mx = colonX, my = baseline + (dotTop + dotBottom) / 2, r = (dotBottom - dotTop) / 2;
+        float e = 0f, u = 0f;
+        if (event == ORBIT) {
+            u = Math.min(1f, eventT / EVENT_T[ORBIT]);
+            e = u < 0.5f ? 4 * u * u * u : 1 - (float) Math.pow(-2 * u + 2, 3) / 2;
+        }
+        if (u > 0f && u < 1f) {
+            float glow = (float) Math.sin(Math.PI * u);
+            for (int k = ORBIT_TRAIL; k > 0; k--) {
+                double a1 = Math.PI * Math.max(0f, e - (k - 1) * 0.022f), a0 = Math.PI * Math.max(0f, e - k * 0.022f);
+                float x1 = (float) Math.sin(a1) * r * 1.15f, y1 = -(float) Math.cos(a1) * r;
+                float x0 = (float) Math.sin(a0) * r * 1.15f, y0 = -(float) Math.cos(a0) * r;
+                float fade = 1f - (float) k / ORBIT_TRAIL;
+                int color = Apps.withAlpha(tint, Math.round(200 * fade * glow));
+                float w = dotR * (0.4f + 0.6f * fade);
+                streak(q++, mx + x0, my + y0, mx + x1, my + y1, w, color);
+                streak(q++, mx - x0, my - y0, mx - x1, my - y1, w, color);
             }
         }
+        double a = Math.PI * e;
+        float dx = (float) Math.sin(a) * r * 1.15f, dy = -(float) Math.cos(a) * r;
+        dot.setShadowLayer(size * 0.1f, 0, 0, Apps.withAlpha(accent, 0x60));
+        dot.setAlpha(Math.round(255 * beat));
+        c.drawCircle(mx + dx, my + dy, dotR, dot);
+        c.drawCircle(mx - dx, my - dy, dotR, dot);
+        dot.clearShadowLayer();
         return q;
     }
 
@@ -567,9 +580,9 @@ final class ClockView extends View {
             glintShader.setLocalMatrix(matrix);
             glint.setShader(glintShader);
             for (int i = 0; i < nowLen; i++) {
+                if (now[i] == ':') continue;
                 one[0] = now[i];
-                float cell = now[i] == ':' ? colonW : digitW;
-                c.drawText(one, 0, 1, nowX[i] + (cell - glint.measureText(one, 0, 1)) / 2, baseline, glint);
+                c.drawText(one, 0, 1, nowX[i] + (digitW - glint.measureText(one, 0, 1)) / 2, baseline, glint);
             }
             glint.setShader(null);
         } else if (event == COMET) {
@@ -649,15 +662,9 @@ final class ClockView extends View {
             char ch = now[i];
             one[0] = ch;
             if (ch == ':') {
+                colonX += (colonTarget - colonX) * Math.min(1f, dt * 5f);
                 float beat = running ? 0.35f + 0.65f * (float) Math.exp(-frac * 5f) : 1f;
-                if (event == ORBIT) {
-                    q = drawOrbit(c, q, i, baseline, beat, tint);
-                } else {
-                    thin.setAlpha(Math.round(255 * beat));
-                    c.drawText(one, 0, 1, nowX[i] + (colonW - thin.measureText(one, 0, 1)) / 2, baseline, thin);
-                    thin.setAlpha(255);
-                    drawSheen(c, thin, i, baseline, 0);
-                }
+                q = drawColon(c, q, baseline, beat, tint);
                 continue;
             }
             float t = morph[i];
@@ -667,7 +674,7 @@ final class ClockView extends View {
             }
             int j = source[i];
             if (j >= 0) {
-                float fade = 1f - smooth(0f, 0.3f, t);
+                float fade = 1f - smooth(0.05f, SWEEP + 0.1f, t);
                 if (fade > 0) {
                     one[0] = before[j];
                     thin.setAlpha(Math.round(255 * fade));
@@ -675,7 +682,7 @@ final class ClockView extends View {
                     one[0] = ch;
                 }
             }
-            float land = smooth(0.95f, MORPH_T, t);
+            float land = smooth(FLIGHT, FLIGHT + SWEEP + 0.1f, t);
             if (land > 0) {
                 Paint heavy = weights[Math.min(WEIGHTS.length - 1, Math.round((1 - land) * (WEIGHTS.length - 1)))];
                 heavy.setAlpha(Math.round(255 * land));
@@ -684,7 +691,7 @@ final class ClockView extends View {
             }
             thin.setAlpha(255);
             float cx = nowX[i] + digitW / 2, cy = baseline - ascent * 0.38f;
-            float landing = (t - 0.9f) / 0.6f;
+            float landing = (t - FLIGHT - 0.1f) / 0.7f;
             if (landing > 0 && landing < 1) {
                 float rr = digitW * (0.3f + 1.1f * landing * drama[i] / 1.6f);
                 ring.setStrokeWidth(size * 0.02f * (1 - landing) + 1);
@@ -698,16 +705,16 @@ final class ClockView extends View {
                 if (lt <= 0) {
                     x = px = fromX[p];
                     y = py = fromY[p];
-                    a = j >= 0 ? smooth(0f, 0.3f, t) : 0f;
+                    a = j >= 0 ? smooth(0f, 0.15f, t) * 0.7f : 0f;
                 } else {
-                    float u = Math.min(1f, lt / 0.9f), u0 = Math.max(0f, u - 0.09f);
+                    float u = Math.min(1f, lt / FLIGHT), u0 = Math.max(0f, u - 0.1f);
                     float e = u < 0.5f ? 4 * u * u * u : 1 - (float) Math.pow(-2 * u + 2, 3) / 2;
                     float e0 = u0 < 0.5f ? 4 * u0 * u0 * u0 : 1 - (float) Math.pow(-2 * u0 + 2, 3) / 2;
                     x = bezier(fromX[p], midX[p], toX[p], e);
                     y = bezier(fromY[p], midY[p], toY[p], e);
                     px = bezier(fromX[p], midX[p], toX[p], e0);
                     py = bezier(fromY[p], midY[p], toY[p], e0);
-                    a = 1f - smooth(1.0f, MORPH_T, t);
+                    a = 1f - smooth(FLIGHT, FLIGHT + 0.22f, lt);
                 }
                 if (a <= 0.01f) continue;
                 float r = size * (0.018f + 0.014f * (k % 3));
