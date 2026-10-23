@@ -7,14 +7,12 @@ final class AppEntry {
     final ComponentName component;
     final String label;
     final Bitmap banner;
-    final Bitmap glow;
     final int accent;
 
-    AppEntry(ComponentName component, String label, Bitmap banner, Bitmap glow, int accent) {
+    AppEntry(ComponentName component, String label, Bitmap banner, int accent) {
         this.component = component;
         this.label = label;
         this.banner = banner;
-        this.glow = glow;
         this.accent = accent;
     }
 

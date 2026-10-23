@@ -41,7 +41,7 @@ final class Apps {
             }
             Bitmap bmp = banner != null ? render(banner, w, h) : renderIcon(ri.loadIcon(pm), w, h);
             int accent = accent(bmp);
-            apps.add(new AppEntry(cn, String.valueOf(ri.loadLabel(pm)), bmp, glow(bmp), accent));
+            apps.add(new AppEntry(cn, String.valueOf(ri.loadLabel(pm)), bmp, accent));
         }
         return apps;
     }
@@ -107,22 +107,6 @@ final class Apps {
         float hue = (float) ((Math.toDegrees(Math.atan2(y, x)) + 360) % 360);
         float outS = (float) Math.max(0.45, Math.min(0.85, s * 1.15));
         return Color.HSVToColor(new float[] {hue, outS, 0.95f});
-    }
-
-    private static Bitmap glow(Bitmap b) {
-        Bitmap tiny = Bitmap.createScaledBitmap(b, 20, 11, true).copy(Bitmap.Config.ARGB_8888, true);
-        float[] hsv = new float[3];
-        for (int j = 0; j < tiny.getHeight(); j++) {
-            for (int i = 0; i < tiny.getWidth(); i++) {
-                Color.colorToHSV(tiny.getPixel(i, j), hsv);
-                hsv[2] = hsv[2] * (0.14f + 0.86f * hsv[1]) * 0.9f;
-                hsv[1] = Math.min(1f, hsv[1] * 1.25f);
-                tiny.setPixel(i, j, Color.HSVToColor(hsv));
-            }
-        }
-        Bitmap soft = Bitmap.createScaledBitmap(tiny, 80, 45, true);
-        tiny.recycle();
-        return soft;
     }
 
     static int mix(int a, int b, float t) {
