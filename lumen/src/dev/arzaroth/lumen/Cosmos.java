@@ -24,6 +24,7 @@ final class Cosmos {
     private static final int TWINKLERS = 240, SPIKED = 10, METEORS = 48, SPRITE = 64;
     private static final int QUADS = TWINKLERS + 2 * SPIKED + METEORS + 1;
     private static final float TRAVEL_T = 1.2f;
+    private static final double SIDEREAL_DEG_PER_S = 360.0 / 86164.0905, VIEW_DEG = 50.0;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
 
     /** One app's sky: where its meteors come from, their glow, and the airglow on the horizon. */
@@ -160,28 +161,30 @@ final class Cosmos {
     }
 
     /**
-     * The fixed sky at screen resolution: a dark gradient, the Milky Way crossing it diagonally (soft
-     * light computed coarse, star clouds and the dark rift on top), then every star as single crisp
-     * pixels, denser inside the band.
+     * The sky at screen resolution, twice the screen wide and seamless across its ends so it can
+     * turn forever: a dark gradient, the Milky Way as the arc a great circle makes on a panorama
+     * (soft light computed coarse, star clouds and the dark rift on top), then every star as single
+     * crisp pixels, denser inside the band.
      */
     private static Bitmap sky(int w, int h) {
-        int gw = w / 4 + 2, gh = h / 4 + 2;
+        int tw = (2 * w + 3) / 4 * 4, gw = tw / 4, gh = h / 4 + 2;
         float[] gr = new float[gw * gh], gg = new float[gw * gh], gb = new float[gw * gh], dens = new float[gw * gh];
-        float angle = (float) Math.toRadians(-58), ca = (float) Math.cos(angle), sa = (float) Math.sin(angle);
-        float ox = w * 0.34f, oy = h * 0.52f;
+        double turn = 2 * Math.PI / tw;
         for (int y = 0; y < gh; y++) {
             for (int x = 0; x < gw; x++) {
                 float px = x * 4f, py = y * 4f;
-                float across = (-(px - ox) * sa + (py - oy) * ca) / h;
-                float along = ((px - ox) * ca + (py - oy) * sa) / h;
-                float u = px / h, v = py / h;
+                double phase = px * turn + 2.4;
+                float centre = h * (0.48f + 0.36f * (float) Math.sin(phase));
+                float slope = h * 0.36f * (float) Math.cos(phase) * (float) turn;
+                float across = (py - centre) / h / (float) Math.sqrt(1 + slope * slope);
+                float v = py / h;
                 float core = (float) Math.exp(-(across / 0.15f) * (across / 0.15f));
-                float clouds = fbm(u * 3.2f, v * 3.2f, 11, 5);
-                float knots = fbm(u * 9f, v * 9f, 23, 4);
-                float lane = smooth(0.48f, 0.66f, fbm(u * 4.5f + along, v * 4.5f, 37, 5));
+                float clouds = seamless(px, v, 3.2f, tw, h, 11, 5);
+                float knots = seamless(px, v, 9f, tw, h, 23, 4);
+                float lane = smooth(0.48f, 0.66f, seamless(px, v, 5.5f, tw, h, 37, 5));
                 float rift = lane * (float) Math.exp(-((across + 0.015f) / 0.055f) * ((across + 0.015f) / 0.055f));
                 float light = core * (0.25f + 1.1f * clouds * clouds + 0.5f * knots * clouds) * (1f - 0.85f * rift);
-                light *= 0.75f + 0.25f * (float) Math.sin(along * 2.1f + 1f);
+                light *= 0.75f + 0.25f * (float) Math.sin(2 * phase + 1);
                 float warm = smooth(0.5f, 0.9f, core * clouds * 1.4f);
                 float t = 1f - py / h;
                 int i = y * gw + x;
@@ -191,25 +194,25 @@ final class Cosmos {
                 dens[i] = Math.min(1f, core * (0.4f + clouds * 1.4f) * (1f - 0.9f * rift));
             }
         }
-        int[] px = new int[w * h];
+        int[] px = new int[tw * h];
         for (int y = 0; y < h; y++) {
             float fy = y / 4f;
             int y0 = (int) fy;
             float wy = fy - y0;
-            for (int x = 0; x < w; x++) {
+            for (int x = 0; x < tw; x++) {
                 float fx = x / 4f;
                 int x0 = (int) fx;
                 float wx = fx - x0;
-                int a = y0 * gw + x0, b = a + 1, c = a + gw, d = c + 1;
+                int a = y0 * gw + x0, b = y0 * gw + (x0 + 1) % gw, c = a + gw, d = b + gw;
                 float r = bilerp(gr, a, b, c, d, wx, wy), g = bilerp(gg, a, b, c, d, wx, wy), bl = bilerp(gb, a, b, c, d, wx, wy);
                 float dither = (hash(x, y, 3) - 0.5f) / 255f;
-                px[y * w + x] = Color.rgb(c255(r + dither), c255(g + dither), c255(bl + dither));
+                px[y * tw + x] = Color.rgb(c255(r + dither), c255(g + dither), c255(bl + dither));
             }
         }
         Random r = new Random(7);
-        int stars = w * h / 35;
+        int stars = tw * h / 35;
         for (int n = 0; n < stars; n++) {
-            int x = r.nextInt(w), y = r.nextInt(h);
+            int x = r.nextInt(tw), y = r.nextInt(h);
             float d = dens[(y / 4) * gw + x / 4];
             if (r.nextFloat() > 0.35f + 0.65f * d) continue;
             float b = (float) Math.pow(r.nextFloat(), 4.2f) * 1.2f + 0.06f + d * 0.05f;
@@ -217,22 +220,28 @@ final class Cosmos {
             float cr = k < 0.15f ? 0.72f : k < 0.8f ? 0.95f : 1f;
             float cg = k < 0.15f ? 0.83f : k < 0.8f ? 0.96f : 0.86f;
             float cb = k < 0.15f ? 1f : k < 0.8f ? 1f : 0.66f;
-            add(px, w, h, x, y, b * cr, b * cg, b * cb);
+            add(px, tw, h, x, y, b * cr, b * cg, b * cb);
             if (b > 0.32f) {
                 float e = b * 0.33f, f = b * 0.1f;
-                add(px, w, h, x + 1, y, e * cr, e * cg, e * cb);
-                add(px, w, h, x - 1, y, e * cr, e * cg, e * cb);
-                add(px, w, h, x, y + 1, e * cr, e * cg, e * cb);
-                add(px, w, h, x, y - 1, e * cr, e * cg, e * cb);
-                add(px, w, h, x + 1, y + 1, f * cr, f * cg, f * cb);
-                add(px, w, h, x - 1, y - 1, f * cr, f * cg, f * cb);
-                add(px, w, h, x + 1, y - 1, f * cr, f * cg, f * cb);
-                add(px, w, h, x - 1, y + 1, f * cr, f * cg, f * cb);
+                add(px, tw, h, x + 1, y, e * cr, e * cg, e * cb);
+                add(px, tw, h, x - 1, y, e * cr, e * cg, e * cb);
+                add(px, tw, h, x, y + 1, e * cr, e * cg, e * cb);
+                add(px, tw, h, x, y - 1, e * cr, e * cg, e * cb);
+                add(px, tw, h, x + 1, y + 1, f * cr, f * cg, f * cb);
+                add(px, tw, h, x - 1, y - 1, f * cr, f * cg, f * cb);
+                add(px, tw, h, x + 1, y - 1, f * cr, f * cg, f * cb);
+                add(px, tw, h, x - 1, y + 1, f * cr, f * cg, f * cb);
             }
         }
-        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        bmp.setPixels(px, 0, w, 0, 0, w, h);
+        Bitmap bmp = Bitmap.createBitmap(tw, h, Bitmap.Config.ARGB_8888);
+        bmp.setPixels(px, 0, tw, 0, 0, tw, h);
         return bmp;
+    }
+
+    /** Fractal noise at (x, v) that repeats every `tw` pixels across: two copies blended over the period. */
+    private static float seamless(float x, float v, float scale, int tw, int h, int seed, int octaves) {
+        float u = x / h * scale, period = (float) tw / h * scale, t = x / tw;
+        return fbm(u, v * scale, seed, octaves) * (1 - t) + fbm(u - period, v * scale, seed, octaves) * t;
     }
 
     private static float bilerp(float[] v, int a, int b, int c, int d, float wx, float wy) {
@@ -245,7 +254,8 @@ final class Cosmos {
     }
 
     private static void add(int[] px, int w, int h, int x, int y, float r, float g, float b) {
-        if (x < 0 || y < 0 || x >= w || y >= h) return;
+        if (y < 0 || y >= h) return;
+        x = (x + w) % w;
         int i = y * w + x, c = px[i];
         px[i] = Color.rgb(Math.min(255, Color.red(c) + c255(r)), Math.min(255, Color.green(c) + c255(g)),
                 Math.min(255, Color.blue(c) + c255(b)));
@@ -440,7 +450,9 @@ final class Cosmos {
         Bitmap b = sky;
         if (b != null) {
             blit.setAlpha(Math.round(255 * skyIn * (1f - 0.7f * warp)));
-            c.drawBitmap(b, 0, 0, blit);
+            int tw = b.getWidth(), left = (int) Math.floor(turned() % tw);
+            c.drawBitmap(b, left - tw, 0, blit);
+            c.drawBitmap(b, left, 0, blit);
         }
         if (glowBefore != null && travel < 1f) {
             glowPaint.setShader(glowBefore);
@@ -456,11 +468,20 @@ final class Cosmos {
         drawTrails(c);
     }
 
+    /**
+     * How far the sky has turned, in pixels, at the Earth's real rate (one turn per sidereal day)
+     * for a view about 50 degrees wide; taken from the wall clock so it carries on across restarts.
+     */
+    private double turned() {
+        return System.currentTimeMillis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG;
+    }
+
     private void drawSprites(Canvas c) {
         int q = 0;
         float cx = logo.centerX(), cy = logo.centerY();
+        float drift = width > 0 ? (float) (turned() % width) : 0f;
         for (int i = 0; i < TWINKLERS; i++) {
-            float x = tx[i] * width, y = ty[i] * height, z = tz[i];
+            float x = (tx[i] * width + drift) % width, y = ty[i] * height, z = tz[i];
             float scint = still ? 0.85f : 0.7f + 0.3f * (float) Math.sin(clock * tRate[i] + tPhase[i])
                     * (float) Math.sin(clock * tRate[i] * 0.37f + tPhase[i] * 2f);
             float size = (1.4f + 3.4f * z) * s;
