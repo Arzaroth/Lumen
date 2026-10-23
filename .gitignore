@@ -2,3 +2,6 @@
 /backup/
 /shots/
 /lumen/build/
+/.gradle/
+/build/
+/local.properties

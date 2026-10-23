@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Lumen is the Home app: it must not list itself among the apps it launches. -->
+    <issue id="MissingLeanbackLauncher" severity="ignore" />
+    <!-- Built for the Android 14 TVs it runs on; a newer target changes nothing they do. -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+    <!-- Every view is built in code; none is inflated from XML. -->
+    <issue id="ViewConstructor" severity="ignore" />
+</lint>

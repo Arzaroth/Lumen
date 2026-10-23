@@ -16,9 +16,9 @@ if [ "${sdk:-0}" -lt 26 ]; then
   exit 1
 fi
 
-"$HERE/lumen/build.sh"
+"$HERE/gradlew" -p "$HERE" -q :lumen:assembleRelease
 
-adb push "$HERE/lumen/build/lumen.apk" /data/local/tmp/lumen.apk >/dev/null
+adb push "$HERE/lumen/build/outputs/apk/release/lumen-release.apk" /data/local/tmp/lumen.apk >/dev/null
 echo "install $(sh pm install -r -g /data/local/tmp/lumen.apk)"
 sh rm -f /data/local/tmp/lumen.apk
 for p in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION DUMP; do
