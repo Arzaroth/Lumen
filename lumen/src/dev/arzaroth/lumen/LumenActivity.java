@@ -1,5 +1,6 @@
 package dev.arzaroth.lumen;
 
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.ActivityNotFoundException;
@@ -20,6 +21,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
@@ -209,6 +211,32 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         greeting.setVisibility(prefs.getInt(Prefs.GREETING, 0) == 0 ? View.VISIBLE : View.INVISIBLE);
         updateClock();
         if (resumed) LumenKeys.setHomeInFront(true);
+    }
+
+    /** Lumen's first appearance since the TV booted, when the intro is on; remembered per boot. */
+    private boolean firstSinceBoot() {
+        if (prefs.getInt(Prefs.INTRO, 0) != 0 || !ValueAnimator.areAnimatorsEnabled()) return false;
+        int boot = Settings.Global.getInt(getContentResolver(), Settings.Global.BOOT_COUNT, -1);
+        long id = boot >= 0 ? boot : (System.currentTimeMillis() - SystemClock.elapsedRealtime()) / 600_000;
+        if (prefs.getLong(Prefs.INTRO_BOOT, Long.MIN_VALUE) == id) return false;
+        prefs.edit().putLong(Prefs.INTRO_BOOT, id).apply();
+        return true;
+    }
+
+    /**
+     * The sky comes out star by star and meteors burst from the radiant, then the interface rises
+     * into place while the clock gathers out of stardust, and the logo makes its entrance last.
+     */
+    @Override
+    public void playIntro() {
+        if (menu.isOpen()) menu.close();
+        stage.intro(3.4f);
+        float target = scrollTarget();
+        content.animate().cancel();
+        content.setAlpha(0f);
+        content.setTranslationY(target + px(90));
+        content.animate().alpha(1f).translationY(target).setStartDelay(2400).setDuration(900)
+                .setInterpolator(new DecelerateInterpolator(2.2f)).withStartAction(clock::intro).start();
     }
 
     @Override
@@ -429,10 +457,14 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         applyFocus(false);
         if (firstLayout) {
             firstLayout = false;
-            float target = scrollTarget();
-            content.setTranslationY(target + px(24));
-            content.animate().alpha(1f).translationY(target)
-                    .setDuration(520).setInterpolator(new DecelerateInterpolator(2f)).start();
+            if (firstSinceBoot()) {
+                playIntro();
+            } else {
+                float target = scrollTarget();
+                content.setTranslationY(target + px(24));
+                content.animate().alpha(1f).translationY(target).setStartDelay(0)
+                        .setDuration(520).setInterpolator(new DecelerateInterpolator(2f)).start();
+            }
         }
     }
 
@@ -550,7 +582,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setDim(inGrid ? 0.28f : 1f);
         appsHeader.animate().alpha(inGrid ? 1f : 0f).setDuration(animate ? 300 : 0).start();
         if (firstLayout) return;
-        content.animate().translationY(scrollTarget()).setDuration(animate ? 460 : 0).setInterpolator(new DecelerateInterpolator(2.2f)).start();
+        content.animate().translationY(scrollTarget()).setStartDelay(0).setDuration(animate ? 460 : 0).setInterpolator(new DecelerateInterpolator(2.2f)).start();
     }
 
     @Override

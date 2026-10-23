@@ -166,6 +166,26 @@ final class ClockView extends View {
         invalidate();
     }
 
+    /** The digits gather out of stardust scattered wide around them, with a flash. */
+    void intro() {
+        flash = 1f;
+        hourly = true;
+        float baseline = pad + ascent;
+        for (int i = 0; i < nowLen; i++) {
+            if (now[i] == ':') continue;
+            begin(i, -1, 2.4f);
+            for (int k = 0; k < POINTS; k++) {
+                int p = i * POINTS + k;
+                fromX[p] = nowX[i] + digitW / 2 + (float) rnd.nextGaussian() * size * 1.6f;
+                fromY[p] = baseline - ascent / 2 + (float) rnd.nextGaussian() * size * 0.8f;
+                midX[p] = (fromX[p] + toX[p]) / 2 + (float) rnd.nextGaussian() * size * 0.4f;
+                midY[p] = (fromY[p] + toY[p]) / 2 - size * 0.3f;
+                delay[p] = rnd.nextFloat() * 0.5f;
+            }
+        }
+        invalidate();
+    }
+
     void setAccent(int color) {
         accent = color;
         int tint = Apps.mix(accent, 0xFFFFFFFF, 0.55f);
@@ -717,7 +737,7 @@ final class ClockView extends View {
                 if (lt <= 0) {
                     x = px = fromX[p];
                     y = py = fromY[p];
-                    a = j >= 0 ? smooth(0f, 0.15f, t) * 0.7f : 0f;
+                    a = j >= 0 ? smooth(0f, 0.15f, t) * 0.7f : smooth(0f, 0.3f, t) * 0.8f;
                 } else {
                     float u = Math.min(1f, lt / FLIGHT), u0 = Math.max(0f, u - 0.1f);
                     float e = u < 0.5f ? 4 * u * u * u : 1 - (float) Math.pow(-2 * u + 2, 3) / 2;

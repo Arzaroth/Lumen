@@ -45,7 +45,9 @@ final class Cosmos {
     private final RectF logo = new RectF();
     private int width, height;
     private volatile Bitmap sky;
-    private float skyIn;
+    private float skyIn, introT = -1f;
+    private final float[] tBirth = new float[TWINKLERS];
+    private int burst;
 
     private Theme theme, previous;
     private Shader glowNow, glowBefore;
@@ -304,9 +306,21 @@ final class Cosmos {
 
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
     boolean moving() {
-        if (!still || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
+        if (introT >= 0f || !still || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
         for (int i = 0; i < METEORS; i++) if (mAge[i] < mLife[i]) return true;
         return false;
+    }
+
+    /**
+     * The first sight of the sky after a boot: the bright stars come out one by one, each with a
+     * flicker, the Milky Way rises behind them, then a burst of meteors leaves the radiant.
+     */
+    void intro() {
+        introT = 0f;
+        skyIn = 0f;
+        for (int i = 0; i < TWINKLERS; i++) tBirth[i] = 0.15f + (float) Math.pow(rnd.nextFloat(), 0.8f) * 1.7f;
+        burst = 26;
+        nextMeteor = 1.5f;
     }
 
     /** A meteor storm for the next `seconds`. */
@@ -343,7 +357,14 @@ final class Cosmos {
 
     void update(float dt) {
         clock += dt;
-        if (sky != null) skyIn = Math.min(1f, skyIn + dt / 0.8f);
+        if (introT >= 0f) {
+            introT += dt;
+            float rise = smooth(0.3f, 2.4f, introT);
+            skyIn = sky != null ? Math.min(rise, skyIn + dt / 0.8f) : 0f;
+            if (introT > 2.4f && skyIn >= rise) introT = -1f;
+        } else if (sky != null) {
+            skyIn = Math.min(1f, skyIn + dt / 0.8f);
+        }
         if (travel < 1f) travel = Math.min(1f, travel + dt / TRAVEL_T);
         storm = Math.max(0f, storm - dt);
         for (int i = 0; i < METEORS; i++) {
@@ -351,9 +372,10 @@ final class Cosmos {
         }
         nextMeteor -= dt;
         if (nextMeteor <= 0 && theme != null && !still && meteors > 0) {
-            meteor(rnd.nextInt(30) == 0);
+            meteor(rnd.nextInt(30) == 0 || burst % 9 == 4);
             float rate = theme.rate * meteors * (storm > 0 ? 9f * Math.min(1f, storm) : 1f);
-            nextMeteor = (float) (-Math.log(1 - rnd.nextFloat() * 0.99f) / rate);
+            nextMeteor = burst > 0 ? 0.02f + rnd.nextFloat() * 0.05f : (float) (-Math.log(1 - rnd.nextFloat() * 0.99f) / rate);
+            if (burst > 0) burst--;
         }
         nextSatellite -= dt;
         if (nextSatellite <= 0 && width > 0 && !still) {
@@ -427,7 +449,7 @@ final class Cosmos {
         }
         if (glowNow != null) {
             glowPaint.setShader(glowNow);
-            glowPaint.setAlpha(Math.round(255 * travel * (0.85f + 0.15f * (float) Math.sin(clock * 0.3f))));
+            glowPaint.setAlpha(Math.round(255 * travel * skyIn * (0.85f + 0.15f * (float) Math.sin(clock * 0.3f))));
             c.drawRect(0, height * 0.45f, width, height, glowPaint);
         }
         drawSprites(c);
@@ -442,7 +464,15 @@ final class Cosmos {
             float scint = still ? 0.85f : 0.7f + 0.3f * (float) Math.sin(clock * tRate[i] + tPhase[i])
                     * (float) Math.sin(clock * tRate[i] * 0.37f + tPhase[i] * 2f);
             float size = (1.4f + 3.4f * z) * s;
-            int color = Apps.withAlpha(tTint[i], Math.round((70 + 185 * z) * scint * skyIn));
+            float shown = 1f;
+            if (introT >= 0f) {
+                float age = introT - tBirth[i];
+                if (age <= 0f) continue;
+                shown = Math.min(1f, age / 0.15f);
+                size *= 1f + 2.2f * (float) Math.exp(-age * 7f);
+                scint = Math.max(scint, (float) Math.exp(-age * 5f));
+            }
+            int color = Apps.withAlpha(tTint[i], Math.round((70 + 185 * z) * scint * shown * (introT >= 0f ? 1f : skyIn)));
             if (warp > 0.05f) {
                 float dx = x - cx, dy = y - cy, d = (float) Math.sqrt(dx * dx + dy * dy) + 0.001f;
                 float len = warp * (30 + 260 * z) * s;

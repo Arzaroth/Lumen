@@ -190,6 +190,7 @@ final class Stage extends View {
     private long last;
     private float slowFrames;
     private int quality = 2;
+    private float wait;
 
     Stage(Context c, float scale) {
         super(c);
@@ -259,6 +260,13 @@ final class Stage extends View {
     void setFlat(boolean f) {
         flat = f;
         invalidate();
+    }
+
+    /** The sky's first light after a boot; the logo makes its entrance after `logoDelay` seconds. */
+    void intro(float logoDelay) {
+        wait = logoDelay;
+        cosmos.intro();
+        if (running) postInvalidateOnAnimation();
     }
 
     /** Freezes the sky: no twinkling, no meteors. */
@@ -1496,7 +1504,12 @@ final class Stage extends View {
         long now = SystemClock.uptimeMillis();
         float dt = Math.min(0.05f, Math.max(0f, (now - last) / 1000f));
         last = now;
-        if (running && laidOut && count > 0) {
+        if (running && laidOut && wait > 0) {
+            cosmos.setWarp(0f);
+            cosmos.update(dt);
+            wait -= dt;
+            if (wait <= 0 && count > 0) startEnter();
+        } else if (running && laidOut && count > 0) {
             update(dt);
             adapt(dt);
         }
@@ -1506,7 +1519,7 @@ final class Stage extends View {
         } else {
             c.drawColor(0xFF000000);
         }
-        if (laidOut && count > 0 && dim > 0.02f) {
+        if (laidOut && count > 0 && dim > 0.02f && wait <= 0) {
             c.save();
             if (shake > 0) {
                 float m = shake / 0.38f * cell * 1.5f;
@@ -1563,7 +1576,7 @@ final class Stage extends View {
         }
         if (dim < 0.999f) c.drawColor(Apps.withAlpha(0xFF000000, Math.round(255 * (1 - dim))));
 
-        if (running && motion && (pace != STILL || cosmos.moving())) postInvalidateOnAnimation();
+        if (running && motion && (pace != STILL || wait > 0 || cosmos.moving())) postInvalidateOnAnimation();
     }
 
     // Drop the reflection, then the glow, if the TV cannot keep up; never come back mid-session.

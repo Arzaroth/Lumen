@@ -17,6 +17,8 @@ final class LumenSettings {
 
         void openSystemSettings();
 
+        void playIntro();
+
         Menu menu();
     }
 
@@ -49,6 +51,8 @@ final class LumenSettings {
                 .add(choice("Clock", Prefs.CLOCK, 0, "System", "24-hour", "12-hour"))
                 .add(choice("Remote buttons", Prefs.KEYS, 0, "On", "Off"))
                 .add(choice("YouTube button", Prefs.YOUTUBE, 0, "YouTube", "SmartTube"))
+                .add(choice("Boot intro", Prefs.INTRO, 0, "On", "Off"))
+                .add(Menu.Row.action("Play the intro", host::playIntro))
                 .add(Menu.Row.action("Reset tile order", this::askReset))
                 .add(Menu.Row.sub("Advanced settings", this::advanced));
     }
