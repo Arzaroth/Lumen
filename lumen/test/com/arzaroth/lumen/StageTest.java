@@ -1,6 +1,7 @@
 package com.arzaroth.lumen;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.animation.ValueAnimator;
@@ -234,6 +235,22 @@ public class StageTest {
         java.util.Arrays.fill(pa, 600, count, 0f);
         Robo.call(s, "ghost", 0);
         assertEquals(600, ghosts(s));
+    }
+
+    @Test
+    public void aNewAppsLogoMaterialisesOutOfItsTile() {
+        Stage s = ready(logo("org.example.first", 0xFF1E88E5));
+        run(s, 3f);
+        s.setScene(logo("org.example.second", 0xFFE53935), true, new RectF(20, 200, 110, 251));
+        for (int i = 0; i < 200 && (int) Robo.get(s, "enterKind") != 7; i++) {
+            settle(s);
+            run(s, 0.1f);
+        }
+        assertEquals(7, (int) Robo.<Integer>get(s, "enterKind"));
+        assertFalse(Robo.<Boolean>get(s, "fromTile"));
+        run(s, 2f);
+        s.setScene(logo("org.example.third", 0xFF43A047), false, new RectF(20, 200, 110, 251));
+        assertFalse(Robo.<Boolean>get(s, "fromTile"));
     }
 
     @Test

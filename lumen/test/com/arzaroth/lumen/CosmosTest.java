@@ -184,4 +184,36 @@ public class CosmosTest {
         run(c, 4f);
         assertEquals(-1f, Robo.<Float>get(c, "par"), 0f);
     }
+
+    @Test
+    public void theJumpToLightSpeedFliesOnAndNeverPullsBack() {
+        Cosmos c = ready();
+        c.setTheme(theme(12, 0xFF8E24AA), false);
+        run(c, 1f);
+        c.setWarp(1f);
+        run(c, 0.5f);
+        float early = Robo.get(c, "warpTravel");
+        run(c, 0.5f);
+        assertTrue((float) Robo.get(c, "warpTravel") > early && early > 0f);
+        c.setWarp(0.4f);
+        run(c, 0.3f);
+        c.setWarp(0f);
+        run(c, 0.1f);
+        assertEquals(0f, Robo.<Float>get(c, "warpTravel"), 0f);
+    }
+
+    @Test
+    public void withoutTheNebulaOnlyTheAirglowIsLeft() {
+        Cosmos.Theme t = theme(13, 0xFF00ACC1);
+        assertTrue(t.glow.getPixel(200, 220) != 0xFF000000);
+        assertEquals(0xFF000000, t.glow.getPixel(200, 10));
+        Cosmos c = ready();
+        c.setTheme(t, false);
+        c.setNebula(false);
+        run(c, 0.3f);
+        c.setTheme(theme(14, 0xFFF4511E), true);
+        run(c, 0.5f);
+        c.setNebula(true);
+        run(c, 0.2f);
+    }
 }
