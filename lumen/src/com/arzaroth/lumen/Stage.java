@@ -62,7 +62,9 @@ final class Stage extends View {
     private static final int SPARKS = 2400, RINGS = 8, ROCKETS = 12, LIGHTS = 4, RIPPLES = 3, SPARK_COLORS = 6;
     private static final int SHELLS = 8, PEONY = 0, WILLOW = 1, HALO = 2, CROSSETTE = 3, CHRYSANTHEMUM = 4;
     private static final int PALM = 5, BROCADE = 6, LOGO = 7;
-    private static final int TWINKLE = 1, SPLIT = 2, CRACKLE = 4, TRAIL = 8, SMOKE = 16;
+    private static final int TWINKLE = 1, SPLIT = 2, CRACKLE = 4, TRAIL = 8, SMOKE = 16, RAY = 32;
+    /** Below this speed (in units a second) a ray dims with it, so it never hangs in the air once it has spent its push. */
+    private static final float RAY_FADE = 300f;
     private static final int SPRITE = 64;
     private static final int GHOST_CAP = 1200;
     private static final int GLOW_QUADS = CAP + SPARKS, GHOSTS = CAP, INDEXED = Math.max(GLOW_QUADS, CAP + GHOSTS);
@@ -912,8 +914,8 @@ final class Stage extends View {
         for (int i = 0; i < 120; i++) {
             float a = rnd.nextFloat() * 6.2832f;
             float v = (500 + rnd.nextFloat() * 1500) * unit;
-            spark(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.75f, 0.3f + rnd.nextFloat() * 0.7f, 2.4f,
-                    380 * unit, rnd.nextInt(3) == 0 ? 0 : 1 + rnd.nextInt(SPARK_COLORS - 1));
+            emit(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.75f, 0.3f + rnd.nextFloat() * 0.7f, 2.4f,
+                    380 * unit, rnd.nextInt(3) == 0 ? 0 : 1 + rnd.nextInt(SPARK_COLORS - 1), 0.035f, 1f, RAY, -1);
         }
         for (int i = 0; i < 30; i++) {
             float a = -1.5708f + (rnd.nextFloat() - 0.5f) * 2.4f;
@@ -936,7 +938,7 @@ final class Stage extends View {
             float a = rnd.nextFloat() * 6.2832f;
             float v = (300 + rnd.nextFloat() * 1700) * unit;
             emit(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.62f, 0.4f + rnd.nextFloat() * 0.6f, 1.2f,
-                    60 * unit, rnd.nextInt(4) == 0 ? 0 : 2 + rnd.nextInt(SPARK_COLORS - 2), 0.05f, 1.3f, TWINKLE, -1);
+                    60 * unit, rnd.nextInt(4) == 0 ? 0 : 2 + rnd.nextInt(SPARK_COLORS - 2), 0.05f, 1.3f, TWINKLE | RAY, -1);
         }
         ring(cx, cy, 1900 * unit, 5 * s, 0xFFFFFFFF, 0.3f);
         ring(cx, cy, 1300 * unit, 12 * s, sparkColors[2], 0.62f);
@@ -1678,6 +1680,7 @@ final class Stage extends View {
                 continue;
             }
             float k = Math.min(1f, life * 2f);
+            if ((sFlags[i] & RAY) != 0) k *= Math.min(1f, (float) Math.hypot(svx[i], svy[i]) / (RAY_FADE * unit));
             if ((sFlags[i] & TWINKLE) != 0 && life < 0.35f && rnd.nextInt(3) == 0) k *= 0.15f;
             float t = sTail[i] * Math.min(1f, life * 2.5f);
             segment(glowV, glowQ, sx[i] - svx[i] * t, sy[i] - svy[i] * t, sx[i], sy[i], w, w * 1.5f);
