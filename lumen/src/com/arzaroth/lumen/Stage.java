@@ -122,6 +122,7 @@ final class Stage extends View {
     /** Where the next logo materialises from: its tile's banner, when the focus has just moved to it. */
     private final RectF source = new RectF();
     private Supplier<RectF> bannerOf;
+    private volatile float[] stars;
     /** Where the logo's cells actually are, inside its box: the centre the animations play around. */
     private final RectF art = new RectF();
 
@@ -306,6 +307,25 @@ final class Stage extends View {
 
     void setSkyTurning(boolean on) {
         cosmos.setTurning(on);
+    }
+
+    /** The real sky above `latLon` (degrees), or the imagined one when null; the star catalogue loads once, off the UI thread. */
+    void setRealSky(double[] latLon) {
+        if (latLon == null) {
+            cosmos.setRealSky(null, null);
+            return;
+        }
+        new Thread(() -> {
+            if (stars == null) {
+                try {
+                    stars = Heavens.catalog(getContext().getAssets().open("stars.bin"));
+                } catch (java.io.IOException e) {
+                    return;
+                }
+            }
+            float[] catalog = stars;
+            post(() -> cosmos.setRealSky(latLon, catalog));
+        }, "lumen-stars").start();
     }
 
     void setWeather(float clouds, float rain, float snow) {

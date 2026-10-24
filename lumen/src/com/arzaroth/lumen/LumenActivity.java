@@ -227,6 +227,17 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setSkyStill(backdrop == 2);
         stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
         stage.setNebula(prefs.getInt(Prefs.NEBULA, 0) == 0);
+        if (prefs.getInt(Prefs.REAL_SKY, 0) == 1) {
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                double[] at = Place.find(app, prefs);
+                main.post(() -> {
+                    if (prefs.getInt(Prefs.REAL_SKY, 0) == 1 && at != null) stage.setRealSky(at);
+                });
+            }, "lumen-place").start();
+        } else {
+            stage.setRealSky(null);
+        }
         boolean outside = prefs.getInt(Prefs.WEATHER, 0) == 1;
         weather.setOn(outside && resumed);
         if (!outside) {

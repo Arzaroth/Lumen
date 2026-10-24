@@ -56,26 +56,56 @@ final class Cosmos {
         }
     }
 
-    /** The sky, built once: the faint field, and the live stars by brightness. */
+    /**
+     * The sky, built once: the faint field, and the live stars by brightness. The real sky also keeps
+     * each live star's right ascension and declination, to follow it across the night, and how far
+     * its field reaches past the screen on each side.
+     */
     private static final class Sky {
         final Bitmap field;
         final float[] x, y, b;
         final int[] color;
+        final float[] ra, dec;
+        final int marginX;
 
         Sky(Bitmap field, float[] x, float[] y, float[] b, int[] color) {
+            this(field, x, y, b, color, null, null, 0);
+        }
+
+        Sky(Bitmap field, float[] x, float[] y, float[] b, int[] color, float[] ra, float[] dec, int marginX) {
             this.field = field;
             this.x = x;
             this.y = y;
             this.b = b;
             this.color = color;
+            this.ra = ra;
+            this.dec = dec;
+            this.marginX = marginX;
+        }
+
+        boolean real() {
+            return ra != null;
         }
     }
+
+    /** How the real sky is framed: facing south (north below the equator), this wide, the horizon this low. */
+    private static final float REAL_FOV = 120f, REAL_HORIZON = 0.94f;
+    private static final float REAL_REPROJECT_S = 1f, REAL_REBAKE_S = 120f, REAL_FADE_S = 2f;
 
     private final float s;
     private final Random rnd = new Random();
     private final RectF logo = new RectF();
     private int width, height;
     private volatile Sky sky;
+    private volatile double[] place;
+    private volatile float[] catalog;
+    private volatile Bitmap fadingField;
+    private volatile float fieldFade = 1f, moonLit, moonWaxing;
+    private volatile boolean baking;
+    private float realClock, bakeClock, moonX = Float.NaN, moonY;
+    private final Paint moonPaint = new Paint(Paint.ANTI_ALIAS_FLAG), moonShade = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final android.graphics.Path moonPath = new android.graphics.Path();
+    private final RectF moonOval = new RectF();
     private float skyIn, introT = -1f;
     private int burst;
 
@@ -169,11 +199,42 @@ final class Cosmos {
         if (w == width && h == height) return;
         width = w;
         height = h;
-        int m = (int) Math.ceil(h * FAR_Y) + 1;
+        rebuild();
+    }
+
+    /**
+     * Shows the real sky above `latLon` (degrees) from the bright star catalogue `stars` (right
+     * ascension, declination, magnitude and colour index per star), or the imagined one when null.
+     */
+    void setRealSky(double[] latLon, float[] stars) {
+        place = latLon;
+        catalog = stars;
+        bakeClock = 0f;
+        if (width > 0) rebuild();
+    }
+
+    /** Builds the sky for the screen off the UI thread; a real sky's new field cross-fades over the old. */
+    private void rebuild() {
+        if (baking) return;
+        baking = true;
+        final int w = width, h = height, m = (int) Math.ceil(h * FAR_Y) + 1;
+        final double[] at = place;
+        final float[] stars = catalog;
         new Thread(() -> {
-            Sky made = sky(w, h + 2 * m);
+            Sky made = at != null && stars != null ? realSky(w, h + 2 * m, (int) Math.ceil(w * FAR) + 2, m, at, Wall.millis(), stars)
+                    : sky(w, h + 2 * m);
+            Sky old = sky;
+            fadingField = old != null && old.real() && made.real() ? old.field : null;
+            fieldFade = fadingField != null ? 0f : 1f;
+            if (made.real()) {
+                double[] phase = Heavens.moonPhase(Wall.millis());
+                moonLit = (float) phase[0];
+                moonWaxing = (float) phase[1];
+            }
             margin = m;
             sky = made;
+            baking = false;
+            if (made.real()) reproject(made);
         }, "lumen-sky").start();
     }
 
@@ -315,6 +376,226 @@ final class Cosmos {
     }
 
     /** Fractal noise at (x, v) that repeats every `tw` pixels across: two copies blended over the period. */
+    /**
+     * The real sky above `at` (latitude, longitude) at `millis`, framed like the imagined one: the
+     * catalogue's stars where they are, faint ones scattered thicker along the Milky Way, and the
+     * Milky Way itself along the true galactic plane, brightest towards the galactic centre.
+     */
+    private static Sky realSky(int w, int fh, int mx, int my, double[] at, long millis, float[] stars) {
+        int fw = (w + 2 * mx + 3) / 4 * 4, gw = fw / 4 + 1, gh = fh / 4 + 2;
+        double lst = Heavens.siderealTime(millis, at[1]);
+        float[] gr = new float[gw * gh], gg = new float[gw * gh], gb = new float[gw * gh], dens = new float[gw * gh];
+        boolean[] patches = new boolean[360 * 180];
+        float h = fh - 2 * my;
+        for (int y = 0; y < gh; y++) {
+            for (int x = 0; x < gw; x++) {
+                float sx = x * 4f - mx, sy = y * 4f - my, t = 1f - sy / h;
+                double[] look = look(sx, sy, w, h, at[0]);
+                int i = y * gw + x;
+                if (look[0] < -1) {
+                    gr[i] = 0.004f;
+                    gg[i] = 0.006f;
+                    gb[i] = 0.012f;
+                    continue;
+                }
+                double[] eq = Heavens.equatorial(look[0], look[1], at[0], lst);
+                patches[Math.min(179, (int) (eq[1] + 90)) * 360 + (int) eq[0] % 360] = true;
+                double[] gal = Heavens.galactic(eq[0], eq[1]);
+                float lat = (float) gal[0], lon = (float) gal[1];
+                float across = lat / 80f;
+                float core = (float) Math.exp(-(across / 0.15f) * (across / 0.15f));
+                float v = (lat + 90f) / 90f;
+                float clouds = seamless(lon, v, 3.2f, 360, 90, 11, 5);
+                float knots = seamless(lon, v, 9f, 360, 90, 23, 4);
+                float lane = smooth(0.48f, 0.66f, seamless(lon, v, 5.5f, 360, 90, 37, 5));
+                float rift = lane * (float) Math.exp(-((across + 0.015f) / 0.055f) * ((across + 0.015f) / 0.055f));
+                float light = core * (0.25f + 1.1f * clouds * clouds + 0.5f * knots * clouds) * (1f - 0.85f * rift);
+                light *= 0.55f + 0.45f * (float) Math.cos(Math.toRadians(lon));
+                float warm = smooth(0.5f, 0.9f, core * clouds * 1.4f);
+                gr[i] = 0.008f + 0.02f * (1 - t) + light * (0.13f + 0.12f * warm);
+                gg[i] = 0.014f + 0.035f * (1 - t) + light * (0.17f + 0.08f * warm);
+                gb[i] = 0.04f + 0.08f * (1 - t) + light * (0.27f + 0.02f * warm);
+                dens[i] = Math.min(1f, core * (0.4f + clouds * 1.4f) * (1f - 0.9f * rift));
+            }
+        }
+        int[] px = new int[fw * fh];
+        for (int y = 0; y < fh; y++) {
+            float fy = y / 4f;
+            int y0 = (int) fy;
+            float wy = fy - y0;
+            for (int x = 0; x < fw; x++) {
+                float fx = x / 4f;
+                int x0 = (int) fx;
+                float wx = fx - x0;
+                int a = y0 * gw + x0, b = a + 1, c = a + gw, d = b + gw;
+                float r = bilerp(gr, a, b, c, d, wx, wy), g = bilerp(gg, a, b, c, d, wx, wy), bl = bilerp(gb, a, b, c, d, wx, wy);
+                float dither = (hash(x, y, 3) - 0.5f) / 255f;
+                px[y * fw + x] = Color.rgb(c255(r + dither), c255(g + dither), c255(bl + dither));
+            }
+        }
+        float[] extra = faintStars(patches);
+        int total = stars.length / 4 + extra.length / 3 + 4;
+        float[] sx = new float[total], sy = new float[total], sb = new float[total], sra = new float[total], sdec = new float[total];
+        int[] sc = new int[total];
+        int n = 0;
+        for (int k = 0; k + 3 < stars.length; k += 4) {
+            if (fix(stars[k], stars[k + 1], at[0], lst, w, h, mx, my, fw, fh, sx, sy, n)) {
+                sb[n] = brightness(stars[k + 2]);
+                sc[n] = starColor(stars[k + 3]);
+                sra[n] = stars[k];
+                sdec[n++] = stars[k + 1];
+            }
+        }
+        int[] planets = {Heavens.VENUS, Heavens.MARS, Heavens.JUPITER, Heavens.SATURN};
+        float[] planetMag = {-4.2f, 0.5f, -2.3f, 0.6f};
+        int[] planetColor = {0xFFFFF8E0, 0xFFFFB27A, 0xFFFFF0D8, 0xFFF5E2B0};
+        for (int k = 0; k < planets.length; k++) {
+            double[] pos = Heavens.body(planets[k], millis);
+            if (fix((float) pos[0], (float) pos[1], at[0], lst, w, h, mx, my, fw, fh, sx, sy, n)) {
+                sb[n] = brightness(planetMag[k]);
+                sc[n] = planetColor[k];
+                sra[n] = (float) pos[0];
+                sdec[n++] = (float) pos[1];
+            }
+        }
+        int catalogued = n;
+        for (int k = 0; k + 2 < extra.length; k += 3) {
+            if (fix(extra[k], extra[k + 1], at[0], lst, w, h, mx, my, fw, fh, sx, sy, n)) {
+                int fx = (int) sx[n], fy = (int) sy[n];
+                float d = dens[Math.min(gh - 1, fy / 4) * gw + Math.min(gw - 1, fx / 4)];
+                sb[n] = extra[k + 2] + d * 0.05f;
+                float t = (float) Math.abs(Math.sin(extra[k] * 7919f));
+                sc[n] = t < 0.15f ? 0xFFB8D4FF : t < 0.8f ? 0xFFF2F5FF : 0xFFFFDCA8;
+                n++;
+            }
+        }
+        Integer[] order = new Integer[catalogued];
+        for (int k = 0; k < catalogued; k++) order[k] = k;
+        final float[] bright = sb;
+        Arrays.sort(order, (a, b) -> Float.compare(bright[b], bright[a]));
+        int live = Math.min(LIVE, catalogued);
+        float[] lx = new float[live], ly = new float[live], lb = new float[live], lra = new float[live], ldec = new float[live];
+        int[] lc = new int[live];
+        boolean[] isLive = new boolean[n];
+        for (int k = 0; k < live; k++) {
+            int i = order[k];
+            isLive[i] = true;
+            lx[k] = sx[i];
+            ly[k] = sy[i];
+            lb[k] = sb[i];
+            lc[k] = sc[i];
+            lra[k] = sra[i];
+            ldec[k] = sdec[i];
+        }
+        for (int i = 0; i < n; i++) {
+            if (isLive[i]) continue;
+            int x = (int) sx[i], y = (int) sy[i];
+            float b = sb[i], cr = Color.red(sc[i]) / 255f, cg = Color.green(sc[i]) / 255f, cb = Color.blue(sc[i]) / 255f;
+            add(px, fw, fh, x, y, b * cr, b * cg, b * cb);
+        }
+        Bitmap field = Bitmap.createBitmap(fw, fh, Bitmap.Config.ARGB_8888);
+        field.setPixels(px, 0, fw, 0, 0, fw, fh);
+        return new Sky(field, lx, ly, lb, lc, lra, ldec, mx);
+    }
+
+    /** Altitude and azimuth seen at screen point (`sx`, `sy`) of a `w` by `h` screen. */
+    private static double[] look(float sx, float sy, int w, float h, double latitude) {
+        float perDeg = w / REAL_FOV;
+        double facing = latitude >= 0 ? 180 : 0;
+        return new double[] {(h * REAL_HORIZON - sy) / perDeg, Heavens.norm(facing + (sx - w / 2f) / perDeg)};
+    }
+
+    /** Puts a star at index `n` of (`xs`, `ys`) in field coordinates; false when it is below the horizon or out of frame. */
+    private static boolean fix(float ra, float dec, double latitude, double lst, int w, float h, int mx, int my, int fw, int fh,
+                                 float[] xs, float[] ys, int n) {
+        double[] hz = Heavens.horizontal(ra, dec, latitude, lst);
+        if (hz[0] < 0) return false;
+        float perDeg = w / REAL_FOV;
+        double facing = latitude >= 0 ? 180 : 0, daz = Heavens.norm(hz[1] - facing + 180) - 180;
+        float x = (float) (w / 2f + daz * perDeg) + mx, y = (float) (h * REAL_HORIZON - hz[0] * perDeg) + my;
+        if (x < 0 || x >= fw || y < 0 || y >= fh) return false;
+        xs[n] = x;
+        ys[n] = y;
+        return true;
+    }
+
+    /** Follows the live stars, the planets and the Moon across the night. */
+    private void reproject(Sky sk) {
+        double[] at = place;
+        if (at == null || width == 0) return;
+        long now = Wall.millis();
+        double lst = Heavens.siderealTime(now, at[1]);
+        float h = sk.field.getHeight() - 2 * margin;
+        int fw = sk.field.getWidth(), fh = sk.field.getHeight();
+        for (int k = 0; k < sk.x.length; k++) {
+            if (!fix(sk.ra[k], sk.dec[k], at[0], lst, width, h, sk.marginX, margin, fw, fh, sk.x, sk.y, k)) sk.y[k] = -1e6f;
+        }
+        double[] moon = Heavens.body(Heavens.MOON, now);
+        float[] mxy = new float[2], dummy = new float[1];
+        if (fix((float) moon[0], (float) moon[1], at[0], lst, width, h, sk.marginX, margin, fw, fh, mxy, dummy, 0)) {
+            moonX = mxy[0];
+            moonY = dummy[0];
+        } else {
+            moonX = Float.NaN;
+        }
+    }
+
+    /** The Moon, drawn a few times its true size so it reads on a TV, lit as it is tonight. */
+    private void drawMoon(Canvas c, Sky sk, float fade) {
+        if (Float.isNaN(moonX)) return;
+        float x = moonX - sk.marginX - par * width * NEAR, y = moonY + liveTop, r = width / REAL_FOV * 0.65f;
+        quad(spriteV, 0, x - r * 3, y, x + r * 3, y, r * 3, r * 3, 0);
+        tint(spriteC, 0, Apps.withAlpha(0xFFE8E4D8, Math.round(70 * fade * (0.3f + 0.7f * moonLit))));
+        c.drawVertices(Canvas.VertexMode.TRIANGLES, 8, spriteV, 0, spriteT, 0, spriteC, 0, quads, 0, 6, spritePaint);
+        moonShade.setColor(Apps.withAlpha(0xFF8A8F9C, Math.round(40 * fade)));
+        c.drawCircle(x, y, r, moonShade);
+        moonPath.reset();
+        moonOval.set(x - r, y - r, x + r, y + r);
+        boolean waxing = moonWaxing > 0.5f;
+        moonPath.arcTo(moonOval, -90, waxing ? 180 : -180, true);
+        float rx = r * Math.abs(1f - 2f * moonLit);
+        moonOval.set(x - rx, y - r, x + rx, y + r);
+        moonPath.arcTo(moonOval, 90, (moonLit < 0.5f) == waxing ? -180 : 180, false);
+        moonPath.close();
+        moonPaint.setColor(Apps.withAlpha(0xFFF1EEE4, Math.round(255 * fade)));
+        c.drawPath(moonPath, moonPaint);
+    }
+
+    private static float brightness(float mag) {
+        return Math.min(1.3f, 0.06f + 1.2f * (float) Math.pow(10, -0.4 * (mag - 1.0)));
+    }
+
+    private static int starColor(float bv) {
+        return bv < 0f ? 0xFFB8D4FF : bv < 0.3f ? 0xFFDCE6FF : bv < 0.8f ? 0xFFF2F5FF : bv < 1.3f ? 0xFFFFE6C0 : 0xFFFFD0A0;
+    }
+
+    /**
+     * Stars fainter than the catalogue in the one-degree patches of sky marked in `patches`, as dense
+     * as the imagined sky and thicker along the Milky Way. Each patch draws its stars from its own
+     * seed, so they keep their places on the sky from one bake to the next. Right ascension,
+     * declination and brightness for each.
+     */
+    private static float[] faintStars(boolean[] patches) {
+        float[] out = new float[3 * 64];
+        int n = 0;
+        for (int p = 0; p < patches.length; p++) {
+            if (!patches[p]) continue;
+            float ra0 = p % 360, dec0 = p / 360 - 90;
+            Random r = new Random(p * 0x9E3779B97F4A7C15L + 7);
+            double b = Heavens.galactic(ra0 + 0.5, dec0 + 0.5)[0];
+            float area = (float) Math.cos(Math.toRadians(dec0 + 0.5));
+            int count = (int) (area * (3f + 9f * (float) Math.exp(-(b / 15) * (b / 15))) + r.nextFloat());
+            for (int k = 0; k < count; k++) {
+                if (n + 3 > out.length) out = Arrays.copyOf(out, out.length * 2);
+                out[n] = ra0 + r.nextFloat();
+                out[n + 1] = dec0 + r.nextFloat();
+                out[n + 2] = (float) Math.pow(r.nextFloat(), 4.2f) * 1.0f + 0.05f;
+                n += 3;
+            }
+        }
+        return Arrays.copyOf(out, n);
+    }
+
     private static float seamless(float x, float v, float scale, int tw, int h, int seed, int octaves) {
         float u = x / h * scale, period = (float) tw / h * scale, t = x / tw;
         return fbm(u, v * scale, seed, octaves) * (1 - t) + fbm(u - period, v * scale, seed, octaves) * t;
@@ -551,6 +832,20 @@ final class Cosmos {
         clock += dt;
         float glide = 1f - (float) Math.exp(-dt * 3.5f);
         warpTravel = warp > 0f ? warpTravel + dt * warp * warp * width * 1.4f : 0f;
+        Sky real = sky;
+        if (real != null && real.real()) {
+            fieldFade = Math.min(1f, fieldFade + dt / REAL_FADE_S);
+            if ((realClock += dt) >= REAL_REPROJECT_S) {
+                realClock = 0f;
+                reproject(real);
+            }
+            if ((bakeClock += dt) >= REAL_REBAKE_S) {
+                bakeClock = 0f;
+                rebuild();
+            }
+        } else if (real != null && place != null && catalog != null && !baking) {
+            rebuild();
+        }
         clouds = toward(clouds, cloudsTarget, dt / 4f);
         rain = toward(rain, rainTarget, dt / 4f);
         snow = toward(snow, snowTarget, dt / 4f);
@@ -668,12 +963,18 @@ final class Cosmos {
         float left = 0f, near = 0f;
         if (sk != null) {
             int tw = sk.field.getWidth();
-            double turn = turned();
+            double turn = sk.real() ? -sk.marginX : turned();
             left = (float) Math.floor(wrap(turn - par * width * FAR, tw));
             near = (float) wrap(turn - par * width * NEAR, tw);
             float top = -margin - (float) Math.floor(parY * height * FAR_Y);
             liveTop = -margin - parY * height * NEAR_Y;
-            blit.setAlpha(Math.round(255 * fade));
+            Bitmap old = sk.real() && fieldFade < 1f ? fadingField : null;
+            if (old != null && old.getWidth() == tw) {
+                blit.setAlpha(Math.round(255 * fade));
+                if (left > 0f) c.drawBitmap(old, left - tw, top, blit);
+                if (left < width) c.drawBitmap(old, left, top, blit);
+            }
+            blit.setAlpha(Math.round(255 * fade * (old != null ? fieldFade : 1f)));
             if (left > 0f) c.drawBitmap(sk.field, left - tw, top, blit);
             if (left < width) c.drawBitmap(sk.field, left, top, blit);
         }
@@ -682,6 +983,7 @@ final class Cosmos {
         if (theme != null) drawNebula(c, nebulaOn ? theme.nebula : theme.glow, (previous != null ? travel : 1f) * fade, mid, midY);
         if (sk != null) drawLive(c, sk, near, fade);
         drawSprites(c, sk, near);
+        if (sk != null && sk.real()) drawMoon(c, sk, fade);
         c.save();
         c.translate(-par * width * NEAR, -parY * height * NEAR_Y);
         drawTrails(c);

@@ -64,7 +64,8 @@ final class LumenSettings {
                 .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"))
                 .add(choice("Parallax", Prefs.PARALLAX, 0, "On", "Off"))
                 .add(choice("Nebula", Prefs.NEBULA, 0, "On", "Off"))
-                .add(choice("Weather", Prefs.WEATHER, 0, "Off", "On"));
+                .add(choice("Weather", Prefs.WEATHER, 0, "Off", "On"))
+                .add(choice("Real sky", Prefs.REAL_SKY, 0, "Off", "On"));
     }
 
     private Menu.Page home() {
