@@ -101,7 +101,9 @@ final class Stage extends View {
     private final Handler builder;
     private final Random rnd = new Random();
     private final float s;
-    private final Backdrop backdrop;
+    private Backdrop backdrop;
+    private Theme theme = new SpaceTheme();
+    private int screenW, screenH;
     private int style = COSMOS;
     private int generation;
     private AppEntry shownApp;
@@ -229,7 +231,7 @@ final class Stage extends View {
     Stage(Context c, float scale) {
         super(c);
         s = scale;
-        backdrop = new Cosmos(scale);
+        backdrop = theme.backdrop(scale);
         motion = ValueAnimator.areAnimatorsEnabled();
         if (Build.VERSION.SDK_INT < 29) setLayerType(LAYER_TYPE_SOFTWARE, null);
         synchronized (Stage.class) {
@@ -328,6 +330,24 @@ final class Stage extends View {
         }, "lumen-stars").start();
     }
 
+    /**
+     * Wears `next`: a new backdrop in place of the old one, and every app's look built again for it,
+     * starting with the one on screen. The caller sends the settings again afterwards.
+     */
+    void setTheme(Theme next) {
+        if (next.id().equals(theme.id())) return;
+        theme = next;
+        backdrop = next.backdrop(s);
+        if (laidOut) backdrop.layout(logo, screenW, screenH);
+        synchronized (mosaics) {
+            mosaics.clear();
+        }
+        AppEntry app = shownApp;
+        shownApp = null;
+        if (app != null) setScene(app, false);
+        invalidate();
+    }
+
     void setWeather(float clouds, float rain, float snow) {
         backdrop.setWeather(clouds, rain, snow);
         if (running) postInvalidateOnAnimation();
@@ -367,6 +387,8 @@ final class Stage extends View {
         floorY = logo.bottom + floorGap;
         art.set(logo);
         clipBottom = reflectionLimit;
+        this.screenW = screenW;
+        this.screenH = screenH;
         backdrop.layout(logo, screenW, screenH);
         laidOut = true;
     }

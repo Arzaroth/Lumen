@@ -97,7 +97,7 @@ public class SettingsTest implements LumenSettings.Host {
         menu.open(settings.root());
         menu.move(1);
         menu.activate();
-        down(4);
+        down(5);
         menu.activate();
         menu.activate();
         menu.activate();
@@ -114,7 +114,10 @@ public class SettingsTest implements LumenSettings.Host {
         menu.move(1);
         menu.activate();
         draw();
-        assertEquals(5, ((Menu.Page) Robo.call(menu, "top")).rows.size());
+        assertEquals(6, ((Menu.Page) Robo.call(menu, "top")).rows.size());
+        menu.side(1);
+        assertEquals("space", prefs.getString(Prefs.THEME, ""));
+        menu.move(1);
 
         menu.activate();
         assertEquals("Sky", ((Menu.Page) Robo.call(menu, "top")).title);
@@ -223,7 +226,7 @@ public class SettingsTest implements LumenSettings.Host {
         menu.open(settings.root());
         menu.move(1);
         menu.activate();
-        down(4);
+        down(5);
         menu.activate();
         return Robo.call(menu, "top");
     }

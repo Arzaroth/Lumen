@@ -157,6 +157,7 @@ public class ActivityTest {
         key(a, KeyEvent.KEYCODE_DPAD_CENTER);
         key(a, KeyEvent.KEYCODE_DPAD_DOWN);
         key(a, KeyEvent.KEYCODE_DPAD_CENTER);
+        key(a, KeyEvent.KEYCODE_DPAD_DOWN);
         key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
         key(a, KeyEvent.KEYCODE_BACK);
         key(a, KeyEvent.KEYCODE_BACK);

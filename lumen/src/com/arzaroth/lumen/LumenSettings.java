@@ -8,6 +8,8 @@ import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Looper;
 
+import java.util.List;
+
 /** The Settings menu: the TV's own settings, or Lumen's, applied as they change. */
 final class LumenSettings {
     interface Host {
@@ -49,11 +51,28 @@ final class LumenSettings {
 
     private Menu.Page lumen() {
         return new Menu.Page("Lumen settings", 520)
+                .add(themeChoice())
                 .add(Menu.Row.sub("Sky", this::sky))
                 .add(Menu.Row.sub("Home screen", this::home))
                 .add(Menu.Row.sub("Remote", this::remote))
                 .add(Menu.Row.sub("Boot intro", this::intro))
                 .add(Menu.Row.sub("Advanced settings", this::openAdvanced));
+    }
+
+    /** The theme Lumen wears, kept by id so themes added later never shift the choice. */
+    private Menu.Row themeChoice() {
+        List<Theme> themes = Themes.all();
+        String[] names = new String[themes.size()];
+        int current = 0;
+        String chosen = Themes.byId(prefs.getString(Prefs.THEME, "")).id();
+        for (int i = 0; i < names.length; i++) {
+            names[i] = themes.get(i).name();
+            if (themes.get(i).id().equals(chosen)) current = i;
+        }
+        return Menu.Row.choice("Theme", names, current, v -> {
+            prefs.edit().putString(Prefs.THEME, themes.get(v).id()).apply();
+            host.applySettings();
+        });
     }
 
     private Menu.Page sky() {
