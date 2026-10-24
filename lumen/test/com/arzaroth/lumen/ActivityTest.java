@@ -242,6 +242,30 @@ public class ActivityTest {
     }
 
     @Test
+    public void theDockCanFollowWhatGetsOpened() {
+        apps(8);
+        LumenActivity a = launch(null).get();
+        ArrayList<Tile> tiles = Robo.get(a, "tiles");
+        String first = tiles.get(0).app.key();
+        for (int i = 0; i < 3; i++) key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
+        String used = tiles.get(3).app.key();
+        key(a, KeyEvent.KEYCODE_DPAD_CENTER);
+        assertNotNull(started());
+        a.onPause();
+        a.onResume();
+        assertEquals(first, ((ArrayList<Tile>) Robo.get(a, "tiles")).get(0).app.key());
+        a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE).edit().putInt(Prefs.ORDER, 1).commit();
+        a.applySettings();
+        tiles = Robo.get(a, "tiles");
+        assertEquals(used, tiles.get(0).app.key());
+        assertEquals(used, tiles.get((int) Robo.<Integer>get(a, "index")).app.key());
+        a.onPause();
+        a.onResume();
+        longPress(a);
+        assertEquals(0, a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE).getInt(Prefs.ORDER, 1));
+    }
+
+    @Test
     public void tilesLaunchAndRearrange() {
         apps(8);
         LumenActivity a = launch(null).get();

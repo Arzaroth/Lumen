@@ -109,6 +109,12 @@ public class ServicesTest {
         assertEquals("market://details?id=" + LumenKeys.SMARTTUBE, started().getDataString());
         Robo.call(keys, "onKeyEvent", down(KeyEvent.KEYCODE_BUTTON_4));
         assertNotNull(started());
+        android.content.Intent netflix = new android.content.Intent(android.content.Intent.ACTION_MAIN)
+                .addCategory(android.content.Intent.CATEGORY_LEANBACK_LAUNCHER).setPackage("com.netflix.ninja");
+        shadowOf(app.getPackageManager()).addResolveInfoForIntent(netflix, AppsTest.leanback("com.netflix.ninja", "Netflix"));
+        Robo.call(keys, "onKeyEvent", down(KeyEvent.KEYCODE_BUTTON_4));
+        assertNotNull(started());
+        assertTrue(Habits.scores(app.getSharedPreferences("lumen", Context.MODE_PRIVATE)).containsKey("com.netflix.ninja"));
         Robo.call(keys, "onKeyEvent", down(KeyEvent.KEYCODE_BUTTON_6));
         assertNotNull(started());
         assertTrue(Robo.<Boolean>call(keys, "onKeyEvent", new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BUTTON_4)));
