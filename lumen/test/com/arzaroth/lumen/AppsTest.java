@@ -56,7 +56,7 @@ public class AppsTest {
         ResolveInfo broken = new ResolveInfo();
         shadowOf(pm).addResolveInfoForIntent(query, broken);
         shadowOf(pm).addResolveInfoForIntent(query, leanback("org.example.ghost", "ghost"));
-        install("com.android.tv.settings");
+        install("com.android.tv.settings", "com.realtek.tv", "org.doot.android");
         ArrayList<AppEntry> apps = Apps.load(Robo.context(), 160, 90);
         assertEquals(3, apps.size());
         for (AppEntry app : apps) assertNotEquals("com.android.tv.settings", app.component.getPackageName());

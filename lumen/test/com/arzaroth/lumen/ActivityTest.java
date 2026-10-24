@@ -3,6 +3,7 @@ package com.arzaroth.lumen;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -225,6 +226,19 @@ public class ActivityTest {
         a.showUpdate(Updater.State.INSTALLING, "9.0.0", 100);
         key(a, KeyEvent.KEYCODE_ESCAPE);
         assertEquals(Ascent.Phase.FADE, ascent.phase());
+    }
+
+    @Test
+    public void aTilesBannerIsFoundWhereItIsDrawn() {
+        apps(8);
+        LumenActivity a = launch(null).get();
+        ArrayList<Tile> tiles = Robo.get(a, "tiles");
+        Tile t = tiles.get(0);
+        android.graphics.RectF banner = Robo.call(a, "bannerOnStage", t);
+        assertEquals(t.imgW * t.getScaleX(), banner.width(), 0.5f);
+        assertEquals(t.imgH * t.getScaleY(), banner.height(), 0.5f);
+        ((android.view.ViewGroup) t.getParent()).removeView(t);
+        assertNull(Robo.call(a, "bannerOnStage", t));
     }
 
     @Test
