@@ -25,7 +25,8 @@ vortex, the core light, the 3D projection, the print beam) uses `art`, never the
   glitch, launch (fireworks only), hyperspace, zoom, shatter. Lists per style and pace
   (`COSMOS_*`, `FIREWORK_*`, `CALM_*`, `QUICK_EXITS` for app switches).
 - Switching apps mid-cycle speeds the current exit up (`speed`) or starts a quick one. When the
-  activity passes the focused tile's banner (`setScene(app, animate, banner)`), the next entrance is
+  activity passes a way to find the focused tile's banner (`setScene(app, animate, banner)`), it is
+  asked only when the entrance starts, since the rows may have scrolled since; the entrance is then
   `E_TILE`: each cell starts white-hot at its spot on the banner (`source`, minus the floor `lift`)
   and glides up on an arc into place.
 - Entrances ease with `settle` (exponential, no overshoot). Converge restarts any hidden or faded
