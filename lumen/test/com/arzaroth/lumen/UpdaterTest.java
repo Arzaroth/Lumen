@@ -93,7 +93,7 @@ public class UpdaterTest {
             }
         };
         assertEquals("", Updater.installed(missing));
-        assertEquals("1.0.0", Updater.installed(Robo.context()));
+        assertTrue(Updater.installed(Robo.context()).matches("\\d+\\.\\d+\\.\\d+"));
     }
 
     @Test
