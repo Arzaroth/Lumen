@@ -6,6 +6,12 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-24
+
+### Added
+
+- Lumen settings › Sky › Real sky: the stars are the real ones above home right now, with the Milky Way where it is, the Moon in its phase and the bright planets, following the night. Off by default.
+
 ## [1.5.0] - 2026-10-24
 
 ### Added
@@ -181,7 +187,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/Arzaroth/Lumen/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Arzaroth/Lumen/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Arzaroth/Lumen/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/Arzaroth/Lumen/compare/v1.3.1...v1.3.2
