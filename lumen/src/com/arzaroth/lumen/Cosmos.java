@@ -39,13 +39,13 @@ final class Cosmos {
     private static final float NEB_ZOOM = 1.12f;
 
     /** One app's sky: where its meteors come from, their glow, and the airglow on the horizon. */
-    static final class Theme {
+    static final class Look {
         final float radiantX, radiantY, rate;
         final int tint, airglow;
         /** The nebula with the airglow baked in, and the airglow alone for a sky without nebula. */
         final Bitmap nebula, glow;
 
-        Theme(float radiantX, float radiantY, float rate, int tint, int airglow, Bitmap nebula, Bitmap glow) {
+        Look(float radiantX, float radiantY, float rate, int tint, int airglow, Bitmap nebula, Bitmap glow) {
             this.nebula = nebula;
             this.glow = glow;
             this.radiantX = radiantX;
@@ -109,7 +109,7 @@ final class Cosmos {
     private float skyIn, introT = -1f;
     private int burst;
 
-    private Theme theme, previous;
+    private Look look, previous;
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
     private boolean still, turning, nebulaOn = true;
     private float par, parTarget, parY, parYTarget, liveTop, warpTravel;
@@ -390,15 +390,15 @@ final class Cosmos {
         for (int y = 0; y < gh; y++) {
             for (int x = 0; x < gw; x++) {
                 float sx = x * 4f - mx, sy = y * 4f - my, t = 1f - sy / h;
-                double[] look = look(sx, sy, w, h, at[0]);
+                double[] aim = aim(sx, sy, w, h, at[0]);
                 int i = y * gw + x;
-                if (look[0] < -1) {
+                if (aim[0] < -1) {
                     gr[i] = 0.004f;
                     gg[i] = 0.006f;
                     gb[i] = 0.012f;
                     continue;
                 }
-                double[] eq = Heavens.equatorial(look[0], look[1], at[0], lst);
+                double[] eq = Heavens.equatorial(aim[0], aim[1], at[0], lst);
                 patches[Math.min(179, (int) (eq[1] + 90)) * 360 + (int) eq[0] % 360] = true;
                 double[] gal = Heavens.galactic(eq[0], eq[1]);
                 float lat = (float) gal[0], lon = (float) gal[1];
@@ -499,7 +499,7 @@ final class Cosmos {
     }
 
     /** Altitude and azimuth seen at screen point (`sx`, `sy`) of a `w` by `h` screen. */
-    private static double[] look(float sx, float sy, int w, float h, double latitude) {
+    private static double[] aim(float sx, float sy, int w, float h, double latitude) {
         float perDeg = w / REAL_FOV;
         double facing = latitude >= 0 ? 180 : 0;
         return new double[] {(h * REAL_HORIZON - sy) / perDeg, Heavens.norm(facing + (sx - w / 2f) / perDeg)};
@@ -621,24 +621,24 @@ final class Cosmos {
     // ------------------------------------------------------------------ per app
 
     /** A sky whose meteor colour and airglow stand apart from the logo's dominant hue. */
-    static Theme theme(int[] sparks, int accent, Random look) {
+    static Look look(int[] sparks, int accent, Random random) {
         float[] hsv = new float[3];
         Color.colorToHSV(sparks[2], hsv);
-        float logoHue = hsv[1] > 0.15f ? hsv[0] : look.nextFloat() * 360f;
+        float logoHue = hsv[1] > 0.15f ? hsv[0] : random.nextFloat() * 360f;
         int tint = EMISSION[0];
         float best = -1;
         for (int c : EMISSION) {
             Color.colorToHSV(c, hsv);
-            float d = Math.abs(((hsv[0] - logoHue) % 360 + 540) % 360 - 180) + look.nextFloat() * 50;
+            float d = Math.abs(((hsv[0] - logoHue) % 360 + 540) % 360 - 180) + random.nextFloat() * 50;
             if (d > best) {
                 best = d;
                 tint = c;
             }
         }
-        float hue = (logoHue + 150 + look.nextFloat() * 60) % 360;
+        float hue = (logoHue + 150 + random.nextFloat() * 60) % 360;
         int airglow = Color.HSVToColor(new float[] {hue, 0.6f, 1f});
-        return new Theme(0.15f + look.nextFloat() * 0.7f, -0.35f + look.nextFloat() * 0.45f,
-                0.8f + look.nextFloat() * 0.6f, tint, airglow, nebula(hue, airglow, look), glowOnly(airglow));
+        return new Look(0.15f + random.nextFloat() * 0.7f, -0.35f + random.nextFloat() * 0.45f,
+                0.8f + random.nextFloat() * 0.6f, tint, airglow, nebula(hue, airglow, random), glowOnly(airglow));
     }
 
     /**
@@ -647,20 +647,20 @@ final class Cosmos {
      * design: it tints the sky rather than filling it. The glow of the air near the horizon is baked
      * in too: drawn as its own layer over that much screen, it cost this TV's GPU a third of a frame.
      */
-    private static Bitmap nebula(float hue, int airglow, Random look) {
-        int seed = look.nextInt(1 << 20);
+    private static Bitmap nebula(float hue, int airglow, Random random) {
+        int seed = random.nextInt(1 << 20);
         float[] a = rgb(Color.HSVToColor(new float[] {hue, 0.75f, 1f}));
-        float[] b = rgb(Color.HSVToColor(new float[] {(hue + 35 + look.nextFloat() * 50) % 360, 0.65f, 1f}));
-        int regions = 1 + look.nextInt(2);
+        float[] b = rgb(Color.HSVToColor(new float[] {(hue + 35 + random.nextFloat() * 50) % 360, 0.65f, 1f}));
+        int regions = 1 + random.nextInt(2);
         float[] rx = new float[regions], ry = new float[regions], rw = new float[regions], rh = new float[regions], ra = new float[regions];
         for (int k = 0; k < regions; k++) {
-            rx[k] = 0.15f + look.nextFloat() * 0.7f;
-            ry[k] = 0.1f + look.nextFloat() * 0.55f;
-            rw[k] = 0.22f + look.nextFloat() * 0.3f;
-            rh[k] = 0.15f + look.nextFloat() * 0.2f;
-            ra[k] = (look.nextFloat() - 0.5f) * 2.4f;
+            rx[k] = 0.15f + random.nextFloat() * 0.7f;
+            ry[k] = 0.1f + random.nextFloat() * 0.55f;
+            rw[k] = 0.22f + random.nextFloat() * 0.3f;
+            rh[k] = 0.15f + random.nextFloat() * 0.2f;
+            ra[k] = (random.nextFloat() - 0.5f) * 2.4f;
         }
-        float strength = 0.2f + look.nextFloat() * 0.08f;
+        float strength = 0.2f + random.nextFloat() * 0.08f;
         int[] px = new int[NEB_W * NEB_H];
         for (int y = 0; y < NEB_H; y++) {
             for (int x = 0; x < NEB_W; x++) {
@@ -721,10 +721,10 @@ final class Cosmos {
         return new float[] {Color.red(c) / 255f, Color.green(c) / 255f, Color.blue(c) / 255f};
     }
 
-    void setTheme(Theme next, boolean animate) {
-        if (next == theme) return;
-        previous = animate ? theme : null;
-        theme = next;
+    void setLook(Look next, boolean animate) {
+        if (next == look) return;
+        previous = animate ? look : null;
+        look = next;
         travel = previous == null ? 1f : 0f;
         if (animate && !still && meteors > 0) {
             for (int k = 0; k < 2; k++) meteor(false);
@@ -808,10 +808,10 @@ final class Cosmos {
      * radiant, the longer its trail, as perspective draws parallel paths.
      */
     private void meteor(boolean fireball) {
-        if (theme == null || width == 0) return;
+        if (look == null || width == 0) return;
         int i = meteorNext;
         meteorNext = (meteorNext + 1) % METEORS;
-        float rx = theme.radiantX * width, ry = theme.radiantY * height;
+        float rx = look.radiantX * width, ry = look.radiantY * height;
         float x = width * (0.05f + rnd.nextFloat() * 0.9f), y = height * (0.02f + rnd.nextFloat() * 0.7f);
         float dx = x - rx, dy = y - ry, d = (float) Math.sqrt(dx * dx + dy * dy) + 1f;
         mx[i] = x;
@@ -824,7 +824,7 @@ final class Cosmos {
         mLife[i] = (0.35f + rnd.nextFloat() * 0.5f) * (fireball ? 1.6f : 1f);
         mWidth[i] = (1.1f + rnd.nextFloat() * 1.2f) * s * (fireball ? 2.4f : 1f);
         mGain[i] = fireball ? 1f : 0.45f + (float) Math.pow(rnd.nextFloat(), 2) * 0.55f;
-        mTint[i] = fireball || rnd.nextInt(3) == 0 ? theme.tint : 0xFFDDE6FF;
+        mTint[i] = fireball || rnd.nextInt(3) == 0 ? look.tint : 0xFFDDE6FF;
         mAge[i] = 0;
     }
 
@@ -869,9 +869,9 @@ final class Cosmos {
             if (mAge[i] < mLife[i]) mAge[i] += dt;
         }
         nextMeteor -= dt;
-        if (nextMeteor <= 0 && theme != null && !still && meteors > 0) {
+        if (nextMeteor <= 0 && look != null && !still && meteors > 0) {
             meteor(rnd.nextInt(30) == 0 || burst % 9 == 4);
-            float rate = theme.rate * meteors * (storm > 0 ? 9f * Math.min(1f, storm) : 1f) * (1f - 0.9f * clouds);
+            float rate = look.rate * meteors * (storm > 0 ? 9f * Math.min(1f, storm) : 1f) * (1f - 0.9f * clouds);
             nextMeteor = burst > 0 ? 0.02f + rnd.nextFloat() * 0.05f : (float) (-Math.log(1 - rnd.nextFloat() * 0.99f) / rate);
             if (burst > 0) burst--;
         }
@@ -980,7 +980,7 @@ final class Cosmos {
         }
         float mid = -par * width * MID, midY = -parY * height * MID_Y;
         if (previous != null && travel < 1f) drawNebula(c, nebulaOn ? previous.nebula : previous.glow, (1 - travel) * fade, mid, midY);
-        if (theme != null) drawNebula(c, nebulaOn ? theme.nebula : theme.glow, (previous != null ? travel : 1f) * fade, mid, midY);
+        if (look != null) drawNebula(c, nebulaOn ? look.nebula : look.glow, (previous != null ? travel : 1f) * fade, mid, midY);
         if (sk != null) drawLive(c, sk, near, fade);
         drawSprites(c, sk, near);
         if (sk != null && sk.real()) drawMoon(c, sk, fade);

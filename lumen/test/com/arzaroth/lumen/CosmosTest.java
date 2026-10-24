@@ -27,9 +27,9 @@ public class CosmosTest {
         Wall.clock = System::currentTimeMillis;
     }
 
-    static Cosmos.Theme theme(int seed, int hue) {
+    static Cosmos.Look look(int seed, int hue) {
         int[] sparks = {0xFFFFFFFF, 0xFFFFD27A, hue, 0xFF808080, 0xFF404040, hue};
-        return Cosmos.theme(sparks, hue, new Random(seed));
+        return Cosmos.look(sparks, hue, new Random(seed));
     }
 
     static Cosmos ready() {
@@ -66,7 +66,7 @@ public class CosmosTest {
 
     @Test
     public void themesContrastWithTheLogoAndEachHasANebula() {
-        Cosmos.Theme red = theme(1, 0xFFE53935), grey = theme(2, 0xFF808080);
+        Cosmos.Look red = look(1, 0xFFE53935), grey = look(2, 0xFF808080);
         assertNotNull(red.nebula);
         assertNotNull(grey.nebula);
         assertTrue(red.tint != 0);
@@ -77,7 +77,7 @@ public class CosmosTest {
         Cosmos c = new Cosmos(0.2f);
         c.update(0.1f);
         c.drawBack(canvas);
-        c.setTheme(theme(3, 0xFF2196F3), false);
+        c.setLook(look(3, 0xFF2196F3), false);
         c.update(0.1f);
         c.drawBack(canvas);
         assertTrue(c.moving());
@@ -86,9 +86,9 @@ public class CosmosTest {
     @Test
     public void meteorsSatellitesTrainsAndANova() {
         Cosmos c = ready();
-        Cosmos.Theme first = theme(4, 0xFF43A047);
-        c.setTheme(first, false);
-        c.setTheme(first, true);
+        Cosmos.Look first = look(4, 0xFF43A047);
+        c.setLook(first, false);
+        c.setLook(first, true);
         Robo.set(c, "nextSatellite", 0f);
         Robo.set(c, "nextTrain", 0f);
         Robo.set(c, "nextNova", 0f);
@@ -102,14 +102,14 @@ public class CosmosTest {
         }
         run(c, 10f);
         assertEquals(-1, (int) Robo.get(c, "nova"));
-        c.setTheme(theme(5, 0xFF8E24AA), true);
+        c.setLook(look(5, 0xFF8E24AA), true);
         run(c, 1.5f);
     }
 
     @Test
     public void introStarsComeOutOneByOne() {
         Cosmos c = ready();
-        c.setTheme(theme(6, 0xFFFB8C00), false);
+        c.setLook(look(6, 0xFFFB8C00), false);
         c.intro();
         run(c, 3.2f);
         assertEquals(-1f, (float) Robo.get(c, "introT"), 0f);
@@ -118,7 +118,7 @@ public class CosmosTest {
     @Test
     public void warpStreaksTheBrightStars() {
         Cosmos c = ready();
-        c.setTheme(theme(7, 0xFF00ACC1), false);
+        c.setLook(look(7, 0xFF00ACC1), false);
         c.setWarp(0.8f);
         run(c, 0.3f);
         c.setWarp(0f);
@@ -128,7 +128,7 @@ public class CosmosTest {
     @Test
     public void aStillSkyStopsMovingOnceSettled() {
         Cosmos c = ready();
-        c.setTheme(theme(8, 0xFF3949AB), false);
+        c.setLook(look(8, 0xFF3949AB), false);
         c.setStill(true);
         c.setMeteors(0f);
         run(c, 3f);
@@ -137,14 +137,14 @@ public class CosmosTest {
         assertFalse(c.moving());
         c.setStill(false);
         c.setMeteors(1f);
-        c.setTheme(theme(9, 0xFFD81B60), true);
+        c.setLook(look(9, 0xFFD81B60), true);
         assertTrue(c.moving());
     }
 
     @Test
     public void theTurningSkyDrawsBothCopiesAcrossItsSeam() {
         Cosmos c = ready();
-        c.setTheme(theme(10, 0xFF6D4C41), false);
+        c.setLook(look(10, 0xFF6D4C41), false);
         c.setTurning(true);
         long tile = 2L * W;
         double rate = 360.0 / 86164.0905 * W / 50.0 / 1000.0;
@@ -162,7 +162,7 @@ public class CosmosTest {
     @Test
     public void parallaxGlidesTheLayersThenSettles() {
         Cosmos c = ready();
-        c.setTheme(theme(11, 0xFF00897B), false);
+        c.setLook(look(11, 0xFF00897B), false);
         c.setStill(true);
         c.setMeteors(0f);
         run(c, 3f);
@@ -188,7 +188,7 @@ public class CosmosTest {
     @Test
     public void theJumpToLightSpeedFliesOnAndNeverPullsBack() {
         Cosmos c = ready();
-        c.setTheme(theme(12, 0xFF8E24AA), false);
+        c.setLook(look(12, 0xFF8E24AA), false);
         run(c, 1f);
         c.setWarp(1f);
         run(c, 0.5f);
@@ -204,14 +204,14 @@ public class CosmosTest {
 
     @Test
     public void withoutTheNebulaOnlyTheAirglowIsLeft() {
-        Cosmos.Theme t = theme(13, 0xFF00ACC1);
+        Cosmos.Look t = look(13, 0xFF00ACC1);
         assertTrue(t.glow.getPixel(200, 220) != 0xFF000000);
         assertEquals(0xFF000000, t.glow.getPixel(200, 10));
         Cosmos c = ready();
-        c.setTheme(t, false);
+        c.setLook(t, false);
         c.setNebula(false);
         run(c, 0.3f);
-        c.setTheme(theme(14, 0xFFF4511E), true);
+        c.setLook(look(14, 0xFFF4511E), true);
         run(c, 0.5f);
         c.setNebula(true);
         run(c, 0.2f);
@@ -220,7 +220,7 @@ public class CosmosTest {
     @Test
     public void cloudsVeilTheSkyRainAndSnowFallInFront() {
         Cosmos c = ready();
-        c.setTheme(theme(15, 0xFF3949AB), false);
+        c.setLook(look(15, 0xFF3949AB), false);
         c.setStill(true);
         c.setWeather(1f, 1f, 0f);
         assertTrue(c.moving());
@@ -259,7 +259,7 @@ public class CosmosTest {
         Wall.clock = () -> now[0];
         float[] stars = Heavens.catalog(new java.io.FileInputStream("assets/stars.bin"));
         Cosmos c = ready();
-        c.setTheme(theme(16, 0xFF3949AB), false);
+        c.setLook(look(16, 0xFF3949AB), false);
         c.setRealSky(new double[] {48.85, 2.35}, stars);
         until(c, () -> real(c));
         run(c, 1.5f);

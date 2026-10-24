@@ -79,10 +79,10 @@ final class Stage extends View {
         final int[] sparks;
         final float bottom;
         final int cols, rows;
-        final Cosmos.Theme theme;
+        final Cosmos.Look look;
 
         Mosaic(int count, int cols, int rows, float[] gx, float[] gy, byte[] bucket, int[] palette, int[] sparks, float bottom,
-               Cosmos.Theme theme) {
+               Cosmos.Look look) {
             this.count = count;
             this.cols = cols;
             this.rows = rows;
@@ -92,7 +92,7 @@ final class Stage extends View {
             this.palette = palette;
             this.sparks = sparks;
             this.bottom = bottom;
-            this.theme = theme;
+            this.look = look;
         }
     }
 
@@ -564,9 +564,9 @@ final class Stage extends View {
         }
 
         int[] sparks = sparkPalette(centroid, app.accent);
-        Random look = new Random(app.key().hashCode() * 31L + 7);
+        Random random = new Random(app.key().hashCode() * 31L + 7);
         return new Mosaic(Math.min(kept, CAP), cols, rows, gxs, gys, bucket, centroid, sparks, bottom,
-                Cosmos.theme(sparks, app.accent, look));
+                Cosmos.look(sparks, app.accent, random));
     }
 
     private static long dist2(int a, int b) {
@@ -600,7 +600,7 @@ final class Stage extends View {
         pending = m;
         hasPending = true;
         accent = newAccent;
-        cosmos.setTheme(m.theme, animate && count > 0 && motion);
+        cosmos.setLook(m.look, animate && count > 0 && motion);
         if (count == 0 || !animate || !lively()) {
             startEnter();
             return;
