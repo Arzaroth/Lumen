@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
@@ -34,6 +33,8 @@ final class Cosmos {
     private static final float FAR_Y = 0.012f, MID_Y = 0.026f, NEAR_Y = 0.042f;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
     private static final int NEB_W = 400, NEB_H = 225;
+    /** How far the nebula is zoomed in at rest, so its edges stay off screen as it drifts and slides. */
+    private static final float NEB_ZOOM = 1.12f;
 
     /** One app's sky: where its meteors come from, their glow, and the airglow on the horizon. */
     static final class Theme {
@@ -75,7 +76,6 @@ final class Cosmos {
     private int burst;
 
     private Theme theme, previous;
-    private Shader glowNow, glowBefore;
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
     private boolean still, turning;
     private float par, parTarget, parY, parYTarget, liveTop;
@@ -105,7 +105,6 @@ final class Cosmos {
     private final Paint spritePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint addPaint = new Paint();
     private final Paint blit = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint glowPaint = new Paint();
     private final Paint nebulaPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private final android.graphics.Matrix nebulaMatrix = new android.graphics.Matrix();
 
@@ -161,7 +160,6 @@ final class Cosmos {
             margin = m;
             sky = made;
         }, "lumen-sky").start();
-        if (theme != null) glowNow = airglow(theme);
     }
 
     // ------------------------------------------------------------------ the sky, once
@@ -344,15 +342,16 @@ final class Cosmos {
         float hue = (logoHue + 150 + look.nextFloat() * 60) % 360;
         int airglow = Color.HSVToColor(new float[] {hue, 0.6f, 1f});
         return new Theme(0.15f + look.nextFloat() * 0.7f, -0.35f + look.nextFloat() * 0.45f,
-                0.8f + look.nextFloat() * 0.6f, tint, airglow, nebula(hue, look));
+                0.8f + look.nextFloat() * 0.6f, tint, airglow, nebula(hue, airglow, look));
     }
 
     /**
      * An app's own nebula: gas clouds folded by domain warping, a second gas in a neighbouring hue,
      * dark dust lanes through both, gathered into one or two regions placed at random. Faint by
-     * design: it tints the sky rather than filling it.
+     * design: it tints the sky rather than filling it. The glow of the air near the horizon is baked
+     * in too: drawn as its own layer over that much screen, it cost this TV's GPU a third of a frame.
      */
-    private static Bitmap nebula(float hue, Random look) {
+    private static Bitmap nebula(float hue, int airglow, Random look) {
         int seed = look.nextInt(1 << 20);
         float[] a = rgb(Color.HSVToColor(new float[] {hue, 0.75f, 1f}));
         float[] b = rgb(Color.HSVToColor(new float[] {(hue + 35 + look.nextFloat() * 50) % 360, 0.65f, 1f}));
@@ -387,6 +386,18 @@ final class Cosmos {
                 px[y * NEB_W + x] = Color.rgb(c255(a[0] * g + b[0] * o), c255(a[1] * g + b[1] * o), c255(a[2] * g + b[2] * o));
             }
         }
+        float[] air = rgb(airglow);
+        for (int y = 0; y < NEB_H; y++) {
+            float screen = (y + 0.5f) / NEB_H * NEB_ZOOM - (NEB_ZOOM - 1f) / 2f;
+            float t = (screen - 0.45f) / 0.55f;
+            float glow = t <= 0f ? 0f : t < 0.55f ? t / 0.55f * 0x18 / 255f : Math.min(1f, (0x18 + (t - 0.55f) / 0.45f * (0x46 - 0x18)) / 255f);
+            if (glow <= 0f) continue;
+            for (int x = 0; x < NEB_W; x++) {
+                int c = px[y * NEB_W + x];
+                px[y * NEB_W + x] = Color.rgb(Math.min(255, Color.red(c) + c255(air[0] * glow)),
+                        Math.min(255, Color.green(c) + c255(air[1] * glow)), Math.min(255, Color.blue(c) + c255(air[2] * glow)));
+            }
+        }
         for (int i = 0; i < px.length; i++) if (px[i] == 0) px[i] = 0xFF000000;
         Bitmap bmp = Bitmap.createBitmap(NEB_W, NEB_H, Bitmap.Config.ARGB_8888);
         bmp.setPixels(px, 0, NEB_W, 0, 0, NEB_W, NEB_H);
@@ -397,19 +408,10 @@ final class Cosmos {
         return new float[] {Color.red(c) / 255f, Color.green(c) / 255f, Color.blue(c) / 255f};
     }
 
-    private Shader airglow(Theme t) {
-        if (height == 0) return null;
-        return new LinearGradient(0, height * 0.45f, 0, height,
-                new int[] {0x00000000, Apps.withAlpha(t.airglow, 0x18), Apps.withAlpha(t.airglow, 0x46)},
-                new float[] {0f, 0.55f, 1f}, Shader.TileMode.CLAMP);
-    }
-
     void setTheme(Theme next, boolean animate) {
         if (next == theme) return;
         previous = animate ? theme : null;
-        glowBefore = glowNow;
         theme = next;
-        glowNow = airglow(next);
         travel = previous == null ? 1f : 0f;
         if (animate && !still && meteors > 0) {
             for (int k = 0; k < 2; k++) meteor(false);
@@ -620,16 +622,6 @@ final class Cosmos {
         float mid = -par * width * MID, midY = -parY * height * MID_Y;
         if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade, mid, midY);
         if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade, mid, midY);
-        if (glowBefore != null && travel < 1f) {
-            glowPaint.setShader(glowBefore);
-            glowPaint.setAlpha(Math.round(255 * (1 - travel)));
-            c.drawRect(0, height * 0.45f, width, height, glowPaint);
-        }
-        if (glowNow != null) {
-            glowPaint.setShader(glowNow);
-            glowPaint.setAlpha(Math.round(255 * travel * skyIn * (0.85f + 0.15f * (float) Math.sin(clock * 0.3f))));
-            c.drawRect(0, height * 0.45f, width, height, glowPaint);
-        }
         if (sk != null) drawLive(c, sk, near, fade);
         drawSprites(c, sk, near);
         c.save();
@@ -647,7 +639,7 @@ final class Cosmos {
     private void drawNebula(Canvas c, Bitmap nebula, float alpha, float shift, float shiftY) {
         if (nebula == null || alpha <= 0.01f || width == 0) return;
         float sx = (float) width / NEB_W, sy = (float) height / NEB_H;
-        float zoom = 1.12f + 0.03f * (float) Math.sin(drift * 0.013f);
+        float zoom = NEB_ZOOM + 0.03f * (float) Math.sin(drift * 0.013f);
         float ox = (float) Math.sin(drift * 0.021f) * width * 0.015f, oy = (float) Math.cos(drift * 0.017f) * height * 0.012f;
         nebulaMatrix.setScale(sx * zoom, sy * zoom);
         nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox + shift, -(zoom - 1) * height / 2 + oy + shiftY);
