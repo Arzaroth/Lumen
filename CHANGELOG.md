@@ -6,6 +6,12 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-24
+
+### Fixed
+
+- Explosion rays keep flying outward as they fade, instead of braking to a stop in the air.
+
 ## [1.2.0] - 2026-10-24
 
 ### Changed
@@ -129,7 +135,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/Arzaroth/Lumen/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Arzaroth/Lumen/compare/v1.1.9...v1.2.0
 [1.1.9]: https://github.com/Arzaroth/Lumen/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/Arzaroth/Lumen/compare/v1.1.7...v1.1.8
