@@ -212,6 +212,30 @@ public class StageTest {
         return low;
     }
 
+    private static int ghosts(Stage s) {
+        float[] life = Robo.get(s, "hLife");
+        int n = 0;
+        for (float l : life) if (l > 0) n++;
+        return n;
+    }
+
+    @Test
+    public void aBigLogoLeavesAThinnedTrailOfGhosts() {
+        Stage s = ready(busy("org.example.ghosts"));
+        int count = Robo.get(s, "count");
+        float[] pa = Robo.get(s, "pa");
+        java.util.Arrays.fill(pa, 0, count, 1f);
+        Robo.call(s, "ghost", 0);
+        int left = ghosts(s);
+        assertTrue(count > 1300);
+        assertTrue(left >= 1150 && left <= 1200);
+        java.util.Arrays.fill((float[]) Robo.get(s, "hLife"), 0f);
+        java.util.Arrays.fill(pa, 0, 600, 1f);
+        java.util.Arrays.fill(pa, 600, count, 0f);
+        Robo.call(s, "ghost", 0);
+        assertEquals(600, ghosts(s));
+    }
+
     @Test
     public void everyLogoStandsOnTheSameFloor() {
         Stage s = ready(logo("org.example.floor", 0xFF1E88E5));
