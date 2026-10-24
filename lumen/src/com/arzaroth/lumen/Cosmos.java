@@ -95,6 +95,10 @@ final class Cosmos implements Backdrop {
     private final RectF logo = new RectF();
     private int width, height;
     private volatile Sky sky;
+    private static final float[] RATES = {0f, 0.35f, 1f, 2.5f};
+    private static volatile float[] brightStars;
+    private final android.content.Context app;
+    private int skyWanted;
     private volatile double[] place;
     private volatile float[] catalog;
     private volatile Bitmap fadingField;
@@ -143,7 +147,13 @@ final class Cosmos implements Backdrop {
     private final android.graphics.Matrix nebulaMatrix = new android.graphics.Matrix();
 
     Cosmos(float scale) {
+        this(scale, null);
+    }
+
+    /** A sky that can find the real one above home through `context` (its location and star catalogue). */
+    Cosmos(float scale, android.content.Context context) {
         s = scale;
+        app = context != null ? context.getApplicationContext() : null;
         precipitation = new Precipitation(scale);
         PorterDuffXfermode add = new PorterDuffXfermode(PorterDuff.Mode.ADD);
         spritePaint.setShader(new BitmapShader(sprite(), Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
@@ -197,7 +207,6 @@ final class Cosmos implements Backdrop {
      * Shows the real sky above `latLon` (degrees) from the bright star catalogue `stars` (right
      * ascension, declination, magnitude and colour index per star), or the imagined one when null.
      */
-    @Override
     public void setRealSky(double[] latLon, float[] stars) {
         place = latLon;
         catalog = stars;
@@ -712,7 +721,6 @@ final class Cosmos implements Backdrop {
         still = s;
     }
 
-    @Override
     public void setActivity(float rate) {
         meteors = rate;
     }
@@ -738,15 +746,63 @@ final class Cosmos implements Backdrop {
     }
 
     /** Shows each app's nebula, or only the glow of the air on the horizon. */
-    @Override
     public void setNebula(boolean on) {
         nebulaOn = on;
     }
 
     /** Turns the sky with the Earth, or holds it still. */
-    @Override
     public void setTurning(boolean on) {
         turning = on;
+    }
+
+    /** Space's own settings: meteors, rotation, nebula and the real sky (`SpaceTheme`). */
+    @Override
+    public void setOption(String key, int value) {
+        switch (key) {
+            case Prefs.METEORS:
+                setActivity(RATES[Math.max(0, Math.min(RATES.length - 1, value))]);
+                break;
+            case Prefs.TURN:
+                setTurning(value == 1);
+                break;
+            case Prefs.NEBULA:
+                setNebula(value == 0);
+                break;
+            case Prefs.REAL_SKY:
+                findSky(value == 1);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Asks where home is and loads the star catalogue, off the UI thread, then shows the real sky; or
+     * goes back to the imagined one. An answer arriving after the setting changed again is dropped.
+     */
+    private void findSky(boolean on) {
+        final int ask = ++skyWanted;
+        if (!on || app == null) {
+            setRealSky(null, null);
+            return;
+        }
+        final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
+        new Thread(() -> {
+            double[] at = Place.find(app, app.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE));
+            float[] known = brightStars;
+            if (known == null && at != null) {
+                try {
+                    known = Heavens.catalog(app.getAssets().open("stars.bin"));
+                    brightStars = known;
+                } catch (java.io.IOException e) {
+                    known = null;
+                }
+            }
+            final float[] found = known;
+            main.post(() -> {
+                if (ask == skyWanted && at != null && found != null) setRealSky(at, found);
+            });
+        }, "lumen-sky").start();
     }
 
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */

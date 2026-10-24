@@ -399,7 +399,7 @@ public class ActivityTest {
         apps(2);
         LumenActivity a = launch(null).get();
         for (int backdrop = 0; backdrop < 3; backdrop++) {
-            prefs.edit().putInt(Prefs.BACKDROP, backdrop).putInt(Prefs.CLOCK, backdrop).putInt(Prefs.GREETING, backdrop % 2)
+            prefs.edit().putString(Prefs.THEME, backdrop == 1 ? "fireworks" : "space").putInt(Prefs.STILL, backdrop / 2).putInt(Prefs.CLOCK, backdrop).putInt(Prefs.GREETING, backdrop % 2)
                     .putInt(Prefs.LOGO, backdrop % 2).putInt(Prefs.TURN, backdrop % 2).putInt(Prefs.PACE, backdrop).commit();
             a.applySettings();
         }

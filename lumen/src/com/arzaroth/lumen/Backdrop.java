@@ -12,7 +12,7 @@ import java.util.Random;
  * (brain/architecture/gpu-budget.md).
  *
  * Only the first group is required. The rest have no-op defaults, so a backdrop only answers what
- * makes sense for it: a landscape has no use for the real sky.
+ * makes sense for it. Settings only one theme has come through `setOption`.
  */
 interface Backdrop {
     /** One app's look in this backdrop, chosen from its logo's colours. Built off the UI thread. */
@@ -57,23 +57,11 @@ interface Backdrop {
     default void setStill(boolean still) {
     }
 
-    /** How busy the backdrop's events are (meteors in space), 0 for none. */
-    default void setActivity(float rate) {
-    }
-
     /** A burst of events for the next `seconds` (a meteor storm in space). */
     default void storm(float seconds) {
     }
 
-    /** Turning with the Earth (space only). */
-    default void setTurning(boolean on) {
-    }
-
-    /** Showing each app's nebula (space only). */
-    default void setNebula(boolean on) {
-    }
-
-    /** The real sky above `latLon` from the star catalogue `stars`, or none when null (space only). */
-    default void setRealSky(double[] latLon, float[] stars) {
+    /** One of its theme's own settings (`Theme.options`) changed to `value`. */
+    default void setOption(String key, int value) {
     }
 }

@@ -19,7 +19,7 @@ final class PackTheme implements Theme {
     }
 
     @Override
-    public Backdrop backdrop(float scale) {
+    public Backdrop backdrop(android.content.Context context, float scale) {
         return new PictureBackdrop(pack, scale);
     }
 

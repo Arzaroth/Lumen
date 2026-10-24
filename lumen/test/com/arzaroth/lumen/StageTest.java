@@ -160,7 +160,7 @@ public class StageTest {
     @Test
     public void fireworksShowsShellsAndLaunches() {
         Stage s = ready(logo("org.example.jellyfin", 0xFF8E24AA));
-        s.setStyle(Stage.FIREWORKS);
+        s.setTheme(SpaceTheme.FIREWORKS);
         force(s, "FIREWORK_HOLDS", "holdKind", 3, "startHold");
         run(s, 5f);
         force(s, "FIREWORK_HOLDS", "holdKind", 0, "startHold");
@@ -170,7 +170,7 @@ public class StageTest {
         run(s, 3f);
         force(s, "FIREWORK_EXITS", "exitKind", 5, "startExit", false);
         run(s, 3.5f);
-        s.setStyle(Stage.COSMOS);
+        s.setTheme(SpaceTheme.SPACE);
     }
 
     @Test
@@ -278,7 +278,7 @@ public class StageTest {
         }
 
         @Override
-        public Backdrop backdrop(float scale) {
+        public Backdrop backdrop(android.content.Context context, float scale) {
             return new Backdrop() {
                 @Override
                 public Look look(int[] sparks, int accent, Random random) {
@@ -333,13 +333,11 @@ public class StageTest {
         s.setWeather(1f, 1f, 0f);
         s.setSkyStill(true);
         s.setSkyStill(false);
-        s.setMeteors(2f);
-        s.setSkyTurning(true);
-        s.setNebula(false);
-        s.setRealSky(null);
+        s.setOption(Prefs.METEORS, 3);
+        s.setOption(Prefs.TURN, 1);
         run(s, 2f);
         assertTrue(plain.drawn > 0);
-        s.setTheme(new SpaceTheme());
+        s.setTheme(SpaceTheme.SPACE);
         run(s, 0.5f);
     }
 
@@ -384,11 +382,11 @@ public class StageTest {
         run(s, 1f);
         s.setFlat(false);
         s.setSkyStill(true);
-        s.setMeteors(2.5f);
-        s.setSkyTurning(true);
+        s.setOption(Prefs.METEORS, 3);
+        s.setOption(Prefs.TURN, 1);
         run(s, 0.5f);
         s.setSkyStill(false);
-        s.setSkyTurning(false);
+        s.setOption(Prefs.TURN, 0);
         s.setDim(0.28f);
         s.setDim(0.28f);
         run(s, 0.6f);

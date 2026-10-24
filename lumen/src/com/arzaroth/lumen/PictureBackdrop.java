@@ -80,7 +80,7 @@ final class PictureBackdrop implements Backdrop {
     private volatile boolean baking;
     private Look look = new Look(1f);
     private int width, height, next;
-    private float clock, introT = -1f, shown = 1f, activity = 1f, warp, nextSpark, flash, clouds, cloudsTarget, par, parTarget, parY, parYTarget;
+    private float clock, introT = -1f, shown = 1f, warp, nextSpark, flash, clouds, cloudsTarget, par, parTarget, parY, parYTarget;
     private boolean still;
 
     PictureBackdrop(Pack pack, float scale) {
@@ -287,11 +287,6 @@ final class PictureBackdrop implements Backdrop {
     }
 
     @Override
-    public void setActivity(float rate) {
-        activity = rate;
-    }
-
-    @Override
     public void storm(float seconds) {
         Scene sc = scene;
         if (sc == null || sparkLayer == null) return;
@@ -346,10 +341,10 @@ final class PictureBackdrop implements Backdrop {
         }
         flash = Math.max(0f, flash - dt * 1.2f);
         Scene sc = scene;
-        if (sc != null && sparkLayer != null && !still && activity > 0f && introT < 0f) {
+        if (sc != null && sparkLayer != null && !still && introT < 0f) {
             nextSpark -= dt;
             while (nextSpark <= 0f) {
-                nextSpark += 1f / Math.max(0.1f, sparkLayer.num("rate", 20f) * activity * look.vigor);
+                nextSpark += 1f / Math.max(0.1f, sparkLayer.num("rate", 20f) * look.vigor);
                 spark(sc, 1f);
             }
         }

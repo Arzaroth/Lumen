@@ -106,6 +106,23 @@ public class SettingsTest implements LumenSettings.Host {
     }
 
     @Test
+    public void theOldBackdropChoiceBecomesATheme() {
+        prefs.edit().clear().putInt(Prefs.BACKDROP, 1).commit();
+        Prefs.migrate(prefs);
+        assertEquals("fireworks", prefs.getString(Prefs.THEME, ""));
+        assertFalse(prefs.contains(Prefs.BACKDROP));
+        prefs.edit().clear().putString(Prefs.THEME, "volcano").putInt(Prefs.BACKDROP, 1).commit();
+        Prefs.migrate(prefs);
+        assertEquals("volcano", prefs.getString(Prefs.THEME, ""));
+        prefs.edit().clear().putInt(Prefs.BACKDROP, 2).commit();
+        Prefs.migrate(prefs);
+        assertEquals(1, prefs.getInt(Prefs.STILL, 0));
+        assertFalse(prefs.contains(Prefs.THEME));
+        Prefs.migrate(prefs);
+        assertEquals(1, prefs.getInt(Prefs.STILL, 0));
+    }
+
+    @Test
     public void rootOffersSystemAndLumenSettings() {
         menu.open(settings.root());
         draw();
@@ -116,29 +133,29 @@ public class SettingsTest implements LumenSettings.Host {
         draw();
         assertEquals(6, ((Menu.Page) Robo.call(menu, "top")).rows.size());
         menu.side(1);
-        assertEquals(Themes.all().get(Math.min(1, Themes.all().size() - 1)).id(), prefs.getString(Prefs.THEME, ""));
+        assertEquals("fireworks", prefs.getString(Prefs.THEME, ""));
         menu.move(1);
 
         menu.activate();
-        assertEquals("Sky", ((Menu.Page) Robo.call(menu, "top")).title);
+        Menu.Page backdrop = Robo.call(menu, "top");
+        assertEquals("Backdrop", backdrop.title);
+        assertEquals(4 + SpaceTheme.FIREWORKS.options().size(), backdrop.rows.size());
         menu.side(1);
-        assertEquals(1, prefs.getInt(Prefs.BACKDROP, 0));
+        assertEquals(1, prefs.getInt(Prefs.PACE, 0));
         assertEquals("apply", log.get(1));
-        down(3);
-        menu.side(1);
-        assertEquals(1, prefs.getInt(Prefs.TURN, 0));
+        for (String key : new String[] {Prefs.STILL, Prefs.PARALLAX, Prefs.WEATHER}) {
+            menu.move(1);
+            menu.side(1);
+            assertEquals(key, 1, prefs.getInt(key, 0));
+        }
         menu.move(1);
         menu.side(1);
-        assertEquals(1, prefs.getInt(Prefs.PARALLAX, 0));
-        menu.move(1);
-        menu.side(1);
-        assertEquals(1, prefs.getInt(Prefs.NEBULA, 0));
-        menu.move(1);
-        menu.side(1);
-        assertEquals(1, prefs.getInt(Prefs.WEATHER, 0));
-        menu.move(1);
-        menu.side(1);
-        assertEquals(1, prefs.getInt(Prefs.REAL_SKY, 0));
+        assertEquals(Prefs.METEORS_DEFAULT + 1, prefs.getInt(Prefs.METEORS, 0));
+        for (String key : new String[] {Prefs.TURN, Prefs.NEBULA, Prefs.REAL_SKY}) {
+            menu.move(1);
+            menu.side(1);
+            assertEquals(key, 1, prefs.getInt(key, 0));
+        }
         menu.pop();
 
         menu.move(1);

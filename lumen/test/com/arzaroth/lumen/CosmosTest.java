@@ -65,6 +65,22 @@ public class CosmosTest {
     }
 
     @Test
+    public void spacesOwnSettingsReachTheSky() {
+        Cosmos c = new Cosmos(0.2f);
+        c.setOption(Prefs.METEORS, 0);
+        assertEquals(0f, Robo.<Float>get(c, "meteors"), 0f);
+        c.setOption(Prefs.METEORS, 9);
+        assertEquals(2.5f, Robo.<Float>get(c, "meteors"), 0f);
+        c.setOption(Prefs.TURN, 1);
+        assertTrue(Robo.<Boolean>get(c, "turning"));
+        c.setOption(Prefs.NEBULA, 1);
+        assertFalse(Robo.<Boolean>get(c, "nebulaOn"));
+        c.setOption(Prefs.REAL_SKY, 1);
+        assertEquals(null, Robo.get(c, "place"));
+        c.setOption("something else", 1);
+    }
+
+    @Test
     public void themesContrastWithTheLogoAndEachHasANebula() {
         Cosmos.Look red = look(1, 0xFFE53935), grey = look(2, 0xFF808080);
         assertNotNull(red.nebula);

@@ -52,7 +52,7 @@ final class LumenSettings {
     private Menu.Page lumen() {
         return new Menu.Page("Lumen settings", 520)
                 .add(themeChoice())
-                .add(Menu.Row.sub("Sky", this::sky))
+                .add(Menu.Row.sub("Backdrop", this::backdrop))
                 .add(Menu.Row.sub("Home screen", this::home))
                 .add(Menu.Row.sub("Remote", this::remote))
                 .add(Menu.Row.sub("Boot intro", this::intro))
@@ -75,16 +75,15 @@ final class LumenSettings {
         });
     }
 
-    private Menu.Page sky() {
-        return new Menu.Page("Sky", 640)
-                .add(choice("Backdrop", Prefs.BACKDROP, 0, "Night sky", "Fireworks", "Still sky"))
+    /** What every theme shares, then the current theme's own settings. */
+    private Menu.Page backdrop() {
+        Menu.Page page = new Menu.Page("Backdrop", 640)
                 .add(choice("Animations", Prefs.PACE, 0, "Lively", "Calm", "Off"))
-                .add(choice("Meteors", Prefs.METEORS, Prefs.METEORS_DEFAULT, "Off", "Few", "Shower", "Storm"))
-                .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"))
+                .add(choice("Motion", Prefs.STILL, 0, "Moving", "Still"))
                 .add(choice("Parallax", Prefs.PARALLAX, 0, "On", "Off"))
-                .add(choice("Nebula", Prefs.NEBULA, 0, "On", "Off"))
-                .add(choice("Weather", Prefs.WEATHER, 0, "Off", "On"))
-                .add(choice("Real sky", Prefs.REAL_SKY, 0, "Off", "On"));
+                .add(choice("Weather", Prefs.WEATHER, 0, "Off", "On"));
+        for (Option o : Themes.byId(prefs.getString(Prefs.THEME, "")).options()) page.add(choice(o.label, o.key, o.fallback, o.values));
+        return page;
     }
 
     private Menu.Page home() {

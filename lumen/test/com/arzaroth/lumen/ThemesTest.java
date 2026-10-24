@@ -19,7 +19,7 @@ public class ThemesTest {
         assertEquals("Space", Themes.byId("space").name());
         assertEquals("space", Themes.byId("no such theme").id());
         assertEquals("space", Themes.byId(null).id());
-        assertTrue(Themes.byId("space").backdrop(0.5f) instanceof Cosmos);
+        assertTrue(Themes.byId("space").backdrop(Robo.context(), 0.5f) instanceof Cosmos);
         assertEquals(Palette.SPACE, Themes.byId("space").palette());
     }
 
@@ -29,7 +29,7 @@ public class ThemesTest {
         Theme volcano = Themes.byId("volcano");
         assertEquals("Volcano", volcano.name());
         assertTrue(volcano instanceof PackTheme);
-        assertTrue(volcano.backdrop(0.5f) instanceof PictureBackdrop);
+        assertTrue(volcano.backdrop(Robo.context(), 0.5f) instanceof PictureBackdrop);
         int count = Themes.all().size();
         Themes.discover(Robo.context().getAssets());
         assertEquals(count, Themes.all().size());

@@ -102,7 +102,7 @@ final class Stage extends View {
     private final Random rnd = new Random();
     private final float s;
     private Backdrop backdrop;
-    private Theme theme = new SpaceTheme();
+    private Theme theme = SpaceTheme.SPACE;
     private int screenW, screenH;
     private int style = COSMOS;
     private int generation;
@@ -124,7 +124,6 @@ final class Stage extends View {
     /** Where the next logo materialises from: its tile's banner, when the focus has just moved to it. */
     private final RectF source = new RectF();
     private Supplier<RectF> bannerOf;
-    private volatile float[] stars;
     /** Where the logo's cells actually are, inside its box: the centre the animations play around. */
     private final RectF art = new RectF();
 
@@ -231,7 +230,7 @@ final class Stage extends View {
     Stage(Context c, float scale) {
         super(c);
         s = scale;
-        backdrop = theme.backdrop(scale);
+        backdrop = theme.backdrop(c, scale);
         motion = ValueAnimator.areAnimatorsEnabled();
         if (Build.VERSION.SDK_INT < 29) setLayerType(LAYER_TYPE_SOFTWARE, null);
         synchronized (Stage.class) {
@@ -280,11 +279,6 @@ final class Stage extends View {
         return b;
     }
 
-    /** COSMOS (night sky and meteors) or FIREWORKS (rockets and shells). */
-    void setStyle(int newStyle) {
-        style = newStyle;
-    }
-
     /** LIVELY (every choreography), CALM (the gentle ones) or STILL (the logo stands still). */
     void setPace(int newPace) {
         if (pace == newPace) return;
@@ -307,29 +301,6 @@ final class Stage extends View {
         if (running) postInvalidateOnAnimation();
     }
 
-    void setSkyTurning(boolean on) {
-        backdrop.setTurning(on);
-    }
-
-    /** The real sky above `latLon` (degrees), or the imagined one when null; the star catalogue loads once, off the UI thread. */
-    void setRealSky(double[] latLon) {
-        if (latLon == null) {
-            backdrop.setRealSky(null, null);
-            return;
-        }
-        new Thread(() -> {
-            if (stars == null) {
-                try {
-                    stars = Heavens.catalog(getContext().getAssets().open("stars.bin"));
-                } catch (java.io.IOException e) {
-                    return;
-                }
-            }
-            float[] catalog = stars;
-            post(() -> backdrop.setRealSky(latLon, catalog));
-        }, "lumen-stars").start();
-    }
-
     /**
      * Wears `next`: a new backdrop in place of the old one, and every app's look built again for it,
      * starting with the one on screen. The caller sends the settings again afterwards.
@@ -337,7 +308,8 @@ final class Stage extends View {
     void setTheme(Theme next) {
         if (next.id().equals(theme.id())) return;
         theme = next;
-        backdrop = next.backdrop(s);
+        style = next.choreography();
+        backdrop = next.backdrop(getContext(), s);
         if (laidOut) backdrop.layout(logo, screenW, screenH);
         synchronized (mosaics) {
             mosaics.clear();
@@ -353,9 +325,10 @@ final class Stage extends View {
         if (running) postInvalidateOnAnimation();
     }
 
-    void setNebula(boolean on) {
-        backdrop.setNebula(on);
-        invalidate();
+    /** One of the theme's own settings (`Theme.options`). */
+    void setOption(String key, int value) {
+        backdrop.setOption(key, value);
+        if (running) postInvalidateOnAnimation();
     }
 
     /** The sky's parallax, from -1 (looking left) to 1, and from 0 (level) to 1 (looking down). */
@@ -368,11 +341,6 @@ final class Stage extends View {
     void setSkyStill(boolean still) {
         backdrop.setStill(still);
         if (running) postInvalidateOnAnimation();
-    }
-
-    /** How many meteors cross the sky, 1 being the normal shower. */
-    void setMeteors(float rate) {
-        backdrop.setActivity(rate);
     }
 
     /** Where the logo lives (the empty middle), and where its reflection must stop. */

@@ -116,6 +116,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("lumen", MODE_PRIVATE);
+        Prefs.migrate(prefs);
         Themes.discover(getAssets());
         restoreKey = prefs.getString("focus", null);
         settings = new LumenSettings(this, this, prefs);
@@ -227,22 +228,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setTheme(theme);
         clock.setPalette(theme.palette());
         ascent.setPalette(theme.palette());
-        int backdrop = prefs.getInt(Prefs.BACKDROP, 0);
-        stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
-        stage.setSkyStill(backdrop == 2);
-        stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
-        stage.setNebula(prefs.getInt(Prefs.NEBULA, 0) == 0);
-        if (prefs.getInt(Prefs.REAL_SKY, 0) == 1) {
-            final Context app = getApplicationContext();
-            new Thread(() -> {
-                double[] at = Place.find(app, prefs);
-                main.post(() -> {
-                    if (prefs.getInt(Prefs.REAL_SKY, 0) == 1 && at != null) stage.setRealSky(at);
-                });
-            }, "lumen-place").start();
-        } else {
-            stage.setRealSky(null);
-        }
+        stage.setSkyStill(prefs.getInt(Prefs.STILL, 0) == 1);
+        for (Option o : theme.options()) stage.setOption(o.key, prefs.getInt(o.key, o.fallback));
         boolean outside = prefs.getInt(Prefs.WEATHER, 0) == 1;
         weather.setOn(outside && resumed);
         if (!outside) {
@@ -252,7 +239,6 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         reorder();
         if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index), parallaxDownOf(index));
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
-        stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
         stage.setFlat(prefs.getInt(Prefs.LOGO, 0) == 1);
         greeting.setVisibility(prefs.getInt(Prefs.GREETING, 0) == 0 ? View.VISIBLE : View.INVISIBLE);
         updateClock();

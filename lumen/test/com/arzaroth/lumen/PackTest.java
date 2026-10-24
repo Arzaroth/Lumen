@@ -64,6 +64,6 @@ public class PackTest {
         assertEquals("lava", new PackTheme(p).id());
         assertEquals("Lava", new PackTheme(p).name());
         assertSame(p.palette, new PackTheme(p).palette());
-        assertTrue(new PackTheme(p).backdrop(0.5f) instanceof PictureBackdrop);
+        assertTrue(new PackTheme(p).backdrop(Robo.context(), 0.5f) instanceof PictureBackdrop);
     }
 }
