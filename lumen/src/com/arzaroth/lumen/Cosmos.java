@@ -364,12 +364,7 @@ final class Cosmos implements Backdrop {
                 float sx = x * 4f - mx, sy = y * 4f - my, t = 1f - sy / h;
                 double[] aim = aim(sx, sy, w, h, at[0]);
                 int i = y * gw + x;
-                if (aim[0] < -1) {
-                    gr[i] = 0.004f;
-                    gg[i] = 0.006f;
-                    gb[i] = 0.012f;
-                    continue;
-                }
+                aim[0] = Math.max(aim[0], 0.5);
                 double[] eq = Heavens.equatorial(aim[0], aim[1], at[0], lst);
                 patches[Math.min(179, (int) (eq[1] + 90)) * 360 + (int) eq[0] % 360] = true;
                 double[] gal = Heavens.galactic(eq[0], eq[1]);

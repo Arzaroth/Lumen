@@ -279,6 +279,12 @@ public class CosmosTest {
         c.setRealSky(new double[] {48.85, 2.35}, stars);
         until(c, () -> real(c));
         run(c, 1.5f);
+        android.graphics.Bitmap field = Robo.get(Robo.get(c, "sky"), "field");
+        int margin = Robo.get(c, "margin"), x = field.getWidth() / 3;
+        for (int y = Math.round(H * 0.85f) + margin; y < field.getHeight() - 2; y++) {
+            int a = field.getPixel(x, y), b = field.getPixel(x, y + 2);
+            assertTrue("a step under the horizon at row " + y, Math.abs(android.graphics.Color.blue(a) - android.graphics.Color.blue(b)) <= 3);
+        }
         assertFalse(Float.isNaN(Robo.<Float>get(c, "moonX")));
         now[0] += 3_600_000L * 24 * 5;
         Robo.set(c, "bakeClock", 119.9f);
