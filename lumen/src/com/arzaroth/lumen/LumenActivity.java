@@ -116,6 +116,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("lumen", MODE_PRIVATE);
+        Themes.discover(getAssets());
         restoreKey = prefs.getString("focus", null);
         settings = new LumenSettings(this, this, prefs);
         weather = new Weather(this, prefs, now -> {

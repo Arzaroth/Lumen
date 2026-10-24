@@ -41,6 +41,7 @@ public final class LumenDream extends DreamService {
             DisplayMetrics dm = c.getResources().getDisplayMetrics();
             float h = Math.min(dm.widthPixels, dm.heightPixels);
             clock = new ClockView(c, h * 0.22f, false);
+            Themes.discover(c.getAssets());
             Palette light = Themes.byId(c.getSharedPreferences("lumen", Context.MODE_PRIVATE).getString(Prefs.THEME, "")).palette();
             clock.setPalette(light);
             clock.setAccent(light.calm);

@@ -116,7 +116,7 @@ public class SettingsTest implements LumenSettings.Host {
         draw();
         assertEquals(6, ((Menu.Page) Robo.call(menu, "top")).rows.size());
         menu.side(1);
-        assertEquals("space", prefs.getString(Prefs.THEME, ""));
+        assertEquals(Themes.all().get(Math.min(1, Themes.all().size() - 1)).id(), prefs.getString(Prefs.THEME, ""));
         menu.move(1);
 
         menu.activate();

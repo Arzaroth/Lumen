@@ -22,4 +22,17 @@ public class ThemesTest {
         assertTrue(Themes.byId("space").backdrop(0.5f) instanceof Cosmos);
         assertEquals(Palette.SPACE, Themes.byId("space").palette());
     }
+
+    @Test
+    public void theVolcanoPackIsFoundInTheAssetsOnce() {
+        Themes.discover(Robo.context().getAssets());
+        Theme volcano = Themes.byId("volcano");
+        assertEquals("Volcano", volcano.name());
+        assertTrue(volcano instanceof PackTheme);
+        assertTrue(volcano.backdrop(0.5f) instanceof PictureBackdrop);
+        int count = Themes.all().size();
+        Themes.discover(Robo.context().getAssets());
+        assertEquals(count, Themes.all().size());
+        assertEquals("space", Themes.all().get(0).id());
+    }
 }
