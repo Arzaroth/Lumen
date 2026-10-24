@@ -69,6 +69,11 @@ final class Updater {
         return state;
     }
 
+    /** Checking, downloading or installing: nothing to start over. */
+    boolean busy() {
+        return state == State.CHECKING || state == State.DOWNLOADING || state == State.INSTALLING;
+    }
+
     String latest() {
         return latest;
     }

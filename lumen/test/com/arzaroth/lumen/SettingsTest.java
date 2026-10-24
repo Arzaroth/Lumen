@@ -214,6 +214,10 @@ public class SettingsTest implements LumenSettings.Host {
             github.release("1.0.0", "lumen.apk");
             menu.activate();
             UpdaterTest.until(() -> ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.equals("Lumen is up to date"));
+            menu.pop();
+            menu.activate();
+            assertEquals("Checking for updates\u2026", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
+            UpdaterTest.until(() -> ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label.equals("Lumen is up to date"));
             menu.close();
             Menu.Page shown = Robo.call(menu, "top");
             Robo.call(settings, "refresh");

@@ -58,11 +58,16 @@ final class LumenSettings {
                 .add(choice("Boot intro", Prefs.INTRO, 0, "On", "Off"))
                 .add(Menu.Row.action("Play the intro", host::playIntro))
                 .add(Menu.Row.action("Reset tile order", this::askReset))
-                .add(Menu.Row.sub("Advanced settings", this::advanced));
+                .add(Menu.Row.sub("Advanced settings", this::openAdvanced));
+    }
+
+    /** Opening Advanced settings asks GitHub again, unless an update is already under way. */
+    private Menu.Page openAdvanced() {
+        if (!updater.busy()) updater.check();
+        return advanced();
     }
 
     private Menu.Page advanced() {
-        if (updater.state() == Updater.State.IDLE) updater.check();
         advanced = new Menu.Page("Advanced settings", 520)
                 .add(Menu.Row.sub("Seasonal events", this::seasonal))
                 .add(updateRow())
