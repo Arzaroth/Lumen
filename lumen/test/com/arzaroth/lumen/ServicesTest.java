@@ -73,6 +73,23 @@ public class ServicesTest {
     }
 
     @Test
+    public void keysBringHomeBackRightAfterAnUpdate() {
+        android.content.SharedPreferences prefs = app.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE);
+        Wall.clock = () -> 1_000_000_000L;
+        LumenKeys keys = Robolectric.setupService(LumenKeys.class);
+        Robo.call(keys, "onServiceConnected");
+        assertNull(started());
+        prefs.edit().putLong(Prefs.RELAUNCH, 1_000_000_000L - 60_000).commit();
+        Robo.call(keys, "onServiceConnected");
+        assertEquals(LumenActivity.class.getName(), started().getComponent().getClassName());
+        assertFalse(prefs.contains(Prefs.RELAUNCH));
+        prefs.edit().putLong(Prefs.RELAUNCH, 1_000_000_000L - 3_600_000).commit();
+        Robo.call(keys, "onServiceConnected");
+        assertNull(started());
+        assertFalse(prefs.contains(Prefs.RELAUNCH));
+    }
+
+    @Test
     public void keysWithoutServiceInfoDoNothing() {
         LumenKeys keys = Robolectric.setupService(LumenKeys.class);
         Robo.call(keys, "onServiceConnected");

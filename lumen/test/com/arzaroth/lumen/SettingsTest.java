@@ -240,6 +240,8 @@ public class SettingsTest implements LumenSettings.Host {
             menu.activate();
             menu.move(1);
             assertEquals("Installing 9.0.0\u2026", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
+            UpdaterTest.report(android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION, null);
+            assertEquals("Installing 9.0.0\u2026", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
             UpdaterTest.report(android.content.pm.PackageInstaller.STATUS_FAILURE, null);
             assertEquals("Couldn't update, try again", ((Menu.Page) Robo.call(menu, "top")).rows.get(1).label);
             menu.activate();
