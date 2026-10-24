@@ -6,6 +6,10 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Lumen settings › Theme › Volcanoes: a volcanic night behind the logo, with lava glowing in each app's colour, a plume lit from below, rising embers and eruptions with lightning; the clock, the logo's sparks, the update and the screensaver turn to embers with it. Space stays the default.
+
 ## [1.6.0] - 2026-10-24
 
 ### Added

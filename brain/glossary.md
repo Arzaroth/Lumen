@@ -43,6 +43,8 @@ in code, docs and commits; the **Avoid** list names the synonyms that blur it.
 - **Theme** - the whole look of Lumen (Space, Volcanoes...): a backdrop and the light of every effect.
   See [architecture/themes.md](architecture/themes.md). Avoid: skin.
 - **Backdrop** - what a theme draws behind the logo; Cosmos is Space's.
+- **Palette** - a theme's light for the effects that are not the app's own colours: the logo's
+  first sparks, the clock's dust, the update, the screensaver.
 - **Look** - one app's appearance in a backdrop: in space, its radiant, meteor rate and tint,
   airglow and nebula.
 - **Radiant** - the point meteors stream away from.
