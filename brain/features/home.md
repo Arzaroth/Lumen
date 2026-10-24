@@ -2,6 +2,8 @@
 
 - **Dock**: a glass band with the first five apps (`COLS`); the focused tile lifts with a real shadow
   and shows its name, under a spring-animated glass `Highlight`.
+- The system Settings app is left out of the dock and grid (`Apps.HIDDEN`): the Settings pill
+  opens it.
 - **Grid**: every other app below, reached with Down; the content scrolls the dock up like tvOS and
   the stage dims. An "All apps" header shows in the grid.
 - **Chevron**: a faint downward chevron under the dock when there are more apps below; it nods in
