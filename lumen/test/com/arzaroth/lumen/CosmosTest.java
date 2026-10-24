@@ -235,4 +235,49 @@ public class CosmosTest {
         run(c, 0.2f);
         assertFalse(c.moving());
     }
+
+    private static boolean real(Cosmos c) {
+        Object sky = Robo.get(c, "sky");
+        return sky != null && (boolean) Robo.call(sky, "real");
+    }
+
+    private void until(Cosmos c, java.util.function.BooleanSupplier done) {
+        for (int i = 0; i < 1200 && !done.getAsBoolean(); i++) {
+            c.update(1 / 30f);
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        assertTrue(done.getAsBoolean());
+    }
+
+    @Test
+    public void theRealSkyFollowsTheNightAndTheMoon() throws Exception {
+        long[] now = {1792872000000L};
+        Wall.clock = () -> now[0];
+        float[] stars = Heavens.catalog(new java.io.FileInputStream("assets/stars.bin"));
+        Cosmos c = ready();
+        c.setTheme(theme(16, 0xFF3949AB), false);
+        c.setRealSky(new double[] {48.85, 2.35}, stars);
+        until(c, () -> real(c));
+        run(c, 1.5f);
+        assertFalse(Float.isNaN(Robo.<Float>get(c, "moonX")));
+        now[0] += 3_600_000L * 24 * 5;
+        Robo.set(c, "bakeClock", 119.9f);
+        run(c, 0.2f);
+        until(c, () -> !(boolean) Robo.get(c, "baking") && (float) Robo.get(c, "fieldFade") < 1f);
+        run(c, 3f);
+        assertEquals(0f, Robo.<Float>get(c, "moonWaxing"), 0f);
+        now[0] += 3_600_000L * 12;
+        Robo.set(c, "realClock", 0.99f);
+        run(c, 0.2f);
+        c.setRealSky(new double[] {-33.9, 151.2}, stars);
+        until(c, () -> real(c) && !(boolean) Robo.get(c, "baking"));
+        run(c, 1.2f);
+        c.setRealSky(null, null);
+        until(c, () -> !real(c));
+        run(c, 0.2f);
+    }
 }

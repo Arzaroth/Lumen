@@ -133,6 +133,9 @@ public class SettingsTest implements LumenSettings.Host {
         menu.move(1);
         menu.side(1);
         assertEquals(1, prefs.getInt(Prefs.WEATHER, 0));
+        menu.move(1);
+        menu.side(1);
+        assertEquals(1, prefs.getInt(Prefs.REAL_SKY, 0));
         menu.pop();
 
         menu.move(1);

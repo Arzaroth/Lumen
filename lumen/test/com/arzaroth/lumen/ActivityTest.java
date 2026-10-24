@@ -287,6 +287,24 @@ public class ActivityTest {
     }
 
     @Test
+    public void theRealSkyIsAskedForWhereTheTvIs() throws Exception {
+        try (LocalWeb web = new LocalWeb()) {
+            Place.lookup = web.base + "/where";
+            web.pages.put("/where", "{\"loc\":\"48.85,2.35\"}");
+            apps(3);
+            LumenActivity a = launch(null).get();
+            android.content.SharedPreferences prefs = a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE);
+            prefs.edit().clear().putInt(Prefs.REAL_SKY, 1).commit();
+            a.applySettings();
+            Cosmos cosmos = Robo.get(Robo.get(a, "stage"), "cosmos");
+            UpdaterTest.until(() -> Robo.get(cosmos, "place") != null && Robo.get(cosmos, "catalog") != null);
+            prefs.edit().putInt(Prefs.REAL_SKY, 0).commit();
+            a.applySettings();
+            assertNull(Robo.get(cosmos, "place"));
+        }
+    }
+
+    @Test
     public void tilesLaunchAndRearrange() {
         apps(8);
         LumenActivity a = launch(null).get();
