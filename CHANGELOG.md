@@ -6,6 +6,10 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Updates install without a confirmation once Lumen installed itself (Android 12 and later), and Lumen comes back to the front when the update is done instead of the last app.
+
 ## [1.1.4] - 2026-10-24
 
 ### Fixed
