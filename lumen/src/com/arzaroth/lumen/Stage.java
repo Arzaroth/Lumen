@@ -661,6 +661,11 @@ final class Stage extends View {
             pw[i] = 0;
             switch (enterKind) {
                 case E_CONVERGE: {
+                    if (pa[i] < 0.5f) {
+                        float a = rnd.nextFloat() * 6.2832f, d = logo.width() * (0.7f + rnd.nextFloat() * 0.6f);
+                        px[i] = cx + (float) Math.cos(a) * d;
+                        py[i] = cy + (float) Math.sin(a) * d * 0.6f;
+                    }
                     fx[i] = px[i];
                     fy[i] = py[i];
                     float spread = (float) Math.hypot((tx - cx) / logo.width(), (ty - cy) / logo.height());
