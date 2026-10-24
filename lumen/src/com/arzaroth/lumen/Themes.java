@@ -6,7 +6,7 @@ import java.util.List;
 
 /** The themes Lumen can wear, the first being the default. */
 final class Themes {
-    private static final List<Theme> BUILT_IN = Collections.unmodifiableList(Arrays.asList(new SpaceTheme()));
+    private static final List<Theme> BUILT_IN = Collections.unmodifiableList(Arrays.asList(new SpaceTheme(), new VolcanoTheme()));
 
     private Themes() {
     }

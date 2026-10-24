@@ -21,4 +21,12 @@ public class ThemesTest {
         assertEquals("space", Themes.byId(null).id());
         assertTrue(Themes.byId("space").backdrop(0.5f) instanceof Cosmos);
     }
+
+    @Test
+    public void volcanoesAreBuiltIn() {
+        Theme volcano = Themes.byId("volcano");
+        assertEquals("volcano", volcano.id());
+        assertEquals("Volcanoes", volcano.name());
+        assertTrue(volcano.backdrop(0.5f) instanceof Volcano);
+    }
 }
