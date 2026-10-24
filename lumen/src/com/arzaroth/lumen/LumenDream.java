@@ -41,9 +41,11 @@ public final class LumenDream extends DreamService {
             DisplayMetrics dm = c.getResources().getDisplayMetrics();
             float h = Math.min(dm.widthPixels, dm.heightPixels);
             clock = new ClockView(c, h * 0.22f, false);
-            clock.setAccent(0xFFB8C6E8);
+            Palette light = Themes.byId(c.getSharedPreferences("lumen", Context.MODE_PRIVATE).getString(Prefs.THEME, "")).palette();
+            clock.setPalette(light);
+            clock.setAccent(light.calm);
             date = new DateView(c, h * 0.032f, 400, 0x80FFFFFF, 0.08f, true);
-            date.setAccent(0xFFB8C6E8);
+            date.setAccent(light.calm);
             holder = new LinearLayout(c) {
                 @Override
                 public boolean hasOverlappingRendering() {

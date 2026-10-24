@@ -222,7 +222,10 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
 
     @Override
     public void applySettings() {
-        stage.setTheme(Themes.byId(prefs.getString(Prefs.THEME, "")));
+        Theme theme = Themes.byId(prefs.getString(Prefs.THEME, ""));
+        stage.setTheme(theme);
+        clock.setPalette(theme.palette());
+        ascent.setPalette(theme.palette());
         int backdrop = prefs.getInt(Prefs.BACKDROP, 0);
         stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
         stage.setSkyStill(backdrop == 2);

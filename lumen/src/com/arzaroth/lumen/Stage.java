@@ -426,6 +426,8 @@ final class Stage extends View {
         bannerOf = animate ? banner : null;
         final int gen = ++generation;
         final int artW = Math.max(COLS, Math.round(logo.width())), artH = Math.max(ROWS, Math.round(logo.height()));
+        final Backdrop into = backdrop;
+        final Palette light = theme.palette();
         builder.removeCallbacksAndMessages(null);
         builder.post(() -> {
             Mosaic m;
@@ -433,7 +435,7 @@ final class Stage extends View {
                 m = mosaics.get(app.banner);
             }
             if (m == null) {
-                m = build(getContext(), app, artW, artH, backdrop);
+                m = build(getContext(), app, artW, artH, into, light);
                 synchronized (mosaics) {
                     mosaics.put(app.banner, m);
                 }
@@ -453,7 +455,7 @@ final class Stage extends View {
      * crisp instead of averaging away into the background. Small logos get the finest grid that
      * fits under CAP; big full-bleed banners fall back to coarser ones.
      */
-    private static Mosaic build(Context context, AppEntry app, int artW, int artH, Backdrop backdrop) {
+    private static Mosaic build(Context context, AppEntry app, int artW, int artH, Backdrop backdrop, Palette light) {
         Bitmap art = Apps.banner(context, app.component, artW, artH);
         Bitmap src = art != null ? art : app.banner;
         int w = src.getWidth(), h = src.getHeight();
@@ -585,7 +587,7 @@ final class Stage extends View {
             byte u = bucket[i]; bucket[i] = bucket[o]; bucket[o] = u;
         }
 
-        int[] sparks = sparkPalette(centroid, app.accent);
+        int[] sparks = sparkPalette(centroid, app.accent, light);
         Random random = new Random(app.key().hashCode() * 31L + 7);
         return new Mosaic(Math.min(kept, CAP), cols, rows, gxs, gys, bucket, centroid, sparks, bottom,
                 backdrop.look(sparks, app.accent, random));
@@ -596,7 +598,7 @@ final class Stage extends View {
         return dr * dr + dg * dg + db * db;
     }
 
-    private static int[] sparkPalette(int[] palette, int accent) {
+    private static int[] sparkPalette(int[] palette, int accent, Palette light) {
         int[] byVivid = palette.clone();
         float[] hsv = new float[3];
         float[] score = new float[byVivid.length];
@@ -612,7 +614,7 @@ final class Stage extends View {
                 }
             }
         }
-        return new int[] {0xFFFFFFFF, 0xFFFFD27A, byVivid[0], byVivid[1], byVivid[2], accent};
+        return new int[] {light.hot, light.warm, byVivid[0], byVivid[1], byVivid[2], accent};
     }
 
     // ------------------------------------------------------------------ cycle

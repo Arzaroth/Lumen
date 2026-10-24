@@ -14,4 +14,9 @@ interface Theme {
 
     /** A new backdrop for a screen drawn at `scale` (1 at 1920 wide). */
     Backdrop backdrop(float scale);
+
+    /** The light the clock, the logo's sparks, the update and the screensaver are made of. */
+    default Palette palette() {
+        return Palette.SPACE;
+    }
 }

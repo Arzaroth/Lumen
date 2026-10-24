@@ -25,13 +25,14 @@ final class Ascent extends View {
 
     private static final int MAX = 1600, DIGIT = 220, DOT = 40, SPRITE = 32;
     private static final float TRAVEL_T = 1.3f, GATHER_T = 1.2f, LIGHT_T = 1.4f, RING_T = 1.8f, RISE_MAX = 20f, FADE_T = 1.6f;
-    private static final int[] TINTS = {0xFFFFFFFF, 0xFFDDE6FF, 0xFFBFD4FF, 0xFFFFF2D8};
-
+    
     private final float s;
     private final Random rnd = new Random();
     private final float[] sx = new float[MAX], sy = new float[MAX], tx = new float[MAX], ty = new float[MAX];
     private final float[] called = new float[MAX], swirl = new float[MAX], seed = new float[MAX], dvx = new float[MAX], dvy = new float[MAX];
     private final int[] tint = new int[MAX];
+    private int[] motes = Palette.SPACE.motes;
+    private int glow = Palette.SPACE.glow;
     private final float[] verts = new float[(MAX + 1) * 8], texs = new float[(MAX + 1) * 8];
     private final int[] colors = new int[(MAX + 1) * 4];
     private final short[] indices = new short[(MAX + 1) * 6];
@@ -90,6 +91,13 @@ final class Ascent extends View {
                 Shader.TileMode.CLAMP));
         new Canvas(b).drawCircle(SPRITE / 2f, SPRITE / 2f, SPRITE / 2f, p);
         return b;
+    }
+
+    void setPalette(Palette p) {
+        motes = p.motes;
+        glow = p.glow;
+        scrim.setColor(p.scrim);
+        number.setShadowLayer(16 * s, 0, 0, p.glow);
     }
 
     /** Whether the update is on screen, holding the remote. */
@@ -169,7 +177,7 @@ final class Ascent extends View {
             called[i] = -1f;
             swirl[i] = (rnd.nextFloat() - 0.5f) * 260 * s;
             seed[i] = rnd.nextFloat() * 100f;
-            tint[i] = TINTS[rnd.nextInt(TINTS.length)];
+            tint[i] = motes[rnd.nextInt(motes.length)];
         }
     }
 
@@ -250,7 +258,7 @@ final class Ascent extends View {
         float bloom = number.measureText(version) * 0.75f;
         quad(q, cx, baseline - number.getTextSize() * 0.36f, bloom);
         float solid = smooth(lit);
-        tint(q++, Apps.withAlpha(0xFF9FB4FF, Math.round(70 * shown * Math.max(target * 0.5f, solid))));
+        tint(q++, Apps.withAlpha(glow, Math.round(70 * shown * Math.max(target * 0.5f, solid))));
         for (int i = 0; i < count; i++) {
             float melt = 1f - smooth((lit - (seed[i] % 1f) * 0.7f) / 0.3f);
             if (melt <= 0f) continue;

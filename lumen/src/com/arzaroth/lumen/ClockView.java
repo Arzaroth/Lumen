@@ -36,7 +36,7 @@ final class ClockView extends View {
     private static final int QUADS = SLOTS * POINTS + SLOTS + SPARKS + 2 + TWINKLES * 3 + SLOTS * EVAP + TRAIL + 2 * ORBIT_TRAIL + SLOTS;
     private static final int GLINT = 0, BREATHE = 1, WAVE = 2, ORBIT = 3, EVAPORATE = 4, COMET = 5, EVENTS = 6;
     private static final float[] EVENT_T = {1.3f, 2.3f, 1.5f, 1.5f, 2.8f, 2.0f};
-    private static final int[] DUST = {0xFFFFFFFF, 0, 0xFFFFD8A0, 1};
+    private final int[] dust = {0xFFFFFFFF, 0, 0xFFFFD8A0, 1};
     private static final float MORPH_T = 1.75f, FLIGHT = 0.75f, SWEEP = 0.65f;
     private static final int[] WEIGHTS = {200, 240, 280, 320, 360, 400, 450, 500, 600};
 
@@ -182,6 +182,11 @@ final class ClockView extends View {
             }
         }
         invalidate();
+    }
+
+    void setPalette(Palette p) {
+        dust[0] = p.dust[0];
+        dust[2] = p.dust[1];
     }
 
     void setAccent(int color) {
@@ -700,7 +705,7 @@ final class ClockView extends View {
                 }
                 if (a <= 0.01f) continue;
                 float r = size * (0.018f + 0.014f * (k % 3));
-                int hue = DUST[k % DUST.length];
+                int hue = dust[k % dust.length];
                 int color = hue == 0 ? tint : hue == 1 ? accent : hue;
                 streak(q++, px, py, x, y, r, Apps.withAlpha(color, Math.round(235 * a)));
             }
