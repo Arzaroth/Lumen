@@ -1,6 +1,10 @@
 # Sky
 
-- **Backdrop** (Lumen settings › Sky): Night sky, Fireworks, or Still sky (no motion).
+The night sky is the Space theme's backdrop, and the Fireworks theme's too (with rockets and shells
+instead of starbursts). Its settings are on Lumen settings › Backdrop: the shared ones (Animations,
+Motion, Parallax, Weather), then Space's own options.
+
+- **Motion**: Moving, or Still (no motion at all).
 - **Meteors**: Off, Few, Shower, Storm; each app has its own radiant and meteor colour.
 - **Sky rotation**: the sky turns at the Earth's real rate, about a pixel every 6 s; off by default.
 - **Parallax**: the sky's layers slide as the focus moves along the dock and down the rows; on by
@@ -21,4 +25,4 @@ The machinery is in [../architecture/cosmos.md](../architecture/cosmos.md).
 
 ## Sources
 
-- `lumen/src/com/arzaroth/lumen/Cosmos.java`, `LumenSettings.java` (`sky`), `LumenActivity.java` (`applySettings`, `parallaxOf`)
+- `lumen/src/com/arzaroth/lumen/Cosmos.java` (`setOption`), `SpaceTheme.java`, `LumenSettings.java` (`backdrop`), `LumenActivity.java` (`applySettings`, `parallaxOf`)

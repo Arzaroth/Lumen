@@ -6,6 +6,16 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Lumen settings › Theme › Volcano: a volcano erupting under the stars, its lava glowing and flickering, sparks rising from the vent and the stars twinkling; the clock, the logo's sparks, the update and the screensaver turn to embers with it.
+- Themes can be packs: a picture and a small JSON file describing what moves, no code needed.
+
+### Changed
+
+- Lumen settings › Sky is now Lumen settings › Backdrop: the settings every theme shares (Animations, Motion, Parallax, Weather), then the current theme's own (for Space: Meteors, Sky rotation, Nebula, Real sky).
+- Fireworks is now a theme of its own, next to Space; a Fireworks or Still sky backdrop chosen before carries over.
+
 ## [1.6.0] - 2026-10-24
 
 ### Added

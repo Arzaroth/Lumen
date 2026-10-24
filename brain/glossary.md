@@ -40,9 +40,15 @@ in code, docs and commits; the **Avoid** list names the synonyms that blur it.
 - **Airglow** - the faint glow of the air above the horizon, tinted per app.
 - **Real sky** - the option that shows the true stars above home instead of the imagined field.
 - **Heavens** - the astronomy behind the real sky: where a star or a body stands for a place and a time.
-- **Theme** - the whole look of Lumen (Space for now): a backdrop and the light of every effect.
+- **Theme** - the whole look of Lumen (Space, Fireworks, Volcano...): a backdrop, a choreography,
+  the light of every effect and its own settings.
   See [architecture/themes.md](architecture/themes.md). Avoid: skin.
-- **Backdrop** - what a theme draws behind the logo; Cosmos is Space's.
+- **Backdrop** - what a theme draws behind the logo; Cosmos is Space's. Also the Lumen settings
+  page holding the backdrop's settings.
+- **Pack** - a theme without code: a picture and a `theme.json` of layers, drawn by
+  `PictureBackdrop`.
+- **Option** - one of a theme's own settings, shown after the shared ones on the Backdrop page.
+- **Choreography** - which holds and exits the logo dances: cosmos or fireworks.
 - **Palette** - a theme's light for the effects that are not the app's own colours: the logo's
   first sparks, the clock's dust, the update, the screensaver.
 - **Look** - one app's appearance in a backdrop: in space, its radiant, meteor rate and tint,

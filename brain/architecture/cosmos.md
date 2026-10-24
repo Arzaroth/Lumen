@@ -15,14 +15,16 @@ The night sky behind the logo.
    (harder near the horizon); one may flare as a nova. Plus sprite glints.
 4. **Meteors** from the theme's radiant, satellites and the odd satellite train.
 
-With the nebula turned off (`setNebula`), each theme's `glow` bitmap (the airglow alone, same size)
+With the nebula turned off (the Nebula option, `setNebula`), each theme's `glow` bitmap (the airglow alone, same size)
 is drawn in its place, so the horizon keeps its glow at the same cost.
 
 ## Real sky
 
 `setRealSky(latLon, stars)` swaps the imagined field for `realSky`: a bake of the same shape (field
 plus live stars, sorted by brightness) built from the Yale Bright Star Catalogue
-(`lumen/assets/stars.bin`, loaded once by `Stage.setRealSky`) for the place `Place` finds.
+(`lumen/assets/stars.bin`, loaded once) for the place `Place` finds. The Real sky option reaches
+`setOption`, and `findSky` asks for both off the UI thread; an answer arriving after the option
+changed again is dropped.
 
 - Framing: facing south (north below the equator), `REAL_FOV` 120 degrees wide, the horizon at
   `REAL_HORIZON` (94% down). `look` maps a screen point to altitude and azimuth, `fix` a star to the
@@ -56,7 +58,7 @@ apart from the logo's dominant hue, and generates the nebula.
 
 ## Motion
 
-- **Sky rotation** (`setTurning`, off by default): `turned()` maps the wall clock to the Earth's
+- **Sky rotation** (the Sky rotation option, `setTurning`, off by default): `turned()` maps the wall clock to the Earth's
   real rate (one turn per sidereal day for a ~50 degree view), about one pixel every 6 s.
 - **Parallax** (`setParallax(x, y)`): eased toward the focus; the field moves least (`FAR`), the
   nebula more (`MID`), live stars and meteors most (`NEAR`), sideways and down.

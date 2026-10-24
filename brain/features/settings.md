@@ -5,7 +5,8 @@ The Settings pill opens a dropdown ([../architecture/menus.md](../architecture/m
 - **System settings**: the TV's own settings.
 - **Lumen settings**, applied at once and remembered:
   - Theme: the whole look of Lumen ([../architecture/themes.md](../architecture/themes.md)).
-  - Sky: Backdrop, Animations, Meteors, Sky rotation, Parallax, Nebula, Weather, Real sky.
+  - Backdrop: Animations, Motion, Parallax and Weather for every theme, then the current theme's
+    own options (Space and Fireworks: Meteors, Sky rotation, Nebula, Real sky).
   - Home screen: Logo, Greeting, Clock, Order (Manual or Most used), Reset tile order.
   - Remote: Remote buttons, YouTube button (YouTube or SmartTube).
   - Boot intro: on/off, Play the intro.
