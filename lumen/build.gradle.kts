@@ -21,7 +21,7 @@ val hasReleaseKey = signing.getProperty("storeFile")?.let { File(it).exists() } 
 if (!hasReleaseKey && System.getenv("LUMEN_REQUIRE_RELEASE_KEY") != null) {
     throw GradleException("LUMEN_REQUIRE_RELEASE_KEY is set but no release keystore was found")
 }
-val version = "1.1.2"
+val version = "1.1.3"
 
 android {
     namespace = "com.arzaroth.lumen"
