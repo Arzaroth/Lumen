@@ -40,7 +40,7 @@ final class Ascent extends View {
     private final Paint header = new Paint(Paint.ANTI_ALIAS_FLAG), detail = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint track = new Paint(Paint.ANTI_ALIAS_FLAG), bar = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Phase phase = Phase.OFF;
-    private boolean failed;
+    private boolean failed, confirming;
     private String version = "";
     private int count, calledCount;
     private float target, shown, lit, phaseT, ringT = -1f, clock, baseline;
@@ -107,7 +107,8 @@ final class Ascent extends View {
         if (state == Updater.State.DOWNLOADING) {
             if (phase != Phase.GATHER) start(Phase.GATHER, latest);
             target = progress / 100f;
-        } else if (state == Updater.State.INSTALLING) {
+        } else if (state == Updater.State.INSTALLING || state == Updater.State.CONFIRMING) {
+            confirming = state == Updater.State.CONFIRMING;
             if (phase == Phase.OFF) start(Phase.GATHER, latest);
             if (phase != Phase.RISE) {
                 phase = Phase.RISE;
@@ -279,7 +280,7 @@ final class Ascent extends View {
             line = Math.round(target * 100) + "%";
         } else if (phase == Phase.RISE) {
             head = "INSTALLING LUMEN " + version;
-            line = "Confirm on screen to finish";
+            line = confirming ? "Confirm on screen to finish" : "Lumen restarts on its own";
         } else {
             head = failed ? "THE UPDATE DIDN'T FINISH" : "UPDATE CANCELLED";
             line = failed ? "Try again from Advanced settings" : "";

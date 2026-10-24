@@ -153,6 +153,8 @@ public class UpdaterTest {
         assertEquals(Updater.State.DOWNLOADING, updater.state());
         settle(Updater.State.INSTALLING);
         assertEquals(100, updater.progress());
+        android.content.SharedPreferences prefs = Robo.context().getSharedPreferences("lumen", Context.MODE_PRIVATE);
+        assertTrue(prefs.contains(Prefs.RELAUNCH));
         PackageInstaller installer = Robo.context().getPackageManager().getPackageInstaller();
         assertEquals(1, installer.getAllSessions().size());
         assertEquals(Robo.context().getPackageName(), installer.getAllSessions().get(0).getAppPackageName());
@@ -161,14 +163,17 @@ public class UpdaterTest {
         Intent confirm = shadowOf(app()).getNextStartedActivity();
         assertEquals("android.content.pm.action.CONFIRM_INSTALL", confirm.getAction());
         assertTrue((confirm.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+        assertEquals(Updater.State.CONFIRMING, updater.state());
+        assertTrue(updater.busy());
         report(PackageInstaller.STATUS_PENDING_USER_ACTION, null);
         assertNull(shadowOf(app()).getNextStartedActivity());
         report(PackageInstaller.STATUS_SUCCESS, null);
-        assertEquals(Updater.State.INSTALLING, updater.state());
+        assertEquals(Updater.State.CONFIRMING, updater.state());
         report(PackageInstaller.STATUS_FAILURE_ABORTED, null);
         assertEquals(Updater.State.AVAILABLE, updater.state());
         report(PackageInstaller.STATUS_FAILURE_CONFLICT, null);
         assertEquals(Updater.State.FAILED, updater.state());
+        assertFalse(prefs.contains(Prefs.RELAUNCH));
     }
 
     @Test

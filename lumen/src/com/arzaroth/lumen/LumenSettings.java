@@ -111,6 +111,7 @@ final class LumenSettings {
             case DOWNLOADING:
                 return Menu.Row.action("Downloading " + latest + "\u2026 " + updater.progress() + "%", () -> { });
             case INSTALLING:
+            case CONFIRMING:
                 return Menu.Row.action("Installing " + latest + "\u2026", () -> { });
             case FAILED:
                 return Menu.Row.action("Couldn't update, try again", updater::check);

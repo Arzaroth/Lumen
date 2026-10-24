@@ -1,5 +1,6 @@
 package com.arzaroth.lumen;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -29,7 +30,7 @@ import java.util.concurrent.Executors;
 
 /** Asks GitHub for Lumen's latest release and installs it over this one. */
 final class Updater {
-    enum State { IDLE, CHECKING, CURRENT, AVAILABLE, BLOCKED, DOWNLOADING, INSTALLING, FAILED }
+    enum State { IDLE, CHECKING, CURRENT, AVAILABLE, BLOCKED, DOWNLOADING, INSTALLING, CONFIRMING, FAILED }
 
     static String releases = "https://api.github.com/repos/Arzaroth/Lumen/releases/latest";
 
@@ -50,11 +51,12 @@ final class Updater {
             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirm != null) c.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            } else if (live != null && status == PackageInstaller.STATUS_FAILURE_ABORTED) {
-                live.set(State.AVAILABLE);
-            } else if (live != null && status != PackageInstaller.STATUS_SUCCESS) {
-                live.set(State.FAILED);
+                if (live != null) live.set(State.CONFIRMING);
+                return;
             }
+            if (status == PackageInstaller.STATUS_SUCCESS) return;
+            c.getSharedPreferences("lumen", Context.MODE_PRIVATE).edit().remove(Prefs.RELAUNCH).apply();
+            if (live != null) live.set(status == PackageInstaller.STATUS_FAILURE_ABORTED ? State.AVAILABLE : State.FAILED);
         }
     }
 
@@ -71,7 +73,7 @@ final class Updater {
 
     /** Checking, downloading or installing: nothing to start over. */
     boolean busy() {
-        return state == State.CHECKING || state == State.DOWNLOADING || state == State.INSTALLING;
+        return state == State.CHECKING || state == State.DOWNLOADING || state == State.INSTALLING || state == State.CONFIRMING;
     }
 
     String latest() {
@@ -131,7 +133,11 @@ final class Updater {
         });
     }
 
-    /** Streams the release's APK into an install session; Android asks before it replaces Lumen. */
+    /**
+     * Streams the release's APK into an install session. Android replaces Lumen without asking when
+     * Lumen installed itself last time; otherwise it asks first.
+     */
+    @SuppressLint("ApplySharedPref") // the relaunch mark must be on disk before Android kills Lumen to replace it
     void update() {
         if (!context.getPackageManager().canRequestPackageInstalls()) {
             try {
@@ -152,6 +158,7 @@ final class Updater {
             try {
                 PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
                 params.setAppPackageName(context.getPackageName());
+                if (Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
                 id = installer.createSession(params);
                 try (PackageInstaller.Session session = installer.openSession(id)) {
                     HttpURLConnection c = open(url);
@@ -174,6 +181,7 @@ final class Updater {
                         }
                         session.fsync(out);
                     }
+                    context.getSharedPreferences("lumen", Context.MODE_PRIVATE).edit().putLong(Prefs.RELAUNCH, Wall.millis()).commit();
                     main.post(() -> set(State.INSTALLING));
                     Intent report = new Intent(context, Result.class);
                     int mutable = Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0;
