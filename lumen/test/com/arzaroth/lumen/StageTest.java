@@ -262,6 +262,87 @@ public class StageTest {
         assertNull(Robo.get(s, "bannerOf"));
     }
 
+    /** A theme with the least a backdrop can be: a plain colour, one look per app. */
+    static final class Plain implements Theme {
+        int looks, laidOut, drawn;
+        Backdrop.Look shown;
+
+        @Override
+        public String id() {
+            return "plain";
+        }
+
+        @Override
+        public String name() {
+            return "Plain";
+        }
+
+        @Override
+        public Backdrop backdrop(float scale) {
+            return new Backdrop() {
+                @Override
+                public Look look(int[] sparks, int accent, Random random) {
+                    looks++;
+                    return new Look() {
+                    };
+                }
+
+                @Override
+                public void setLook(Look look, boolean animate) {
+                    shown = look;
+                }
+
+                @Override
+                public void layout(RectF area, int w, int h) {
+                    laidOut++;
+                }
+
+                @Override
+                public void update(float dt) {
+                }
+
+                @Override
+                public void drawBack(Canvas c) {
+                    drawn++;
+                    c.drawColor(0xFF101010);
+                }
+
+                @Override
+                public boolean moving() {
+                    return false;
+                }
+            };
+        }
+    }
+
+    @Test
+    public void aNewThemeBringsItsOwnBackdropAndLooks() {
+        Stage s = ready(logo("org.example.themed", 0xFF1E88E5));
+        Plain plain = new Plain();
+        s.setTheme(plain);
+        assertEquals(1, plain.laidOut);
+        for (int i = 0; i < 100 && plain.shown == null; i++) {
+            settle(s);
+            run(s, 0.1f);
+        }
+        assertTrue(plain.looks >= 1);
+        s.setTheme(plain);
+        assertEquals(1, plain.laidOut);
+        s.intro(0.2f);
+        s.setParallax(1f, 1f);
+        s.setWeather(1f, 1f, 0f);
+        s.setSkyStill(true);
+        s.setSkyStill(false);
+        s.setMeteors(2f);
+        s.setSkyTurning(true);
+        s.setNebula(false);
+        s.setRealSky(null);
+        run(s, 2f);
+        assertTrue(plain.drawn > 0);
+        s.setTheme(new SpaceTheme());
+        run(s, 0.5f);
+    }
+
     @Test
     public void everyLogoStandsOnTheSameFloor() {
         Stage s = ready(logo("org.example.floor", 0xFF1E88E5));
