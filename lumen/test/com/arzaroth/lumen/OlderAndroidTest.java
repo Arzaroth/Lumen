@@ -35,6 +35,7 @@ public class OlderAndroidTest {
 
     @Test
     public void updatesOnAndroid9() throws Exception {
+        Updater.hold = 0;
         try (Releases github = new Releases("9.0.0")) {
             Updater updater = new Updater(Robo.context(), () -> { });
             shadowOf(Robo.context().getPackageManager()).setCanRequestPackageInstalls(true);

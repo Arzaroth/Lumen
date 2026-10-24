@@ -71,6 +71,7 @@ public class SettingsTest implements LumenSettings.Host {
         prefs = c.getSharedPreferences("lumen", Context.MODE_PRIVATE);
         prefs.edit().clear().apply();
         Updater.releases = "http://127.0.0.1:9/latest";
+        Updater.hold = 0;
         shadowOf(c.getPackageManager()).setCanRequestPackageInstalls(false);
         settings = new LumenSettings(c, this, prefs);
         canvas = Robo.canvas(900, 1100);

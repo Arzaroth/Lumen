@@ -33,6 +33,8 @@ final class Updater {
     enum State { IDLE, CHECKING, CURRENT, AVAILABLE, BLOCKED, DOWNLOADING, INSTALLING, CONFIRMING, FAILED }
 
     static String releases = "https://api.github.com/repos/Arzaroth/Lumen/releases/latest";
+    /** How long the downloaded update waits before Android takes Lumen down, so its screen plays out. */
+    static long hold = 4000;
 
     private final Context context;
     private final Runnable changed;
@@ -181,13 +183,14 @@ final class Updater {
                         }
                         session.fsync(out);
                     }
-                    context.getSharedPreferences("lumen", Context.MODE_PRIVATE).edit().putLong(Prefs.RELAUNCH, Wall.millis()).commit();
                     main.post(() -> set(State.INSTALLING));
+                    Thread.sleep(hold);
+                    context.getSharedPreferences("lumen", Context.MODE_PRIVATE).edit().putLong(Prefs.RELAUNCH, Wall.millis()).commit();
                     Intent report = new Intent(context, Result.class);
                     int mutable = Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0;
                     session.commit(PendingIntent.getBroadcast(context, id, report, PendingIntent.FLAG_UPDATE_CURRENT | mutable).getIntentSender());
                 }
-            } catch (IOException | RuntimeException e) {
+            } catch (IOException | RuntimeException | InterruptedException e) {
                 if (id >= 0) installer.abandonSession(id);
                 main.post(() -> set(State.FAILED));
             }

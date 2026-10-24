@@ -32,6 +32,7 @@ public class UpdaterTest {
     @Before
     public void setUp() throws Exception {
         github = new Releases("v9.0.0");
+        Updater.hold = 0;
         updater = new Updater(Robo.context(), () -> changes++);
         shadowOf(Robo.context().getPackageManager()).setCanRequestPackageInstalls(false);
     }

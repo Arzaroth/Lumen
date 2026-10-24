@@ -24,7 +24,7 @@ final class Ascent extends View {
     enum Phase { OFF, GATHER, RISE, FADE }
 
     private static final int MAX = 1600, DIGIT = 220, DOT = 40, SPRITE = 32;
-    private static final float TRAVEL_T = 1.3f, RISE_MAX = 20f, FADE_T = 1.6f;
+    private static final float TRAVEL_T = 1.3f, GATHER_T = 1.2f, RISE_MAX = 20f, FADE_T = 1.6f;
     private static final int[] TINTS = {0xFFFFFFFF, 0xFFDDE6FF, 0xFFBFD4FF, 0xFFFFF2D8};
 
     private final float s;
@@ -193,7 +193,7 @@ final class Ascent extends View {
         clock += dt;
         phaseT += dt;
         shown = phase == Phase.FADE ? Math.max(0f, shown - dt / FADE_T) : Math.min(1f, shown + dt * 2.5f);
-        int due = Math.min(count, Math.round(target * count));
+        int due = Math.min(Math.min(count, Math.round(target * count)), calledCount + (int) Math.ceil(count * dt / GATHER_T));
         for (; calledCount < due; calledCount++) called[calledCount] = clock;
         boolean settled = calledCount == count && (count == 0 || clock - called[count - 1] >= TRAVEL_T);
         if (phase == Phase.RISE && settled && ringT < 0f && lit == 0f) ringT = 0f;

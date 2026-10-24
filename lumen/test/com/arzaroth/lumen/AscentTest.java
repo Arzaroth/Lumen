@@ -52,8 +52,10 @@ public class AscentTest {
         play(0.5f);
         assertEquals(0, (int) Robo.<Integer>get(ascent, "calledCount"));
         ascent.follow(Updater.State.DOWNLOADING, "1.2.0", 50);
-        play(0.5f);
+        play(0.3f);
         int count = Robo.get(ascent, "count");
+        assertTrue((int) Robo.<Integer>get(ascent, "calledCount") < count / 2);
+        play(0.7f);
         assertEquals(count / 2, (int) Robo.<Integer>get(ascent, "calledCount"), 1);
         Robo.layout(ascent, 1280, 720);
         play(0.2f);
