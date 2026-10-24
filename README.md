@@ -8,11 +8,11 @@ Inspired by the wave of "I vibe-coded my TV" posts (x.com/SimbasJungles/status/2
 the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, whose safety rules
 (disable never uninstall, back up first, never touch core packages, Home guard) this follows.
 
-![Lumen home](docs/home.jpg)
+![Lumen home](assets/home.jpg)
 
 | All apps | Inputs | Screensaver |
 |---|---|---|
-| ![grid](docs/grid.jpg) | ![inputs](docs/inputs.jpg) | ![screensaver](docs/screensaver.jpg) |
+| ![grid](assets/grid.jpg) | ![inputs](assets/inputs.jpg) | ![screensaver](assets/screensaver.jpg) |
 
 ## Lumen
 
