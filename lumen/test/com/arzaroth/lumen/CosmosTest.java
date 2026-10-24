@@ -225,10 +225,10 @@ public class CosmosTest {
         c.setWeather(1f, 1f, 0f);
         assertTrue(c.moving());
         run(c, 6f);
-        assertEquals(1f, Robo.<Float>get(c, "rain"), 0f);
+        assertEquals(1f, Robo.<Float>get(Robo.get(c, "precipitation"), "rain"), 0f);
         c.setWeather(0.5f, 0f, 0.6f);
         run(c, 6f);
-        assertEquals(0.6f, Robo.<Float>get(c, "snow"), 1e-6f);
+        assertEquals(0.6f, Robo.<Float>get(Robo.get(c, "precipitation"), "snow"), 1e-6f);
         c.setWeather(0f, 0f, 0f);
         run(c, 6f);
         Robo.set(c, "satLife", 0f);
