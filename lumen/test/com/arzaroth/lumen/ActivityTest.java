@@ -266,6 +266,27 @@ public class ActivityTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void theWeatherShowsBesideTheDateWhenAskedFor() throws Exception {
+        try (LocalWeb web = new LocalWeb()) {
+            Weather.forecast = web.base + "/forecast";
+            Place.lookup = web.base + "/where";
+            apps(3);
+            LumenActivity a = launch(null).get();
+            android.content.SharedPreferences prefs = a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE);
+            prefs.edit().putInt(Prefs.WEATHER, 1).commit();
+            a.applySettings();
+            Weather weather = Robo.get(a, "weather");
+            ((java.util.function.Consumer<Weather.Now>) Robo.get(weather, "listener")).accept(new Weather.Now(0.5f, 0.4f, 0f, 21f));
+            DateView date = Robo.get(a, "date");
+            assertTrue(Robo.<String>get(date, "now").endsWith("\u00b0"));
+            prefs.edit().putInt(Prefs.WEATHER, 0).commit();
+            a.applySettings();
+            assertFalse(Robo.<String>get(date, "now").contains("\u00b0"));
+        }
+    }
+
+    @Test
     public void tilesLaunchAndRearrange() {
         apps(8);
         LumenActivity a = launch(null).get();
