@@ -177,7 +177,7 @@ public class ActivityTest {
     public void theSkyLooksTowardTheFocusedColumn() {
         apps(8);
         LumenActivity a = launch(null).get();
-        Cosmos cosmos = Robo.get(Robo.get(a, "stage"), "cosmos");
+        Cosmos cosmos = Robo.get(Robo.get(a, "stage"), "backdrop");
         Robo.set(a, "index", 0);
         Robo.call(a, "applyFocus", false);
         assertEquals(-1f, Robo.<Float>get(cosmos, "parTarget"), 0f);
@@ -296,7 +296,7 @@ public class ActivityTest {
             android.content.SharedPreferences prefs = a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE);
             prefs.edit().clear().putInt(Prefs.REAL_SKY, 1).commit();
             a.applySettings();
-            Cosmos cosmos = Robo.get(Robo.get(a, "stage"), "cosmos");
+            Cosmos cosmos = Robo.get(Robo.get(a, "stage"), "backdrop");
             UpdaterTest.until(() -> Robo.get(cosmos, "place") != null && Robo.get(cosmos, "catalog") != null);
             prefs.edit().putInt(Prefs.REAL_SKY, 0).commit();
             a.applySettings();

@@ -79,10 +79,10 @@ final class Stage extends View {
         final int[] sparks;
         final float bottom;
         final int cols, rows;
-        final Cosmos.Look look;
+        final Backdrop.Look look;
 
         Mosaic(int count, int cols, int rows, float[] gx, float[] gy, byte[] bucket, int[] palette, int[] sparks, float bottom,
-               Cosmos.Look look) {
+               Backdrop.Look look) {
             this.count = count;
             this.cols = cols;
             this.rows = rows;
@@ -101,7 +101,7 @@ final class Stage extends View {
     private final Handler builder;
     private final Random rnd = new Random();
     private final float s;
-    private final Cosmos cosmos;
+    private final Backdrop backdrop;
     private int style = COSMOS;
     private int generation;
     private AppEntry shownApp;
@@ -229,7 +229,7 @@ final class Stage extends View {
     Stage(Context c, float scale) {
         super(c);
         s = scale;
-        cosmos = new Cosmos(scale);
+        backdrop = new Cosmos(scale);
         motion = ValueAnimator.areAnimatorsEnabled();
         if (Build.VERSION.SDK_INT < 29) setLayerType(LAYER_TYPE_SOFTWARE, null);
         synchronized (Stage.class) {
@@ -301,18 +301,18 @@ final class Stage extends View {
     /** The sky's first light after a boot; the logo makes its entrance after `logoDelay` seconds. */
     void intro(float logoDelay) {
         wait = logoDelay;
-        cosmos.intro();
+        backdrop.intro();
         if (running) postInvalidateOnAnimation();
     }
 
     void setSkyTurning(boolean on) {
-        cosmos.setTurning(on);
+        backdrop.setTurning(on);
     }
 
     /** The real sky above `latLon` (degrees), or the imagined one when null; the star catalogue loads once, off the UI thread. */
     void setRealSky(double[] latLon) {
         if (latLon == null) {
-            cosmos.setRealSky(null, null);
+            backdrop.setRealSky(null, null);
             return;
         }
         new Thread(() -> {
@@ -324,35 +324,35 @@ final class Stage extends View {
                 }
             }
             float[] catalog = stars;
-            post(() -> cosmos.setRealSky(latLon, catalog));
+            post(() -> backdrop.setRealSky(latLon, catalog));
         }, "lumen-stars").start();
     }
 
     void setWeather(float clouds, float rain, float snow) {
-        cosmos.setWeather(clouds, rain, snow);
+        backdrop.setWeather(clouds, rain, snow);
         if (running) postInvalidateOnAnimation();
     }
 
     void setNebula(boolean on) {
-        cosmos.setNebula(on);
+        backdrop.setNebula(on);
         invalidate();
     }
 
     /** The sky's parallax, from -1 (looking left) to 1, and from 0 (level) to 1 (looking down). */
     void setParallax(float x, float y) {
-        cosmos.setParallax(x, y);
+        backdrop.setParallax(x, y);
         if (running) postInvalidateOnAnimation();
     }
 
     /** Freezes the sky: no twinkling, no meteors. */
     void setSkyStill(boolean still) {
-        cosmos.setStill(still);
+        backdrop.setStill(still);
         if (running) postInvalidateOnAnimation();
     }
 
     /** How many meteors cross the sky, 1 being the normal shower. */
     void setMeteors(float rate) {
-        cosmos.setMeteors(rate);
+        backdrop.setActivity(rate);
     }
 
     /** Where the logo lives (the empty middle), and where its reflection must stop. */
@@ -367,7 +367,7 @@ final class Stage extends View {
         floorY = logo.bottom + floorGap;
         art.set(logo);
         clipBottom = reflectionLimit;
-        cosmos.layout(logo, screenW, screenH);
+        backdrop.layout(logo, screenW, screenH);
         laidOut = true;
     }
 
@@ -411,7 +411,7 @@ final class Stage extends View {
                 m = mosaics.get(app.banner);
             }
             if (m == null) {
-                m = build(getContext(), app, artW, artH);
+                m = build(getContext(), app, artW, artH, backdrop);
                 synchronized (mosaics) {
                     mosaics.put(app.banner, m);
                 }
@@ -431,7 +431,7 @@ final class Stage extends View {
      * crisp instead of averaging away into the background. Small logos get the finest grid that
      * fits under CAP; big full-bleed banners fall back to coarser ones.
      */
-    private static Mosaic build(Context context, AppEntry app, int artW, int artH) {
+    private static Mosaic build(Context context, AppEntry app, int artW, int artH, Backdrop backdrop) {
         Bitmap art = Apps.banner(context, app.component, artW, artH);
         Bitmap src = art != null ? art : app.banner;
         int w = src.getWidth(), h = src.getHeight();
@@ -566,7 +566,7 @@ final class Stage extends View {
         int[] sparks = sparkPalette(centroid, app.accent);
         Random random = new Random(app.key().hashCode() * 31L + 7);
         return new Mosaic(Math.min(kept, CAP), cols, rows, gxs, gys, bucket, centroid, sparks, bottom,
-                Cosmos.look(sparks, app.accent, random));
+                backdrop.look(sparks, app.accent, random));
     }
 
     private static long dist2(int a, int b) {
@@ -600,7 +600,7 @@ final class Stage extends View {
         pending = m;
         hasPending = true;
         accent = newAccent;
-        cosmos.setLook(m.look, animate && count > 0 && motion);
+        backdrop.setLook(m.look, animate && count > 0 && motion);
         if (count == 0 || !animate || !lively()) {
             startEnter();
             return;
@@ -819,7 +819,7 @@ final class Stage extends View {
         }
         if (holdKind == H_STORM) {
             holdT = 5.5f;
-            cosmos.storm(holdT);
+            backdrop.storm(holdT);
         } else if (holdKind == H_SPIN) {
             holdT = Math.max(holdT, 3.7f);
         }
@@ -1168,8 +1168,8 @@ final class Stage extends View {
         }
         effects(dt);
         if (!(phase == EXIT && exitKind == X_HYPERSPACE)) warp = Math.max(0, warp - dt * 1.5f);
-        cosmos.setWarp(warp);
-        cosmos.update(dt);
+        backdrop.setWarp(warp);
+        backdrop.update(dt);
     }
 
     private void place(int i, float x, float y, float inv) {
@@ -1841,8 +1841,8 @@ final class Stage extends View {
         float dt = Math.min(0.05f, Math.max(0f, (now - last) / 1000f));
         last = now;
         if (running && laidOut && wait > 0) {
-            cosmos.setWarp(0f);
-            cosmos.update(dt);
+            backdrop.setWarp(0f);
+            backdrop.update(dt);
             wait -= dt;
             if (wait <= 0 && count > 0) startEnter();
         } else if (running && laidOut && count > 0) {
@@ -1851,7 +1851,7 @@ final class Stage extends View {
         }
 
         if (laidOut) {
-            cosmos.drawBack(c);
+            backdrop.drawBack(c);
         } else {
             c.drawColor(0xFF000000);
         }
@@ -1912,7 +1912,7 @@ final class Stage extends View {
         }
         if (dim < 0.999f) c.drawColor(Apps.withAlpha(0xFF000000, Math.round(255 * (1 - dim))));
 
-        if (running && motion && (pace != STILL || wait > 0 || cosmos.moving())) postInvalidateOnAnimation();
+        if (running && motion && (pace != STILL || wait > 0 || backdrop.moving())) postInvalidateOnAnimation();
     }
 
     // Drop the reflection, then the glow, if the TV cannot keep up; never come back mid-session.

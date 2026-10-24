@@ -29,7 +29,7 @@ public class CosmosTest {
 
     static Cosmos.Look look(int seed, int hue) {
         int[] sparks = {0xFFFFFFFF, 0xFFFFD27A, hue, 0xFF808080, 0xFF404040, hue};
-        return Cosmos.look(sparks, hue, new Random(seed));
+        return new Cosmos(0.2f).look(sparks, hue, new Random(seed));
     }
 
     static Cosmos ready() {
@@ -130,13 +130,13 @@ public class CosmosTest {
         Cosmos c = ready();
         c.setLook(look(8, 0xFF3949AB), false);
         c.setStill(true);
-        c.setMeteors(0f);
+        c.setActivity(0f);
         run(c, 3f);
         Robo.set(c, "satLife", 0f);
         run(c, 0.2f);
         assertFalse(c.moving());
         c.setStill(false);
-        c.setMeteors(1f);
+        c.setActivity(1f);
         c.setLook(look(9, 0xFFD81B60), true);
         assertTrue(c.moving());
     }
@@ -164,7 +164,7 @@ public class CosmosTest {
         Cosmos c = ready();
         c.setLook(look(11, 0xFF00897B), false);
         c.setStill(true);
-        c.setMeteors(0f);
+        c.setActivity(0f);
         run(c, 3f);
         Robo.set(c, "satLife", 0f);
         run(c, 0.2f);

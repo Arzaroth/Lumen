@@ -22,7 +22,7 @@ import java.util.Random;
  * satellite train cross, and now and then a star flares up like a nova. Each app gets its own
  * nebula, radiant, meteor colour and airglow, chosen to stand apart from the logo.
  */
-final class Cosmos {
+final class Cosmos implements Backdrop {
     private static final int LIVE = 800, TWINKLERS = 120, SPIKED = 10, METEORS = 48, TRAIN = 14, SPRITE = 64;
     private static final int QUADS = 2 * TWINKLERS + 2 * SPIKED + METEORS + TRAIN + 3, INDEXED = Math.max(QUADS, LIVE);
     private static final float TRAVEL_T = 1.2f, NOVA_T = 9f;
@@ -39,7 +39,7 @@ final class Cosmos {
     private static final float NEB_ZOOM = 1.12f;
 
     /** One app's sky: where its meteors come from, their glow, and the airglow on the horizon. */
-    static final class Look {
+    static final class Look implements Backdrop.Look {
         final float radiantX, radiantY, rate;
         final int tint, airglow;
         /** The nebula with the airglow baked in, and the airglow alone for a sky without nebula. */
@@ -194,7 +194,8 @@ final class Cosmos {
         return b;
     }
 
-    void layout(RectF area, int w, int h) {
+    @Override
+    public void layout(RectF area, int w, int h) {
         logo.set(area);
         if (w == width && h == height) return;
         width = w;
@@ -206,7 +207,8 @@ final class Cosmos {
      * Shows the real sky above `latLon` (degrees) from the bright star catalogue `stars` (right
      * ascension, declination, magnitude and colour index per star), or the imagined one when null.
      */
-    void setRealSky(double[] latLon, float[] stars) {
+    @Override
+    public void setRealSky(double[] latLon, float[] stars) {
         place = latLon;
         catalog = stars;
         bakeClock = 0f;
@@ -621,7 +623,8 @@ final class Cosmos {
     // ------------------------------------------------------------------ per app
 
     /** A sky whose meteor colour and airglow stand apart from the logo's dominant hue. */
-    static Look look(int[] sparks, int accent, Random random) {
+    @Override
+    public Look look(int[] sparks, int accent, Random random) {
         float[] hsv = new float[3];
         Color.colorToHSV(sparks[2], hsv);
         float logoHue = hsv[1] > 0.15f ? hsv[0] : random.nextFloat() * 360f;
@@ -721,7 +724,9 @@ final class Cosmos {
         return new float[] {Color.red(c) / 255f, Color.green(c) / 255f, Color.blue(c) / 255f};
     }
 
-    void setLook(Look next, boolean animate) {
+    @Override
+    public void setLook(Backdrop.Look incoming, boolean animate) {
+        Look next = (Look) incoming;
         if (next == look) return;
         previous = animate ? look : null;
         look = next;
@@ -736,15 +741,18 @@ final class Cosmos {
      * edges, faster the nearer and the further out they are; as it eases off they keep flying while
      * they fade, and the resting sky fades back in where it was. Nothing is ever pulled back.
      */
-    void setWarp(float w) {
+    @Override
+    public void setWarp(float w) {
         warp = w;
     }
 
-    void setStill(boolean s) {
+    @Override
+    public void setStill(boolean s) {
         still = s;
     }
 
-    void setMeteors(float rate) {
+    @Override
+    public void setActivity(float rate) {
         meteors = rate;
     }
 
@@ -752,7 +760,8 @@ final class Cosmos {
      * Where the eye looks across the sky, from -1 (far left) to 1, and down it, from 0 (level) to 1;
      * the layers glide there at their depths.
      */
-    void setParallax(float x, float y) {
+    @Override
+    public void setParallax(float x, float y) {
         parTarget = Math.max(-1f, Math.min(1f, x));
         parYTarget = Math.max(0f, Math.min(1f, y));
     }
@@ -761,24 +770,28 @@ final class Cosmos {
      * The weather outside, each from 0 to 1: clouds veil the stars and thin the meteors, rain falls as
      * streaks and snow as flakes in front of the sky. The sky eases into a change over a few seconds.
      */
-    void setWeather(float clouds, float rain, float snow) {
+    @Override
+    public void setWeather(float clouds, float rain, float snow) {
         cloudsTarget = clouds;
         rainTarget = rain;
         snowTarget = snow;
     }
 
     /** Shows each app's nebula, or only the glow of the air on the horizon. */
-    void setNebula(boolean on) {
+    @Override
+    public void setNebula(boolean on) {
         nebulaOn = on;
     }
 
     /** Turns the sky with the Earth, or holds it still. */
-    void setTurning(boolean on) {
+    @Override
+    public void setTurning(boolean on) {
         turning = on;
     }
 
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
-    boolean moving() {
+    @Override
+    public boolean moving() {
         if (introT >= 0f || !still || par != parTarget || parY != parYTarget || rain > 0f || snow > 0f
                 || clouds != cloudsTarget || rain != rainTarget || snow != snowTarget || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
         for (int i = 0; i < METEORS; i++) if (mAge[i] < mLife[i]) return true;
@@ -789,7 +802,8 @@ final class Cosmos {
      * The first sight of the sky after a boot: the bright stars come out one by one, each with a
      * flicker, the Milky Way rises behind them, then a burst of meteors leaves the radiant.
      */
-    void intro() {
+    @Override
+    public void intro() {
         introT = 0f;
         skyIn = 0f;
         burst = 26;
@@ -797,7 +811,8 @@ final class Cosmos {
     }
 
     /** A meteor storm for the next `seconds`. */
-    void storm(float seconds) {
+    @Override
+    public void storm(float seconds) {
         storm = seconds;
     }
 
@@ -828,7 +843,8 @@ final class Cosmos {
         mAge[i] = 0;
     }
 
-    void update(float dt) {
+    @Override
+    public void update(float dt) {
         clock += dt;
         float glide = 1f - (float) Math.exp(-dt * 3.5f);
         warpTravel = warp > 0f ? warpTravel + dt * warp * warp * width * 1.4f : 0f;
@@ -956,7 +972,8 @@ final class Cosmos {
     }
 
     /** The whole sky, behind the logo. */
-    void drawBack(Canvas c) {
+    @Override
+    public void drawBack(Canvas c) {
         c.drawColor(0xFF000000);
         Sky sk = sky;
         float fade = skyIn * (1f - 0.7f * warp) * (1f - 0.6f * clouds);
