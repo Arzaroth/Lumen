@@ -23,8 +23,9 @@ import java.util.Set;
 final class Apps {
     static final int NEUTRAL = 0xFF8FA6C8;
 
-    /** Apps Home leaves out of the dock and grid: the top bar already opens them. */
-    private static final Set<String> HIDDEN = new HashSet<>(Arrays.asList("com.android.tv.settings"));
+    /** Apps Home leaves out of the dock and grid: Settings and Live TV are a button away in the top bar, doot is not an app to open. */
+    private static final Set<String> HIDDEN = new HashSet<>(Arrays.asList("com.android.tv.settings",
+            "com.realtek.tv", "com.android.tv", "com.google.android.tv", "org.doot.android"));
 
     private Apps() {}
 
