@@ -44,7 +44,7 @@ final class Stage extends View {
     private static final int[][] GRIDS = {{176, 99}, {144, 81}, {COLS, ROWS}};
     private static final float COVER = 0.35f;
     private static final int ENTER = 0, HOLD = 1, EXIT = 2;
-    private static final int E_CONVERGE = 0, E_RAIN = 1, E_PRINT = 2, E_WARP = 3, E_SPIRAL = 4, E_DEPTH = 5, E_SWEEP = 6;
+    private static final int E_CONVERGE = 0, E_RAIN = 1, E_PRINT = 2, E_WARP = 3, E_SPIRAL = 4, E_DEPTH = 5, E_SWEEP = 6, E_TILE = 7;
     private static final int H_SHIMMER = 0, H_PULSE = 1, H_RIPPLE = 2, H_SHOW = 3, H_STORM = 4, H_FLAG = 5, H_SPIN = 6;
     private static final int X_DETONATE = 0, X_VORTEX = 1, X_DUST = 2, X_MELT = 3, X_GLITCH = 4, X_LAUNCH = 5, X_HYPERSPACE = 6, X_ZOOM = 7, X_SHATTER = 8;
     private static final int[] COSMOS_HOLDS = {H_SHIMMER, H_PULSE, H_RIPPLE, H_STORM, H_FLAG, H_SPIN};
@@ -56,7 +56,7 @@ final class Stage extends View {
     private static final int[] CALM_ENTERS = {E_CONVERGE, E_RAIN, E_PRINT, E_SWEEP};
     private static final int[] CALM_HOLDS = {H_SHIMMER, H_PULSE, H_FLAG};
     private static final int[] CALM_EXITS = {X_DUST, X_MELT};
-    private static final float[] ENTER_T = {1.3f, 1.75f, 1.6f, 1.3f, 1.9f, 1.8f, 1.5f};
+    private static final float[] ENTER_T = {1.3f, 1.75f, 1.6f, 1.3f, 1.9f, 1.8f, 1.5f, 1.7f};
     private static final float[] EXIT_T = {2.6f, 1.9f, 2.3f, 2.5f, 1.7f, 2.7f, 1.6f, 1.7f, 2.0f};
     private static final float CHARGE_T = 0.8f, VORTEX_T = 1.45f, GLITCH_T = 0.8f;
     private static final int SPARKS = 2400, RINGS = 8, ROCKETS = 12, LIGHTS = 4, RIPPLES = 3, SPARK_COLORS = 6;
@@ -117,7 +117,10 @@ final class Stage extends View {
     private final int[] slots = new int[2 * K];
     private int half;
     /** The floor every logo stands on: how far under the logo box, and how far its line reaches past it. */
-    private float floorGap, floorReach;
+    private float floorGap, floorReach, lift;
+    /** Where the next logo materialises from: its tile's banner, when the focus has just moved to it. */
+    private final RectF source = new RectF();
+    private boolean fromTile;
     /** Where the logo's cells actually are, inside its box: the centre the animations play around. */
     private final RectF art = new RectF();
 
@@ -304,6 +307,11 @@ final class Stage extends View {
         cosmos.setTurning(on);
     }
 
+    void setNebula(boolean on) {
+        cosmos.setNebula(on);
+        invalidate();
+    }
+
     /** The sky's parallax, from -1 (looking left) to 1, and from 0 (level) to 1 (looking down). */
     void setParallax(float x, float y) {
         cosmos.setParallax(x, y);
@@ -357,8 +365,15 @@ final class Stage extends View {
     }
 
     void setScene(final AppEntry app, final boolean animate) {
+        setScene(app, animate, null);
+    }
+
+    /** Shows `app`; when its tile's banner is given, the new logo first materialises out of it. */
+    void setScene(final AppEntry app, final boolean animate, RectF banner) {
         if (app == shownApp) return;
         shownApp = app;
+        fromTile = animate && banner != null;
+        if (fromTile) source.set(banner);
         final int gen = ++generation;
         final int artW = Math.max(COLS, Math.round(logo.width())), artH = Math.max(ROWS, Math.round(logo.height()));
         builder.removeCallbacksAndMessages(null);
@@ -577,7 +592,7 @@ final class Stage extends View {
         for (int k = 0; k < K; k++) slots[newHalf + k] = m.palette[k];
         half = newHalf;
         System.arraycopy(m.sparks, 0, sparkColors, 0, SPARK_COLORS);
-        float lift = 1f - m.bottom;
+        lift = 1f - m.bottom;
         gridRows = m.rows;
         cell = logo.width() / m.cols;
         float left = 1f, right = 0f, top = 1f;
@@ -631,7 +646,8 @@ final class Stage extends View {
     }
 
     private void startEnter() {
-        if (lively()) enterKind = chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
+        if (lively()) enterKind = hasPending && fromTile ? E_TILE : chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
+        if (hasPending) fromTile = false;
         int reused = lively() && enterKind == E_CONVERGE ? (hasPending ? Math.min(count, pending.count) : count) : 0;
         ghost(reused);
         if (hasPending) adopt();
@@ -660,6 +676,15 @@ final class Stage extends View {
             loose[i] = false;
             pw[i] = 0;
             switch (enterKind) {
+                case E_TILE:
+                    px[i] = source.left + gx[i] * source.width();
+                    py[i] = source.top + (gy[i] - lift) * source.height();
+                    fx[i] = px[i];
+                    fy[i] = py[i];
+                    delay[i] = seed[i] * 0.3f + (1 - gy[i]) * 0.15f;
+                    pa[i] = 0;
+                    pw[i] = 1f;
+                    break;
                 case E_CONVERGE: {
                     if (pa[i] < 0.5f) {
                         float a = rnd.nextFloat() * 6.2832f, d = logo.width() * (0.7f + rnd.nextFloat() * 0.6f);
@@ -1156,6 +1181,15 @@ final class Stage extends View {
                         pw[i] = 1;
                     }
                     break;
+                case E_TILE: {
+                    float born = Math.min(1f, t / 0.3f), u = (t - delay[i] - 0.15f) / 1.1f;
+                    float e = u <= 0 ? 0 : u >= 1 ? 1 : settle(u);
+                    float arc = (float) Math.sin(e * Math.PI) * art.height() * 0.25f;
+                    place(i, fx[i] + (tx - fx[i]) * e, fy[i] + (ty - fy[i]) * e - arc, inv);
+                    pa[i] = born;
+                    pw[i] = 1f - e * 0.9f;
+                    break;
+                }
                 case E_WARP: {
                     float u = (t - delay[i]) / 0.7f;
                     if (u <= 0) {

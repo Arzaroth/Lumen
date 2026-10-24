@@ -40,10 +40,12 @@ final class Cosmos {
     static final class Theme {
         final float radiantX, radiantY, rate;
         final int tint, airglow;
-        final Bitmap nebula;
+        /** The nebula with the airglow baked in, and the airglow alone for a sky without nebula. */
+        final Bitmap nebula, glow;
 
-        Theme(float radiantX, float radiantY, float rate, int tint, int airglow, Bitmap nebula) {
+        Theme(float radiantX, float radiantY, float rate, int tint, int airglow, Bitmap nebula, Bitmap glow) {
             this.nebula = nebula;
+            this.glow = glow;
             this.radiantX = radiantX;
             this.radiantY = radiantY;
             this.rate = rate;
@@ -77,7 +79,7 @@ final class Cosmos {
 
     private Theme theme, previous;
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
-    private boolean still, turning;
+    private boolean still, turning, nebulaOn = true;
     private float par, parTarget, parY, parYTarget, liveTop, warpTravel;
     private int margin;
 
@@ -342,7 +344,7 @@ final class Cosmos {
         float hue = (logoHue + 150 + look.nextFloat() * 60) % 360;
         int airglow = Color.HSVToColor(new float[] {hue, 0.6f, 1f});
         return new Theme(0.15f + look.nextFloat() * 0.7f, -0.35f + look.nextFloat() * 0.45f,
-                0.8f + look.nextFloat() * 0.6f, tint, airglow, nebula(hue, airglow, look));
+                0.8f + look.nextFloat() * 0.6f, tint, airglow, nebula(hue, airglow, look), glowOnly(airglow));
     }
 
     /**
@@ -388,9 +390,7 @@ final class Cosmos {
         }
         float[] air = rgb(airglow);
         for (int y = 0; y < NEB_H; y++) {
-            float screen = (y + 0.5f) / NEB_H * NEB_ZOOM - (NEB_ZOOM - 1f) / 2f;
-            float t = (screen - 0.45f) / 0.55f;
-            float glow = t <= 0f ? 0f : t < 0.55f ? t / 0.55f * 0x18 / 255f : Math.min(1f, (0x18 + (t - 0.55f) / 0.45f * (0x46 - 0x18)) / 255f);
+            float glow = airglowAt(y);
             if (glow <= 0f) continue;
             for (int x = 0; x < NEB_W; x++) {
                 int c = px[y * NEB_W + x];
@@ -399,6 +399,25 @@ final class Cosmos {
             }
         }
         for (int i = 0; i < px.length; i++) if (px[i] == 0) px[i] = 0xFF000000;
+        Bitmap bmp = Bitmap.createBitmap(NEB_W, NEB_H, Bitmap.Config.ARGB_8888);
+        bmp.setPixels(px, 0, NEB_W, 0, 0, NEB_W, NEB_H);
+        return bmp;
+    }
+
+    /** How strong the airglow is on nebula row `y`, placed where that row lands on screen at rest. */
+    private static float airglowAt(int y) {
+        float screen = (y + 0.5f) / NEB_H * NEB_ZOOM - (NEB_ZOOM - 1f) / 2f;
+        float t = (screen - 0.45f) / 0.55f;
+        return t <= 0f ? 0f : t < 0.55f ? t / 0.55f * 0x18 / 255f : Math.min(1f, (0x18 + (t - 0.55f) / 0.45f * (0x46 - 0x18)) / 255f);
+    }
+
+    private static Bitmap glowOnly(int airglow) {
+        float[] air = rgb(airglow);
+        int[] px = new int[NEB_W * NEB_H];
+        for (int y = 0; y < NEB_H; y++) {
+            float glow = airglowAt(y);
+            java.util.Arrays.fill(px, y * NEB_W, (y + 1) * NEB_W, Color.rgb(c255(air[0] * glow), c255(air[1] * glow), c255(air[2] * glow)));
+        }
         Bitmap bmp = Bitmap.createBitmap(NEB_W, NEB_H, Bitmap.Config.ARGB_8888);
         bmp.setPixels(px, 0, NEB_W, 0, 0, NEB_W, NEB_H);
         return bmp;
@@ -442,6 +461,11 @@ final class Cosmos {
     void setParallax(float x, float y) {
         parTarget = Math.max(-1f, Math.min(1f, x));
         parYTarget = Math.max(0f, Math.min(1f, y));
+    }
+
+    /** Shows each app's nebula, or only the glow of the air on the horizon. */
+    void setNebula(boolean on) {
+        nebulaOn = on;
     }
 
     /** Turns the sky with the Earth, or holds it still. */
@@ -626,8 +650,8 @@ final class Cosmos {
             if (left < width) c.drawBitmap(sk.field, left, top, blit);
         }
         float mid = -par * width * MID, midY = -parY * height * MID_Y;
-        if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade, mid, midY);
-        if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade, mid, midY);
+        if (previous != null && travel < 1f) drawNebula(c, nebulaOn ? previous.nebula : previous.glow, (1 - travel) * fade, mid, midY);
+        if (theme != null) drawNebula(c, nebulaOn ? theme.nebula : theme.glow, (previous != null ? travel : 1f) * fade, mid, midY);
         if (sk != null) drawLive(c, sk, near, fade);
         drawSprites(c, sk, near);
         c.save();

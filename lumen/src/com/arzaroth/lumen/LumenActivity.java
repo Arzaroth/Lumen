@@ -214,6 +214,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
         stage.setSkyStill(backdrop == 2);
         stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
+        stage.setNebula(prefs.getInt(Prefs.NEBULA, 0) == 0);
         if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index), parallaxDownOf(index));
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
         stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
@@ -573,13 +574,22 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             setTitle(t.app, animate);
             clock.setAccent(t.app.accent);
             date.setAccent(t.app.accent);
-            stage.setScene(t.app, animate);
+            stage.setScene(t.app, animate, animate ? bannerOnStage(t) : null);
             stage.setParallax(parallaxOf(index), parallaxDownOf(index));
             if (index < COLS) lastDockIndex = index;
         } else {
             highlight.show(false, animate);
         }
         scroll(animate);
+    }
+
+    /** Where a tile's banner is drawn, in the stage's coordinates. */
+    private RectF bannerOnStage(Tile t) {
+        int[] at = new int[2], origin = new int[2];
+        t.getLocationInWindow(at);
+        stage.getLocationInWindow(origin);
+        float x = at[0] - origin[0], y = at[1] - origin[1];
+        return new RectF(x, y, x + t.imgW * t.getScaleX(), y + t.imgH * t.getScaleY());
     }
 
     /** The focused column, from -1 at the left edge to 1 at the right; 0 with parallax off. */
