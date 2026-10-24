@@ -57,7 +57,7 @@ public class VolcanoTest {
     }
 
     private int craterRed() {
-        int c = screen.getPixel(Math.round(W * 0.22f), Math.round(H * 0.46f) + 3);
+        int c = screen.getPixel(Math.round(W * 0.25f), Math.round(H * 0.33f));
         return Color.red(c);
     }
 
@@ -86,12 +86,12 @@ public class VolcanoTest {
         Volcano v = ready();
         v.setLook(look(v, 1, 0xFFE53935), false);
         run(v, 0.5f);
-        int c = screen.getPixel(Math.round(W * 0.22f), Math.round(H * 0.46f) + 3);
+        int c = screen.getPixel(Math.round(W * 0.25f), Math.round(H * 0.33f));
         assertTrue(Color.red(c) > 120);
         assertTrue(Color.red(c) > Color.blue(c));
         v.setLook(look(v, 2, 0xFF2196F3), false);
         run(v, 0.5f);
-        c = screen.getPixel(Math.round(W * 0.22f), Math.round(H * 0.46f) + 3);
+        c = screen.getPixel(Math.round(W * 0.25f), Math.round(H * 0.33f));
         assertTrue(Color.blue(c) > Color.red(c));
     }
 

@@ -17,14 +17,14 @@ import android.graphics.Shader;
 import java.util.Random;
 
 /**
- * A volcanic night. A range of volcanoes stands on the horizon under a smoky sky, the tallest with
- * lava glowing in its crater and running down a flank; a plume rises from it, lit from below; embers
- * float up instead of meteors, and now and then the crater erupts, throwing lava bombs, sometimes
- * with lightning in the plume. Each app gets its own lava colour (blue for a blue logo, like the
- * sulphur flames of Kawah Ijen) and its own plume.
+ * A volcano erupting at dusk, after long exposures of Anak Krakatau: a broad cone rising from the sea
+ * under a blue-grey sky, a column of incandescence over its summit mirrored in the water, lava bombs
+ * fountaining out in glowing arcs and rolling down the flanks, rockfall streaking the slopes and a
+ * field of glowing debris at their foot. Each app tints the fire with its own colour (blue for a blue
+ * logo, like the sulphur flames of Kawah Ijen) and has its own ash plume.
  *
  * The landscape is baked once per screen; per frame it is one blit, the plume over the part of the
- * screen it covers, the lava over the volcano alone, and one mesh of particles.
+ * screen it covers, the fire's white mask tinted over the volcano, and one mesh of particles.
  */
 final class Volcano implements Backdrop {
     static final class Look implements Backdrop.Look {
@@ -39,21 +39,21 @@ final class Volcano implements Backdrop {
         }
     }
 
-    /** The landscape, built once per screen: the baked scene, the lava's mask and where the crater is. */
+    /** The landscape, built once per screen: the baked scene, the fire's mask, the summit and the ground's profile. */
     private static final class Land {
-        final Bitmap field, lava;
-        final RectF lavaAt;
+        final Bitmap field, fire;
+        final RectF fireAt;
         final float craterX, craterY, craterW;
-        final float[] flow;
+        final float[] ground;
 
-        Land(Bitmap field, Bitmap lava, RectF lavaAt, float craterX, float craterY, float craterW, float[] flow) {
+        Land(Bitmap field, Bitmap fire, RectF fireAt, float craterX, float craterY, float craterW, float[] ground) {
             this.field = field;
-            this.lava = lava;
-            this.lavaAt = lavaAt;
+            this.fire = fire;
+            this.fireAt = fireAt;
             this.craterX = craterX;
             this.craterY = craterY;
             this.craterW = craterW;
-            this.flow = flow;
+            this.ground = ground;
         }
     }
 
@@ -62,24 +62,29 @@ final class Volcano implements Backdrop {
             new int[] {0xFFFFF1C2, 0xFFFFC27A, 0xFFFF8A3D, 0xFFFF5A1F}, 0xFFFF7A2A, 0xFF0C0504, 0xFFFFB27A);
 
     private static final float FAR = 0.012f, MID = 0.026f, NEAR = 0.042f, FAR_Y = 0.012f, MID_Y = 0.026f, NEAR_Y = 0.042f;
-    /** Where the crater sits on screen, as fractions of the width and height; left, out of the logo's way. */
-    private static final float CRATER_X = 0.22f, CRATER_Y = 0.46f;
+    /** Where the summit sits on screen, as fractions of the width and height; left, out of the logo's way. */
+    private static final float CRATER_X = 0.25f, CRATER_Y = 0.43f;
+    /** Where the sea meets the land. */
+    private static final float SHORE = 0.69f;
     /** The plume covers this much of the screen from its top left corner. */
-    private static final float PLUME_W = 0.78f, PLUME_H = 0.62f;
+    private static final float PLUME_W = 0.8f, PLUME_H = 0.6f;
     private static final int PLUME_BW = 320, PLUME_BH = 256;
-    private static final int PARTICLES = 420, SPRITE = 32;
-    private static final int EMBER = 0, BOMB = 1, FLASH = 2;
+    private static final int PARTICLES = 900, QUADS = PARTICLES * 3 + 2, SPRITE = 32;
+    /** A bomb's trail: this many segments, each this long in seconds, like a long exposure. */
+    private static final int TRAIL = 3;
+    private static final float TRAIL_T = 0.1f, GRAVITY = 600f;
+    private static final int EMBER = 0, BOMB = 1, ROLL = 2;
 
     private final float s;
     private final Random rnd = new Random();
     private final float[] px = new float[PARTICLES], py = new float[PARTICLES], pvx = new float[PARTICLES], pvy = new float[PARTICLES];
     private final float[] age = new float[PARTICLES], life = new float[PARTICLES], size = new float[PARTICLES];
     private final int[] kind = new int[PARTICLES];
-    private final float[] verts = new float[PARTICLES * 8], texs = new float[PARTICLES * 8];
-    private final int[] colors = new int[PARTICLES * 4];
-    private final short[] indices = new short[PARTICLES * 6];
+    private final float[] verts = new float[QUADS * 8], texs = new float[QUADS * 8];
+    private final int[] colors = new int[QUADS * 4];
+    private final short[] indices = new short[QUADS * 6];
     private final Paint blit = new Paint(Paint.FILTER_BITMAP_FLAG), plumePaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
-    private final Paint lavaPaint = new Paint(Paint.FILTER_BITMAP_FLAG), glow = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private final Paint firePaint = new Paint(Paint.FILTER_BITMAP_FLAG), glow = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint bolt = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Matrix plumeMatrix = new Matrix();
     private final RectF rect = new RectF();
@@ -88,8 +93,8 @@ final class Volcano implements Backdrop {
     private volatile Land land;
     private volatile boolean baking;
     private Look look, previous;
-    private int width, height, margin, marginX, next, lava = 0xFFFF6A1A, lavaBefore = 0xFFFF6A1A;
-    private float clock, travel = 1f, introT = -1f, landIn = 1f, lavaIn = 1f, activity = 1f, warp, nextEmber, nextEruption = 30f;
+    private int width, height, margin, marginX, next, lava = 0xFFFF6A1A, lavaBefore = 0xFFFF6A1A, tinted;
+    private float clock, travel = 1f, introT = -1f, landIn = 1f, fireIn = 1f, activity = 1f, warp, nextBomb, nextEmber, nextEruption = 30f;
     private float flash, boltT = -1f, clouds, cloudsTarget, par, parTarget, parY, parYTarget;
     private boolean still;
 
@@ -97,7 +102,7 @@ final class Volcano implements Backdrop {
         s = scale;
         precipitation = new Precipitation(scale);
         PorterDuffXfermode add = new PorterDuffXfermode(PorterDuff.Mode.ADD);
-        lavaPaint.setXfermode(add);
+        firePaint.setXfermode(add);
         Bitmap dot = Bitmap.createBitmap(SPRITE, SPRITE, Bitmap.Config.ARGB_8888);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setShader(new RadialGradient(SPRITE / 2f, SPRITE / 2f, SPRITE / 2f,
@@ -108,7 +113,7 @@ final class Volcano implements Backdrop {
         bolt.setStyle(Paint.Style.STROKE);
         bolt.setStrokeCap(Paint.Cap.ROUND);
         bolt.setXfermode(add);
-        for (int q = 0; q < PARTICLES; q++) {
+        for (int q = 0; q < QUADS; q++) {
             int t = q * 8, i = q * 6, v = q * 4;
             texs[t + 2] = SPRITE;
             texs[t + 4] = SPRITE;
@@ -135,39 +140,48 @@ final class Volcano implements Backdrop {
     }
 
     /**
-     * An app's plume: smoke rising from the crater, widening and bending downwind, folded by noise,
-     * dark where it is thick and lit in the lava's colour near its root. Premultiplied, drawn over the
-     * sky, so where it is thick it hides the stars.
+     * An app's ash plume: billows rising from the summit, bending downwind and spreading aloft, dark
+     * where thick, glowing in the fire's colour low down and on their undersides. Premultiplied, drawn
+     * over the sky, so where it is thick it hides it.
      */
     private static Bitmap plume(int lava, Random random) {
         int seed = random.nextInt(1 << 20);
-        float lean = 0.25f + random.nextFloat() * 0.35f, girth = 0.09f + random.nextFloat() * 0.05f;
+        float lean = 0.35f + random.nextFloat() * 0.35f, girth = 0.05f + random.nextFloat() * 0.03f;
         float lr = Color.red(lava) / 255f, lg = Color.green(lava) / 255f, lb = Color.blue(lava) / 255f;
         float cx = CRATER_X / PLUME_W, cy = CRATER_Y / PLUME_H;
-        int[] px = new int[PLUME_BW * PLUME_BH];
+        float[] dense = new float[PLUME_BW * PLUME_BH];
+        for (int y = 0; y < PLUME_BH; y++) {
+            float v = y / (float) PLUME_BH, rise = Math.max(0f, cy - v), aloft = Math.max(0f, rise - cy * 0.5f);
+            if (v > cy) continue;
+            float centre = cx + lean * rise * rise * 2.2f + 0.03f * (Noise.fbm(v * 3f, 1f, seed, 3) - 0.5f);
+            float width = girth + rise * 0.3f + aloft * 1.4f;
+            for (int x = 0; x < PLUME_BW; x++) {
+                float u = x / (float) PLUME_BW, d = (u - centre) / width;
+                float shape = (float) Math.exp(-d * d * 2f) * Noise.smooth(0.04f, 0.14f, rise);
+                if (shape < 0.02f) continue;
+                float wx = (Noise.fbm(u * 5f, v * 5f - rise * 2f, seed + 5, 3) - 0.5f) * 1.2f;
+                float wy = (Noise.fbm(u * 5f + 7f, v * 5f, seed + 7, 3) - 0.5f) * 1.2f;
+                float billow = Noise.fbm((u + wx * 0.15f) * 9f, (v + wy * 0.15f) * 11f + rise * 3f, seed + 11, 5);
+                dense[y * PLUME_BW + x] = shape * Noise.smooth(0.32f, 0.62f, billow + 0.18f * shape) * (1f - 0.45f * rise / cy);
+            }
+        }
+        int[] out = new int[PLUME_BW * PLUME_BH];
         for (int y = 0; y < PLUME_BH; y++) {
             float v = y / (float) PLUME_BH, rise = Math.max(0f, cy - v);
             for (int x = 0; x < PLUME_BW; x++) {
-                float u = x / (float) PLUME_BW;
-                if (v > cy + 0.02f) continue;
-                float centre = cx + lean * rise * rise * 2.2f + 0.04f * (Noise.fbm(v * 3f, 1f, seed, 3) - 0.5f);
-                float width = girth + rise * 0.55f;
-                float d = (u - centre) / width;
-                float shape = (float) Math.exp(-d * d * 2.2f) * Noise.smooth(0f, 0.08f, rise + 0.02f);
-                if (shape < 0.01f) continue;
-                float wx = Noise.fbm(u * 4f, v * 4f, seed + 5, 3) * 1.6f;
-                float puff = Noise.fbm(u * 5f + wx, v * 6f - wx, seed + 11, 5);
-                float density = shape * Noise.smooth(0.25f, 0.65f, puff) * (1f - 0.55f * rise / cy);
-                float a = Math.min(0.9f, density * 1.8f);
-                float lit = (float) Math.exp(-rise * 3.5f) * shape * (0.35f + 0.65f * Math.min(1f, density * 2f));
-                float r = 0.11f * a + lr * lit * 0.6f, g = 0.095f * a + lg * lit * 0.45f, b = 0.1f * a + lb * lit * 0.4f;
-                int alpha = Math.round(255 * Math.min(1f, Math.max(a, lit * 0.6f)));
-                px[y * PLUME_BW + x] = Color.argb(alpha, c255(r), c255(g), c255(b));
+                float dn = dense[y * PLUME_BW + x];
+                if (dn <= 0.004f) continue;
+                float below = y + 3 < PLUME_BH ? dense[(y + 3) * PLUME_BW + x] : 0f;
+                float under = Math.max(0f, Math.min(1f, (dn - below) * 3f));
+                float a = Math.min(0.88f, dn * 1.8f);
+                float fire = (float) Math.exp(-rise * 3f) * (0.5f + 0.5f * under) + 0.3f * under * (float) Math.exp(-rise * 1.2f);
+                float r = 0.075f * a + lr * fire * a * 0.8f, g = 0.07f * a + lg * fire * a * 0.6f, b = 0.08f * a + lb * fire * a * 0.55f;
+                out[y * PLUME_BW + x] = Color.argb(Math.round(255 * a), c255(Math.min(r, a)), c255(Math.min(g, a)), c255(Math.min(b, a)));
             }
         }
         Bitmap b = Bitmap.createBitmap(PLUME_BW, PLUME_BH, Bitmap.Config.ARGB_8888);
         b.setPremultiplied(true);
-        b.setPixels(px, 0, PLUME_BW, 0, 0, PLUME_BW, PLUME_BH);
+        b.setPixels(out, 0, PLUME_BW, 0, 0, PLUME_BW, PLUME_BH);
         return b;
     }
 
@@ -202,109 +216,127 @@ final class Volcano implements Backdrop {
     }
 
     /**
-     * The scene on a `w` by `h` screen with margins for the parallax: a smoky sky reddening towards
-     * the horizon with a few dim stars high up, a far range in the haze, a second volcano, the main
-     * one with its crater, and the near ground; edges facing the crater catch its light. The lava,
-     * which glows in each app's colour, is a separate white mask: the crater's mouth and a flow
-     * winding down the right flank.
+     * The scene on a `w` by `h` screen with margins for the parallax: a dusk sky, blue-grey with soft
+     * clouds and a few stars, over a calm sea; a low wooded ridge on the right; and the cone, broad
+     * and slightly concave, its ash slopes scored by gullies and catching the last light from the
+     * left. The fire is not here but in a separate white mask, tinted per app: the column over the
+     * summit and its halo, rockfall streaking the slopes, glowing debris at their foot, and the
+     * column's reflection on the water.
      */
     private static Land land(int w, int h, int mx, int my) {
         int fw = w + 2 * mx, fh = h + 2 * my;
-        float cx = w * CRATER_X + mx, cy = h * CRATER_Y + my, crater = w * 0.05f, base = h * 0.80f + my;
-        float[] far = new float[fw], second = new float[fw], main = new float[fw], near = new float[fw];
+        float cx = w * CRATER_X + mx, cy = h * CRATER_Y + my, crater = w * 0.018f, shore = h * SHORE + my;
+        float rl = w * 0.36f, rr = w * 0.44f, rise = shore - cy;
+        float[] ridge = new float[fw], cone = new float[fw];
         for (int x = 0; x < fw; x++) {
-            float u = x / (float) fw;
-            far[x] = h * 0.66f + my - h * 0.09f * Noise.fbm(u * 4f, 0.3f, 101, 5);
-            float d2 = Math.abs(x - (w * 0.74f + mx)) / (w * 0.3f);
-            second[x] = h * 0.57f + my + h * 0.2f * (float) Math.pow(Math.min(1.4f, d2), 1.3f) + h * 0.02f * Noise.fbm(u * 9f, 0.6f, 103, 4);
-            float d = Math.abs(x - cx);
-            float cone = cy + (base - cy) * (float) Math.pow(Math.min(1f, d / (w * 0.38f)), 1.25f);
-            float notch = d < crater ? h * 0.025f * (1f - (d / crater) * (d / crater)) : 0f;
-            main[x] = cone + notch + h * 0.012f * (Noise.fbm(u * 14f, 0.9f, 107, 4) - 0.5f);
-            near[x] = h * 0.83f + my - h * 0.05f * Noise.fbm(u * 3f, 1.4f, 109, 4);
+            float u = x / (float) fw, d = x - cx;
+            float q = Math.min(1f, Math.max(0f, Math.abs(d) - crater) / ((d < 0 ? rl : rr) - crater));
+            float notch = Math.abs(d) < crater ? h * 0.006f * (1f - (d / crater) * (d / crater)) : 0f;
+            cone[x] = shore - rise * (float) Math.pow(1f - q, 1.35f) + notch
+                    + h * 0.004f * (Noise.fbm(u * 50f, 0.9f, 107, 3) - 0.5f) * (0.3f + q);
+            float hill = Noise.smooth(0.52f, 0.7f, u) * (1f - 0.4f * Noise.smooth(0.85f, 1f, u));
+            ridge[x] = shore - h * hill * (0.055f + 0.025f * Noise.fbm(u * 5f, 0.4f, 103, 3))
+                    - h * 0.006f * Noise.fbm(u * 160f, 0.2f, 105, 2) * hill;
         }
-        int[] px = new int[fw * fh];
-        Random r = new Random(13);
+        int[] out = new int[fw * fh];
         for (int y = 0; y < fh; y++) {
-            float t = Math.max(0f, Math.min(1f, (y - my) / (h * 0.72f)));
+            float t = Math.max(0f, Math.min(1f, (y - my) / (shore - my))), t2 = t * t;
+            float skyR = 0.06f + 0.13f * t2, skyG = 0.065f + 0.12f * t2, skyB = 0.1f + 0.13f * t2;
+            float coneT = Math.max(0f, (y - cy) / rise), coneW = 1f - (float) Math.pow(Math.max(0f, 1f - coneT), 1f / 1.35f);
+            float sea = Math.max(0f, (y - shore) / (fh - shore));
             for (int x = 0; x < fw; x++) {
-                float haze = Noise.fbm(x / (float) fw * 3f, y / (float) fh * 6f, 111, 4);
-                float rr = 0.012f + 0.16f * t * t + 0.02f * haze * t, gg = 0.009f + 0.05f * t * t + 0.008f * haze * t, bb = 0.018f + 0.03f * t * t;
-                int layer = y >= near[x] ? 4 : y >= main[x] ? 3 : y >= second[x] ? 2 : y >= far[x] ? 1 : 0;
-                if (layer > 0) {
-                    float[] tone = {0f, 0.05f, 0.032f, 0.02f, 0.012f};
-                    float edge = layer == 1 ? y - far[x] : layer == 2 ? y - second[x] : layer == 3 ? y - main[x] : y - near[x];
-                    float rim = (float) Math.exp(-edge / (6f * (w / 1920f))) * (float) Math.exp(-Math.abs(x - cx) / (w * 0.3f));
-                    float rock = 0.75f + 0.5f * Noise.fbm(x / (float) fw * 30f, y / (float) fh * 17f, 119, 3);
-                    rr = tone[layer] * 1.3f * rock + rim * 0.3f;
-                    gg = tone[layer] * 0.75f * rock + rim * 0.09f;
-                    bb = tone[layer] * 0.75f * rock + rim * 0.04f;
+                float u = x / (float) fw, v = y / (float) fh;
+                float r, g, b;
+                if (y >= shore) {
+                    float k = 0.55f + 0.5f * Noise.fbm(u * 6f, v * 140f, 151, 3);
+                    r = (0.05f + 0.04f * (1f - sea)) * k;
+                    g = (0.055f + 0.04f * (1f - sea)) * k;
+                    b = (0.075f + 0.05f * (1f - sea)) * k;
+                } else if (y >= cone[x]) {
+                    float d = x - cx, half = crater + coneW * ((d < 0 ? rl : rr) - crater);
+                    float f = Math.max(-1f, Math.min(1f, d / Math.max(1f, half)));
+                    float ang = (float) Math.asin(f);
+                    float gully = Noise.fbm(ang * 14f + 3f, coneT * 2f, 121, 4);
+                    float relief = (Noise.fbm(ang * 14f + 3.04f, coneT * 2f, 121, 4) - Noise.fbm(ang * 14f + 2.96f, coneT * 2f, 121, 4)) * 8f;
+                    float lit = Math.max(0f, 0.45f - 0.55f * f) * (float) Math.pow(1f - f * f, 0.2f);
+                    float shade = (0.35f + lit) * (0.6f + 0.6f * Math.max(0f, Math.min(1f, 0.5f - relief))) * (0.75f + 0.4f * gully);
+                    float grain = 0.85f + 0.3f * Noise.fbm(u * 140f, v * 100f, 123, 2);
+                    float foot = 1f - 0.35f * Noise.smooth(0.7f, 1f, coneT);
+                    r = 0.07f * shade * grain * foot;
+                    g = 0.062f * shade * grain * foot;
+                    b = 0.068f * shade * grain * foot;
+                } else if (y >= ridge[x]) {
+                    float trees = 0.7f + 0.5f * Noise.fbm(u * 200f, v * 120f, 127, 2);
+                    r = 0.03f * trees;
+                    g = 0.036f * trees;
+                    b = 0.042f * trees;
+                } else {
+                    float cloud = Noise.smooth(0.45f, 0.8f, Noise.fbm(u * 2.2f + 3f, v * 7f, 111, 5));
+                    float lift = Noise.fbm(u * 2.2f + 3f, v * 7f - 0.08f, 111, 5) - Noise.fbm(u * 2.2f + 3f, v * 7f + 0.08f, 111, 5);
+                    float edge = 0.8f + 1.5f * Math.max(-0.3f, Math.min(0.3f, lift));
+                    r = skyR + cloud * (0.05f * edge - 0.025f);
+                    g = skyG + cloud * (0.048f * edge - 0.025f);
+                    b = skyB + cloud * (0.055f * edge - 0.022f);
                 }
-                px[y * fw + x] = Color.rgb(c255(rr), c255(gg), c255(bb));
+                out[y * fw + x] = Color.rgb(c255(r), c255(g), c255(b));
             }
         }
-        for (int k = 0; k < fw * fh / 900; k++) {
-            int x = r.nextInt(fw), y = r.nextInt((int) (fh * 0.5f));
-            if (y >= far[x]) continue;
-            float b = (float) Math.pow(r.nextFloat(), 3f) * 0.7f * (1f - y / (fh * 0.5f));
-            int c = px[y * fw + x];
-            px[y * fw + x] = Color.rgb(Math.min(255, Color.red(c) + c255(b)), Math.min(255, Color.green(c) + c255(b * 0.95f)), Math.min(255, Color.blue(c) + c255(b * 0.9f)));
+        Random rs = new Random(13);
+        for (int k = 0; k < fw * fh / 1400; k++) {
+            int x = rs.nextInt(fw), y = rs.nextInt((int) (fh * 0.4f));
+            if (y >= cone[x]) continue;
+            float b = (float) Math.pow(rs.nextFloat(), 3f) * 0.45f * (1f - y / (fh * 0.4f));
+            int c = out[y * fw + x];
+            out[y * fw + x] = Color.rgb(Math.min(255, Color.red(c) + c255(b)), Math.min(255, Color.green(c) + c255(b)), Math.min(255, Color.blue(c) + c255(b)));
         }
         Bitmap field = Bitmap.createBitmap(fw, fh, Bitmap.Config.ARGB_8888);
-        field.setPixels(px, 0, fw, 0, 0, fw, fh);
+        field.setPixels(out, 0, fw, 0, 0, fw, fh);
 
-        float reach = crater * 3.2f;
-        RectF at = new RectF(cx - reach, cy - reach, cx + Math.max(reach, w * 0.14f), Math.min(fh, base));
-        int lw = Math.max(1, Math.round(at.width() / 2)), lh = Math.max(1, Math.round(at.height() / 2));
+        RectF at = new RectF(Math.max(0, cx - w * 0.32f), 0, Math.min(fw, cx + w * 0.45f), fh);
+        float fadeX = w * 0.08f;
+        int lw = Math.max(1, Math.round(at.width())), lh = Math.max(1, Math.round(at.height()));
+        int[] fire = new int[lw * lh];
+        float stepX = at.width() / lw, stepY = at.height() / lh;
+        for (int j = 0; j < lh; j++) {
+            float wy = at.top + (j + 0.5f) * stepY;
+            float coneT = Math.max(0f, (wy - cy) / rise), coneW = 1f - (float) Math.pow(Math.max(0f, 1f - coneT), 1f / 1.35f);
+            for (int i = 0; i < lw; i++) {
+                float wx = at.left + (i + 0.5f) * stepX;
+                int col = Math.max(0, Math.min(fw - 1, (int) wx));
+                float dx = wx - cx, a;
+                if (wy >= shore) {
+                    float depth = (wy - shore) / (h * 0.25f), spread = w * (0.03f + 0.06f * depth);
+                    float ripple = Noise.smooth(0.35f, 0.75f, Noise.fbm(wx / w * 10f, wy / h * 160f, 153, 3));
+                    a = 0.45f * (float) Math.exp(-Math.abs(dx) / spread) * (float) Math.exp(-depth * 1.4f) * ripple;
+                } else if (wy < cone[col]) {
+                    float up = Math.max(0f, cy - wy), jet = crater * 1.1f + up * 0.28f;
+                    float flicker = 0.55f + 0.45f * Noise.fbm(wx / w * 24f, wy / h * 8f, 155, 3);
+                    a = (float) Math.exp(-Math.abs(dx) / jet) * (float) Math.exp(-up / (h * 0.24f)) * flicker;
+                    float r = (float) Math.sqrt(dx * dx + (wy - cy) * (wy - cy) * 1.6f);
+                    a += 0.28f * (float) Math.exp(-r / (w * 0.07f)) + 0.1f * (float) Math.exp(-r / (w * 0.2f));
+                } else {
+                    float half = crater + coneW * ((dx < 0 ? rl : rr) - crater);
+                    float f = Math.max(-1f, Math.min(1f, dx / Math.max(1f, half)));
+                    float ang = (float) Math.asin(f);
+                    float bend = 0.06f * (Noise.fbm(coneT * 2f, ang * 2f, 161, 2) - 0.5f);
+                    float line = 1f - Math.abs(2f * Noise.fbm((ang + bend) * 16f + 0.37f, 0.5f, 157, 2) - 1f);
+                    float sector = Noise.smooth(-0.7f, -0.15f, ang) * (1f - Noise.smooth(0.6f, 1.1f, ang));
+                    float reachDown = Noise.fbm(ang * 9f, 2.5f, 163, 2);
+                    float streak = Noise.smooth(0.84f, 0.97f, line) * sector * (1f - Noise.smooth(0.25f + 0.6f * reachDown, 0.45f + 0.6f * reachDown, coneT));
+                    float debris = Noise.smooth(0.6f, 0.95f, coneT) * Noise.smooth(-0.2f, 0.25f, ang) * (1f - Noise.smooth(0.7f, 1.1f, ang));
+                    float spots = Noise.smooth(0.7f, 0.78f, Noise.fbm(wx / w * 240f + 0.31f, wy / h * 150f + 0.17f, 159, 2)) * debris;
+                    float r = (float) Math.sqrt(dx * dx + (wy - cy) * (wy - cy) * 2f);
+                    a = 0.9f * streak + 0.9f * spots + 0.45f * (float) Math.exp(-r / (w * 0.035f))
+                            + 0.12f * (float) Math.exp(-r / (w * 0.12f)) + 0.08f * debris;
+                }
+                if (at.left > 0) a *= Noise.smooth(0f, fadeX, wx - at.left);
+                if (at.right < fw) a *= Noise.smooth(0f, fadeX, at.right - wx);
+                fire[j * lw + i] = Color.argb(c255(Math.min(1f, a)), 255, 255, 255);
+            }
+        }
         Bitmap mask = Bitmap.createBitmap(lw, lh, Bitmap.Config.ARGB_8888);
-        Canvas m = new Canvas(mask);
-        m.scale(lw / at.width(), lh / at.height());
-        m.translate(-at.left, -at.top);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setShader(new RadialGradient(cx, cy, reach, new int[] {0x90FFFFFF, 0x30FFFFFF, 0x00FFFFFF}, new float[] {0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
-        m.drawCircle(cx, cy, reach, p);
-        p.setShader(null);
-        Path mountain = new Path();
-        mountain.moveTo(at.left, fh);
-        for (int x = Math.max(0, (int) at.left); x <= Math.min(fw - 1, (int) at.right); x++) mountain.lineTo(x, main[x] - h * 0.002f);
-        mountain.lineTo(at.right, fh);
-        mountain.close();
-        m.save();
-        m.clipPath(mountain);
-        p.setColor(0xFFFFFFFF);
-        m.drawOval(cx - crater * 0.9f, cy + h * 0.01f, cx + crater * 0.9f, cy + h * 0.034f, p);
-        float[] flow = new float[40];
-        float[] fxs = new float[20], fys = new float[20];
-        for (int k = 0; k < 20; k++) {
-            float step = k / 19f;
-            fxs[k] = cx + crater * 0.3f + w * 0.05f * step + w * 0.012f * (Noise.fbm(step * 2f, 2f, 113, 2) - 0.5f) * 2f;
-            fys[k] = cy + h * 0.025f + h * 0.2f * step;
-            flow[2 * k] = fxs[k];
-            flow[2 * k + 1] = fys[k];
-        }
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeCap(Paint.Cap.ROUND);
-        for (int k = 1; k < 20; k++) {
-            float taper = 1f - 0.7f * k / 19f;
-            p.setColor(0x40FFFFFF);
-            p.setStrokeWidth(h * 0.024f * taper);
-            m.drawLine(fxs[k - 1], fys[k - 1], fxs[k], fys[k], p);
-            p.setColor(Color.argb(Math.round(190 * taper), 255, 255, 255));
-            p.setStrokeWidth(h * 0.006f * taper + 1f);
-            m.drawLine(fxs[k - 1], fys[k - 1], fxs[k], fys[k], p);
-        }
-        float bx = fxs[7], by = fys[7];
-        for (int k = 1; k < 9; k++) {
-            float step = k / 8f;
-            float nx = fxs[7] - w * 0.025f * step + w * 0.008f * (Noise.fbm(step * 5f, 4f, 117, 2) - 0.5f) * 2f, ny = fys[7] + h * 0.09f * step;
-            p.setColor(Color.argb(Math.round(120 * (1f - 0.7f * step)), 255, 255, 255));
-            p.setStrokeWidth(h * 0.004f * (1f - 0.6f * step) + 1f);
-            m.drawLine(bx, by, nx, ny, p);
-            bx = nx;
-            by = ny;
-        }
-        m.restore();
-        return new Land(field, mask, at, cx, cy, crater, flow);
+        mask.setPixels(fire, 0, lw, 0, 0, lw, lh);
+        return new Land(field, mask, at, cx, cy, crater, cone);
     }
 
     private static int c255(float v) {
@@ -317,7 +349,7 @@ final class Volcano implements Backdrop {
     public void intro() {
         introT = 0f;
         landIn = 0f;
-        lavaIn = 0f;
+        fireIn = 0f;
     }
 
     @Override
@@ -352,19 +384,21 @@ final class Volcano implements Backdrop {
         erupt();
     }
 
-    /** The crater blows: a flash, a fan of lava bombs, and sometimes lightning in the plume. */
+    /** The summit blows: a flash, a tall fan of lava bombs, and sometimes lightning in the plume. */
     private void erupt() {
         Land l = land;
         if (l == null) return;
-        float x = l.craterX - marginX, y = l.craterY - margin;
         flash = 1f;
-        for (int k = 0; k < 70; k++) {
-            float a = (float) Math.toRadians(-90 + (rnd.nextFloat() - 0.5f) * 70), v = (380 + rnd.nextFloat() * 520) * s;
-            spawn(BOMB, x + (rnd.nextFloat() - 0.5f) * l.craterW, y, (float) Math.cos(a) * v, (float) Math.sin(a) * v,
-                    1.4f + rnd.nextFloat() * 1.2f, (2.5f + rnd.nextFloat() * 3f) * s);
-        }
+        for (int k = 0; k < 140; k++) bomb(l, 1.3f, 70f);
         if (rnd.nextInt(3) > 0) boltT = 0.35f + rnd.nextFloat() * 0.4f;
         nextEruption = 40f + rnd.nextFloat() * 50f;
+    }
+
+    /** One bomb out of the summit, thrown `force` times as hard as the steady fountain throws, within a fan `spread` degrees wide. */
+    private void bomb(Land l, float force, float spread) {
+        float a = (float) Math.toRadians(-90 + (rnd.nextFloat() - 0.5f) * spread), v = (260 + rnd.nextFloat() * 380) * s * force;
+        spawn(BOMB, l.craterX - marginX + (rnd.nextFloat() - 0.5f) * l.craterW, l.craterY - margin, (float) Math.cos(a) * v,
+                (float) Math.sin(a) * v, 5f, (1.6f + rnd.nextFloat() * 1.8f) * s);
     }
 
     private void spawn(int k, float x, float y, float vx, float vy, float l, float sz) {
@@ -378,6 +412,12 @@ final class Volcano implements Backdrop {
         age[i] = 0f;
         life[i] = l;
         size[i] = sz;
+    }
+
+    /** The ground's height under `x`, in screen coordinates. */
+    private float ground(Land l, float x) {
+        int col = Math.max(0, Math.min(l.ground.length - 1, Math.round(x + marginX)));
+        return l.ground[col] - margin;
     }
 
     @Override
@@ -406,27 +446,29 @@ final class Volcano implements Backdrop {
         if (introT >= 0f) {
             introT += dt;
             landIn = Math.min(1f, introT / 1.2f);
-            lavaIn = Noise.smooth(1f, 2.2f, introT);
+            fireIn = Noise.smooth(1f, 2.2f, introT);
             if (introT >= 2.2f) {
                 introT = -1f;
                 landIn = 1f;
-                lavaIn = 1f;
+                fireIn = 1f;
                 erupt();
             }
         }
         flash = Math.max(0f, flash - dt * 1.6f);
         if (boltT > 0f) boltT -= dt;
         Land l = land;
-        if (l != null && !still && activity > 0f) {
+        if (l != null && !still && activity > 0f && fireIn >= 1f) {
+            nextBomb -= dt;
+            while (nextBomb <= 0f) {
+                nextBomb += 1f / (60f * activity);
+                bomb(l, 1f, 44f);
+            }
             nextEmber -= dt;
             while (nextEmber <= 0f) {
-                nextEmber += 1f / (14f * activity);
-                boolean fromFlow = rnd.nextInt(3) == 0;
-                int k = rnd.nextInt(l.flow.length / 2);
-                float x = fromFlow ? l.flow[2 * k] : l.craterX + (rnd.nextFloat() - 0.5f) * l.craterW * 1.4f;
-                float y = fromFlow ? l.flow[2 * k + 1] : l.craterY;
-                spawn(EMBER, x - marginX, y - margin, (rnd.nextFloat() - 0.3f) * 30 * s, -(40 + rnd.nextFloat() * 80) * s,
-                        2.5f + rnd.nextFloat() * 3f, (1.2f + rnd.nextFloat() * 2.2f) * s);
+                nextEmber += 1f / (8f * activity);
+                spawn(EMBER, l.craterX - marginX + (rnd.nextFloat() - 0.5f) * l.craterW * 3f, l.craterY - margin,
+                        (rnd.nextFloat() - 0.3f) * 30 * s, -(50 + rnd.nextFloat() * 90) * s, 2.5f + rnd.nextFloat() * 3f,
+                        (1f + rnd.nextFloat() * 1.6f) * s);
             }
             if ((nextEruption -= dt * activity) <= 0f) erupt();
         }
@@ -434,11 +476,27 @@ final class Volcano implements Backdrop {
         for (int i = 0; i < PARTICLES; i++) {
             if (age[i] >= life[i]) continue;
             age[i] += dt;
+            if (kind[i] == ROLL && l != null) {
+                pvx[i] *= 1f - 0.5f * dt;
+                pvx[i] += Math.signum(pvx[i]) * 120 * s * dt;
+                float ny = ground(l, px[i] + pvx[i] * dt);
+                pvy[i] = (ny - py[i]) / Math.max(dt, 0.0001f);
+                px[i] += pvx[i] * dt;
+                py[i] = ny;
+                continue;
+            }
             if (kind[i] == EMBER) {
                 pvy[i] -= 6 * s * dt;
                 pvx[i] += ((float) Math.sin(clock * 1.3f + i) * 14f + wind * 18f) * s * dt;
             } else {
-                pvy[i] += 420 * s * dt;
+                pvy[i] += GRAVITY * s * dt;
+                if (kind[i] == BOMB && l != null && pvy[i] > 0 && py[i] >= ground(l, px[i])) {
+                    kind[i] = ROLL;
+                    float side = Math.signum(px[i] - (l.craterX - marginX));
+                    pvx[i] = side * (60 * s + Math.abs(pvx[i]) * 0.5f);
+                    life[i] = Math.min(life[i], age[i] + 1.4f + rnd.nextFloat() * 2f);
+                    continue;
+                }
             }
             if (warp > 0f) {
                 float dx = px[i] - cx, dy = py[i] - cy, d = (float) Math.sqrt(dx * dx + dy * dy) + 1f;
@@ -462,15 +520,18 @@ final class Volcano implements Backdrop {
         float top = -margin - (float) Math.floor(parY * height * FAR_Y);
         blit.setAlpha(Math.round(255 * fade));
         c.drawBitmap(l.field, left, top, blit);
-        float pulse = 0.78f + 0.12f * (float) Math.sin(clock * 1.4f) + 0.1f * Noise.fbm(clock * 0.9f, 3f, 7, 2);
-        lavaPaint.setColorFilter(new PorterDuffColorFilter(lava, PorterDuff.Mode.SRC_IN));
-        lavaPaint.setAlpha(Math.round(255 * Math.min(1f, fade * lavaIn * pulse + flash * 0.4f)));
-        rect.set(l.lavaAt);
-        rect.offset(left, top);
-        c.drawBitmap(l.lava, null, rect, lavaPaint);
         float midX = -par * width * MID, midY = -parY * height * MID_Y;
         if (previous != null && travel < 1f) drawPlume(c, previous, (1f - travel) * fade, midX, midY);
         if (look != null) drawPlume(c, look, (previous != null ? travel : 1f) * fade, midX, midY);
+        float pulse = 0.82f + 0.1f * (float) Math.sin(clock * 1.4f) + 0.08f * Noise.fbm(clock * 0.9f, 3f, 7, 2);
+        if (tinted != lava) {
+            firePaint.setColorFilter(new PorterDuffColorFilter(lava, PorterDuff.Mode.SRC_IN));
+            tinted = lava;
+        }
+        firePaint.setAlpha(Math.round(255 * Math.min(1f, fade * fireIn * pulse + flash * 0.3f)));
+        rect.set(l.fireAt);
+        rect.offset(left, top);
+        c.drawBitmap(l.fire, null, rect, firePaint);
         drawParticles(c, l, fade);
         if (boltT > 0f) drawLightning(c, l);
         precipitation.draw(c, landIn);
@@ -485,36 +546,53 @@ final class Volcano implements Backdrop {
         c.drawBitmap(k.plume, plumeMatrix, plumePaint);
     }
 
-    /** Embers cooling as they rise, bombs arcing out of the crater, and the crater's flash, in one mesh. */
+    /** Bombs as long-exposure arcs, rolling blocks streaking down the flanks, embers, and the summit's flash, in one mesh. */
     private void drawParticles(Canvas c, Land l, float fade) {
         int q = 0;
         float ox = -par * width * NEAR, oy = -parY * height * NEAR_Y;
-        int hot = Apps.mix(lava, 0xFFFFF4C8, 0.6f);
+        int hot = Apps.mix(lava, 0xFFFFF4C8, 0.6f), cool = Apps.mix(lava, 0xFF5A0A00, 0.5f);
+        float core = l.craterW * (2f + 0.25f * (float) Math.sin(clock * 7f));
+        quad(q, l.craterX - marginX - core + ox, l.craterY - margin + oy - core * 0.4f, l.craterX - marginX + core + ox,
+                l.craterY - margin + oy - core * 0.4f, core);
+        tint(q++, Apps.withAlpha(hot, Math.round(170 * fireIn * fade)));
         if (flash > 0f) {
-            float r = l.craterW * (2.5f + 3f * (1f - flash));
+            float r = l.craterW * (4f + 6f * (1f - flash));
             quad(q, l.craterX - marginX - r + ox, l.craterY - margin + oy, l.craterX - marginX + r + ox, l.craterY - margin + oy, r);
             tint(q++, Apps.withAlpha(hot, Math.round(220 * flash * fade)));
         }
         for (int i = 0; i < PARTICLES; i++) {
             if (age[i] >= life[i]) continue;
-            float u = age[i] / life[i], x = px[i] + ox, y = py[i] + oy;
-            float flicker = kind[i] == EMBER ? 0.6f + 0.4f * (float) Math.sin(clock * 9f + i * 2.3f) : 1f;
-            float r = size[i] * (kind[i] == BOMB ? 1f : 1f - 0.4f * u);
-            if (kind[i] == BOMB) {
-                quad(q, x - pvx[i] * 0.03f, y - pvy[i] * 0.03f, x, y, r);
+            float u = age[i] / life[i], x = px[i] + ox, y = py[i] + oy, r = size[i];
+            int color;
+            if (kind[i] == EMBER) {
+                float flicker = 0.6f + 0.4f * (float) Math.sin(clock * 9f + i * 2.3f);
+                quad(q, x - r, y, x + r, y, r * (1f - 0.4f * u));
+                color = Apps.withAlpha(Apps.mix(hot, cool, u), Math.round(200 * (1f - u) * flicker * fade));
+            } else if (kind[i] == BOMB) {
+                int base = Apps.mix(hot, cool, Math.min(1f, age[i] * 0.4f));
+                float g = GRAVITY * s, x0 = x, y0 = y;
+                for (int k = 1; k <= TRAIL; k++) {
+                    float tau = Math.min(age[i], k * TRAIL_T);
+                    float x1 = x - pvx[i] * tau, y1 = y - pvy[i] * tau + 0.5f * g * tau * tau;
+                    quad(q, x1, y1, x0, y0, r * 0.5f * (1f - 0.2f * k));
+                    tint(q++, Apps.withAlpha(base, Math.round(235 * (1f - (k - 1f) / TRAIL) * fade)));
+                    x0 = x1;
+                    y0 = y1;
+                }
+                continue;
             } else {
-                quad(q, x - r, y, x + r, y, r);
+                quad(q, x - pvx[i] * 0.25f, y - pvy[i] * 0.25f, x, y, r * 0.55f);
+                color = Apps.withAlpha(Apps.mix(hot, cool, 0.4f + 0.6f * u), Math.round(235 * (1f - u) * fade));
             }
-            int color = Apps.mix(hot, Apps.mix(lava, 0xFF5A0A00, 0.5f), u);
-            tint(q++, Apps.withAlpha(color, Math.round(255 * (1f - u) * flicker * fade)));
+            tint(q++, color);
         }
         if (q > 0) c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, verts, 0, texs, 0, colors, 0, indices, 0, q * 6, glow);
     }
 
-    /** A jagged bolt through the plume, gone in a blink. */
+    /** A jagged, branching bolt through the plume, gone in a blink. */
     private void drawLightning(Canvas c, Land l) {
         Random r = new Random((long) (boltT * 10));
-        float x = l.craterX - marginX + (r.nextFloat() - 0.2f) * width * 0.12f, y = l.craterY - margin - height * 0.08f;
+        float x = l.craterX - marginX + (r.nextFloat() - 0.2f) * width * 0.12f, y = l.craterY - margin - height * 0.1f;
         lightning.reset();
         lightning.moveTo(x, y);
         for (int k = 0; k < 12; k++) {
