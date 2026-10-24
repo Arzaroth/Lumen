@@ -64,6 +64,7 @@ final class Stage extends View {
     private static final int PALM = 5, BROCADE = 6, LOGO = 7;
     private static final int TWINKLE = 1, SPLIT = 2, CRACKLE = 4, TRAIL = 8, SMOKE = 16;
     private static final int SPRITE = 64;
+    private static final int GHOST_CAP = 1200;
     private static final int GLOW_QUADS = CAP + SPARKS, GHOSTS = CAP, INDEXED = Math.max(GLOW_QUADS, CAP + GHOSTS);
 
     /** A banner reduced to a lit mosaic: target cells, an 8-colour palette, and its sky. */
@@ -706,11 +707,23 @@ final class Stage extends View {
         }
     }
 
-    /** Hands every visible cell from `from` on to a ghost that drifts on and fades. */
+    /**
+     * Hands the visible cells from `from` on to ghosts that drift on and fade, thinned to GHOST_CAP:
+     * the ghosts are drawn on top of the next logo, so a scattered logo would double the mesh.
+     */
     private void ghost(int from) {
         float still = 40 * s;
+        int visible = 0;
+        for (int i = from; i < count; i++) if (pa[i] > 0.03f) visible++;
+        float keep = Math.min(1f, (float) GHOST_CAP / Math.max(1, visible)), owed = 0f;
         for (int i = from; i < count; i++) {
             if (pa[i] <= 0.03f) continue;
+            owed += keep;
+            if (owed < 1f) {
+                pa[i] = 0;
+                continue;
+            }
+            owed -= 1f;
             int g = ghostNext;
             ghostNext = (ghostNext + 1) % GHOSTS;
             hx[g] = px[i];
@@ -1529,7 +1542,7 @@ final class Stage extends View {
         for (int i = 0; i < LIGHTS; i++) if (lightLife[i] > 0) lightLife[i] -= dt * 2.2f;
         flash = Math.max(0, flash - dt * 3.2f);
         shake = Math.max(0, shake - dt);
-        chroma = Math.max(0, chroma - dt);
+        chroma = Math.max(0, chroma - dt * 2f);
     }
 
     private static float backOut(float t) {
@@ -1823,7 +1836,7 @@ final class Stage extends View {
             }
             drawRings(c);
             float fr = logo.width() * (0.45f + (1 - flash) * 0.9f);
-            drawLight(c, flashShader, null, flashX, flashY, fr, fr, flash);
+            if (flash > 0.12f) drawLight(c, flashShader, null, flashX, flashY, fr, fr, flash);
             c.restore();
         }
         if (dim < 0.999f) c.drawColor(Apps.withAlpha(0xFF000000, Math.round(255 * (1 - dim))));
