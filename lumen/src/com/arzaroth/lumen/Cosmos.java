@@ -568,7 +568,8 @@ final class Cosmos {
     /**
      * How far the sky has turned, in pixels, at the Earth's real rate (one turn per sidereal day)
      * for a view about 50 degrees wide; taken from the wall clock so it carries on across restarts.
-     * Drawn at that fractional offset, so it glides rather than stepping a pixel at a time.
+     * Drawn on whole pixels: a filtered half-pixel offset smears every one-pixel star of the field
+     * into two at half brightness, and costs a filtered full-screen pass each frame.
      */
     private double turned() {
         return turning ? Wall.millis() / 1000.0 * SIDEREAL_DEG_PER_S * width / VIEW_DEG : 0.0;
@@ -582,7 +583,7 @@ final class Cosmos {
         float left = 0f;
         if (sk != null) {
             int tw = sk.field.getWidth();
-            left = (float) (turned() % tw);
+            left = (float) Math.floor(turned() % tw);
             blit.setAlpha(Math.round(255 * fade));
             if (left > 0f) c.drawBitmap(sk.field, left - tw, 0, blit);
             if (left < width) c.drawBitmap(sk.field, left, 0, blit);
