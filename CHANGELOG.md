@@ -6,6 +6,14 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The update is written in the sky: the new version gathers out of stardust as it downloads and lights up whole when Android installs it, in place of the forge.
+
+### Fixed
+
+- The logo's animations play around the logo itself again, since logos now stand on a common floor.
+
 ## [1.1.2] - 2026-10-24
 
 ### Changed
