@@ -273,8 +273,8 @@ final class Volcano implements Backdrop {
         float[] fxs = new float[20], fys = new float[20];
         for (int k = 0; k < 20; k++) {
             float step = k / 19f;
-            fxs[k] = cx + crater * 0.3f + w * 0.07f * step + w * 0.018f * (Noise.fbm(step * 4f, 2f, 113, 3) - 0.5f) * 2f;
-            fys[k] = cy + h * 0.025f + (base - cy - h * 0.09f) * step;
+            fxs[k] = cx + crater * 0.3f + w * 0.05f * step + w * 0.012f * (Noise.fbm(step * 2f, 2f, 113, 2) - 0.5f) * 2f;
+            fys[k] = cy + h * 0.025f + h * 0.2f * step;
             flow[2 * k] = fxs[k];
             flow[2 * k + 1] = fys[k];
         }
@@ -282,18 +282,18 @@ final class Volcano implements Backdrop {
         p.setStrokeCap(Paint.Cap.ROUND);
         for (int k = 1; k < 20; k++) {
             float taper = 1f - 0.7f * k / 19f;
-            p.setColor(0x30FFFFFF);
-            p.setStrokeWidth(h * 0.03f * taper);
+            p.setColor(0x40FFFFFF);
+            p.setStrokeWidth(h * 0.024f * taper);
             m.drawLine(fxs[k - 1], fys[k - 1], fxs[k], fys[k], p);
-            p.setColor(Color.argb(Math.round(220 * taper), 255, 255, 255));
-            p.setStrokeWidth(h * 0.007f * taper + 1f);
+            p.setColor(Color.argb(Math.round(190 * taper), 255, 255, 255));
+            p.setStrokeWidth(h * 0.006f * taper + 1f);
             m.drawLine(fxs[k - 1], fys[k - 1], fxs[k], fys[k], p);
         }
         float bx = fxs[7], by = fys[7];
         for (int k = 1; k < 9; k++) {
             float step = k / 8f;
-            float nx = fxs[7] - w * 0.05f * step + w * 0.008f * (Noise.fbm(step * 5f, 4f, 117, 2) - 0.5f) * 2f, ny = fys[7] + h * 0.16f * step;
-            p.setColor(Color.argb(Math.round(150 * (1f - 0.7f * step)), 255, 255, 255));
+            float nx = fxs[7] - w * 0.025f * step + w * 0.008f * (Noise.fbm(step * 5f, 4f, 117, 2) - 0.5f) * 2f, ny = fys[7] + h * 0.09f * step;
+            p.setColor(Color.argb(Math.round(120 * (1f - 0.7f * step)), 255, 255, 255));
             p.setStrokeWidth(h * 0.004f * (1f - 0.6f * step) + 1f);
             m.drawLine(bx, by, nx, ny, p);
             bx = nx;
