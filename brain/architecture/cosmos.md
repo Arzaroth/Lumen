@@ -49,9 +49,9 @@ that fly outward (`warpTravel` builds while the warp is on), faster the nearer a
 they are; as the warp eases off they keep flying while they fade and the resting stars fade back in.
 Nothing is pulled back.
 
-## Theme
+## Look
 
-`Cosmos.theme` picks, per app, a radiant, a meteor rate and tint and an airglow hue chosen to stand
+`Cosmos.look` (the `Backdrop.look` of Space) picks, per app, a radiant, a meteor rate and tint and an airglow hue chosen to stand
 apart from the logo's dominant hue, and generates the nebula.
 
 ## Motion

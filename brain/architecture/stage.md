@@ -8,7 +8,7 @@ an entrance, a hold and an exit, never the same kind twice in a row.
 `setScene` builds (or takes from the cache) a `Mosaic` on a background handler: the banner is cut
 into cells kept by **coverage** (enough foreground pixels) and coloured by those pixels alone, so
 thin wordmarks stay whole; up to `CAP` (4000) cells, shuffled so caps thin evenly. A mosaic also
-carries the spark palette and the app's sky `Theme`. `apply` hands it to the cycle; `adopt` takes it
+carries the spark palette and the app's `Backdrop.Look`, built by the theme's backdrop. `apply` hands it to the cycle; `adopt` takes it
 at the next entrance.
 
 ## The floor and the art
