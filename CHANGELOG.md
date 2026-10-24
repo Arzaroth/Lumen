@@ -8,6 +8,7 @@ All notable changes to Lumen are recorded here. The format follows
 
 ### Added
 
+- The update burns in a forge: the new version stands in iron and fills with fire as it downloads, blazes white and throws out a pair of burning wings when Android installs it, and cools to ash if it fails.
 - Parallax: the sky slides gently as the focus moves along the apps, the Milky Way least, the nebula more, the bright stars and meteors most. On by default, under Settings, Lumen settings, Sky.
 
 ### Changed
