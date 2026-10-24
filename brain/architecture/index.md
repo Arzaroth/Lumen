@@ -9,7 +9,7 @@ picture, then jump to the layer you need. Back to the root map: [../BRAIN.md](..
 | [stage.md](stage.md) | Mosaics, the enter/hold/exit cycle, sparks, rings, ghosts, the floor, meshes | Stage, Mosaic, adopt, ghost, emit, RAY, buildMeshes, floorY, art |
 | [cosmos.md](cosmos.md) | Baked field, live stars, nebula with airglow, meteors, satellites, parallax, rotation | Cosmos, Sky, Theme, nebula, airglow, setParallax, turned, margin |
 | [themes.md](themes.md) | The Theme, Backdrop and Palette interfaces, the registry, the plan to community themes | Theme, Backdrop, Palette, Themes, SpaceTheme, VolcanoTheme, setTheme |
-| [volcano.md](volcano.md) | The volcanic night: baked land, lava mask, plume, embers, eruptions, its palette | Volcano, lava, plume, ember, eruption, PALETTE |
+| [volcano.md](volcano.md) | The eruption at dusk: baked land and sea, fire mask, plume, bomb fountain, rockfall, eruptions, its palette | Volcano, fire, plume, bomb, ember, eruption, PALETTE |
 | [gpu-budget.md](gpu-budget.md) | Frame costs per layer on the TV, the measuring method, the rules | gfxinfo, framestats, GpuCompleted, CLIENT composition, perf.py |
 | [menus.md](menus.md) | The glass dropdown: pages, rows, questions, navigation, in-place refresh | Menu, Page, Row, swap, showing, LumenSettings |
 | [tv-scripts.md](tv-scripts.md) | backup, disable, install, restore; the Home guard; what must never be disabled | install.sh, restore.sh, disable.sh, launcherx, setupwraith |

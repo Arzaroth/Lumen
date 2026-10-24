@@ -36,7 +36,7 @@ docs. Don't grep the whole tree; use the indexes.
 | [stage.md](architecture/stage.md) | The voxel logo: mosaics, the enter/hold/exit cycle, sparks, ghosts, meshes. |
 | [cosmos.md](architecture/cosmos.md) | The sky: baked field, live stars, per-app nebula and airglow, meteors, parallax, rotation. |
 | [themes.md](architecture/themes.md) | Themes: the Theme, Backdrop and Palette interfaces, how to write one, the plan to a store. |
-| [volcano.md](architecture/volcano.md) | The Volcanoes backdrop: baked land, lava mask, per-app plume, embers and eruptions. |
+| [volcano.md](architecture/volcano.md) | The Volcanoes backdrop: dusk land and sea, fire mask, per-app plume, bomb fountain and eruptions. |
 | [gpu-budget.md](architecture/gpu-budget.md) | What a frame costs on the TV, how to measure it, the rules that keep it smooth. |
 | [menus.md](architecture/menus.md) | The glass dropdown, its pages and rows, navigation. |
 | [tv-scripts.md](architecture/tv-scripts.md) | Backup, debloat, install, restore: the safety rules and the Home guard. |

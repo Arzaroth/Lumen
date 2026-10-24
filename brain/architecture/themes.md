@@ -25,7 +25,7 @@ of. Lumen settings › Theme picks one; it is kept by id (`theme` in the prefere
 | Theme | Backdrop | Palette |
 |---|---|---|
 | Space | `Cosmos` ([cosmos.md](cosmos.md)) | `Palette.SPACE`: white and gold, cold blue glow |
-| Volcanoes | `Volcano` ([volcano.md](volcano.md)) | `Volcano.PALETTE`: embers, white-hot to deep orange |
+| Volcanoes | `Volcano` ([volcano.md](volcano.md)): an eruption at dusk over the sea | `Volcano.PALETTE`: embers, white-hot to deep orange |
 
 ## Where it is going
 
