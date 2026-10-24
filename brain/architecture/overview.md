@@ -32,7 +32,7 @@ title, the clock and date accent, the stage's scene and the parallax.
 ## State
 
 All in the `lumen` shared preferences: the settings (keys in `Prefs`), `focus` (last focused app),
-`order` (tile order), `doots_off`, the intro's boot id, and `relaunch_at` during an update.
+`order` (tile order), `habits` (launch scores), `doots_off`, the intro's boot id, and `relaunch_at` during an update.
 
 ## Sources
 

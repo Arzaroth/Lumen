@@ -12,6 +12,7 @@ in code, docs and commits; the **Avoid** list names the synonyms that blur it.
 - **Grid** - every app below the dock, reached with Down; the content scrolls up like tvOS.
   Avoid: drawer, all-apps screen.
 - **Tile** - one app's banner in the dock or grid. Avoid: card, icon.
+- **Habits** - the launch scores behind the "Most used" order, decaying by half each week.
 - **Pill** - one of the frosted buttons in the top bar: Inputs, network, Settings.
 - **Stage** - the empty middle of Home where the focused app's logo plays. See
   [architecture/stage.md](architecture/stage.md).

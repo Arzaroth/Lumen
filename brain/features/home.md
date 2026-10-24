@@ -10,6 +10,10 @@
   once and fades out in the grid.
 - **Focus**: Up/Down move exactly one row, Up from the dock reaches the top bar pills, Back returns
   to the dock, Home always lands on the dock. The last focused app is remembered (`focus`).
+- **Order** (Lumen settings › Home screen, Manual by default): "Most used" sorts the apps by
+  `Habits`, a score per package that gains a point at each launch from Lumen (tiles, the Inputs
+  menu, the remote's app buttons) and halves every week. The dock is re-sorted when you come back
+  Home, the focus staying on its app. Rearranging switches back to Manual, keeping the order shown.
 - **Rearranging**: long-press OK (or Menu), arrows move the tile, OK saves the order (`order`);
   Settings › Lumen settings › Home screen › Reset tile order undoes it.
 - Each focus change sets the stage's scene, the clock and date accent and the sky's parallax.
