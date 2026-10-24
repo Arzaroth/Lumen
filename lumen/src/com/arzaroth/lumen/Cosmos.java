@@ -29,7 +29,7 @@ final class Cosmos {
     private static final float TRAVEL_T = 1.2f, NOVA_T = 9f;
     private static final double SIDEREAL_DEG_PER_S = 360.0 / 86164.0905, VIEW_DEG = 50.0;
     /** How far each layer slides, as a share of the width, at full parallax: the Milky Way, the nebula, the bright stars and meteors. */
-    private static final float FAR = 0.005f, MID = 0.011f, NEAR = 0.018f;
+    private static final float FAR = 0.012f, MID = 0.026f, NEAR = 0.042f;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
     private static final int NEB_W = 400, NEB_H = 225;
 
@@ -630,7 +630,7 @@ final class Cosmos {
     private void drawNebula(Canvas c, Bitmap nebula, float alpha, float shift) {
         if (nebula == null || alpha <= 0.01f || width == 0) return;
         float sx = (float) width / NEB_W, sy = (float) height / NEB_H;
-        float zoom = 1.06f + 0.03f * (float) Math.sin(drift * 0.013f);
+        float zoom = 1.12f + 0.03f * (float) Math.sin(drift * 0.013f);
         float ox = (float) Math.sin(drift * 0.021f) * width * 0.015f, oy = (float) Math.cos(drift * 0.017f) * height * 0.012f;
         nebulaMatrix.setScale(sx * zoom, sy * zoom);
         nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox + shift, -(zoom - 1) * height / 2 + oy);
