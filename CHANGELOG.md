@@ -6,10 +6,6 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- Lumen settings › Theme › Volcanoes: a volcano erupting at dusk over the sea behind the logo, its fire in each app's colour: a glowing column mirrored in the water, a fountain of lava bombs arcing out and rolling down the slopes, an ash plume, and eruptions with lightning; the clock, the logo's sparks, the update and the screensaver turn to embers with it. Space stays the default.
-
 ## [1.6.0] - 2026-10-24
 
 ### Added

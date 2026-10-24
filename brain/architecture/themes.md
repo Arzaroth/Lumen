@@ -25,23 +25,25 @@ of. Lumen settings › Theme picks one; it is kept by id (`theme` in the prefere
 | Theme | Backdrop | Palette |
 |---|---|---|
 | Space | `Cosmos` ([cosmos.md](cosmos.md)) | `Palette.SPACE`: white and gold, cold blue glow |
-| Volcanoes | `Volcano` ([volcano.md](volcano.md)): an eruption at dusk over the sea | `Volcano.PALETTE`: embers, white-hot to deep orange |
 
 ## Where it is going
 
 1. The interfaces, with Space on them unchanged. (Done.)
-2. A volcano backdrop: a volcanic night landscape, lava and a lit plume, embers instead of meteors,
-   its own intro, hyperspace and weather. (Done.)
-3. Every other surface themed: the clock, date and update particles, the logo's sparks, the glow
+2. Every other surface themed: the clock, date and update particles, the logo's sparks, the glow
    colours, the screensaver. (Done, through `Palette`.)
-4. Declarative packs: a JSON manifest and images on a generic layered backdrop engine, loaded from
+3. Declarative packs: a JSON manifest and images on a generic layered backdrop engine, loaded from
    files, with an author's guide.
-5. Code plugins: a theme from a separate APK, behind an explicit switch, since its code runs inside
+4. Code plugins: a theme from a separate APK, behind an explicit switch, since its code runs inside
    Home. Then a theme store.
 
 Every theme must fit the GPU budget ([gpu-budget.md](gpu-budget.md)).
 
+A volcano theme was built on these interfaces in October 2026 (an eruption at dusk after Anak
+Krakatau, procedural) and dropped: realism out of noise and strokes never got past looking cheap.
+It is in git history (`Volcano.java`, removed after `1b66561`) for anyone who wants to try a
+landscape backdrop again; a photographic base is the route it did not take.
+
 ## Sources
 
-- `lumen/src/com/arzaroth/lumen/Theme.java`, `Backdrop.java`, `Palette.java`, `Themes.java`, `SpaceTheme.java`, `VolcanoTheme.java`, `Stage.java` (`setTheme`), `LumenSettings.java` (`themeChoice`)
+- `lumen/src/com/arzaroth/lumen/Theme.java`, `Backdrop.java`, `Palette.java`, `Themes.java`, `SpaceTheme.java`, `Precipitation.java`, `Noise.java`, `Stage.java` (`setTheme`), `LumenSettings.java` (`themeChoice`)
 - `lumen/test/com/arzaroth/lumen/ThemesTest.java`, `StageTest.java` (`Plain`)
