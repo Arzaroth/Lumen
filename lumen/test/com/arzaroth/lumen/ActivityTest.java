@@ -181,6 +181,10 @@ public class ActivityTest {
         assertEquals(-1f, Robo.<Float>get(cosmos, "parTarget"), 0f);
         for (int i = 0; i < 4; i++) key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
         assertEquals(1f, Robo.<Float>get(cosmos, "parTarget"), 0f);
+        assertEquals(0f, Robo.<Float>get(cosmos, "parYTarget"), 0f);
+        key(a, KeyEvent.KEYCODE_DPAD_DOWN);
+        assertEquals(1f, Robo.<Float>get(cosmos, "parYTarget"), 0f);
+        key(a, KeyEvent.KEYCODE_DPAD_UP);
         a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE).edit().putInt(Prefs.PARALLAX, 1).commit();
         a.applySettings();
         assertEquals(0f, Robo.<Float>get(cosmos, "parTarget"), 0f);
