@@ -53,7 +53,7 @@ public class ActivityTest {
 
     static void apps(int n) {
         String[] pkgs = new String[n];
-        for (int i = 0; i < n; i++) pkgs[i] = i == 0 ? "com.netflix.ninja" : i == 1 ? "com.android.tv.settings" : "org.example.app" + i;
+        for (int i = 0; i < n; i++) pkgs[i] = i == 0 ? "com.netflix.ninja" : "org.example.app" + i;
         AppsTest.install(pkgs);
     }
 

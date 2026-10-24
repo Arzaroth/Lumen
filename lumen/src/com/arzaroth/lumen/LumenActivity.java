@@ -63,7 +63,6 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             "com.google.android.youtube.tvmusic",
             "com.android.vending",
             "com.android.tv");
-    private static final List<String> LAST = Arrays.asList("com.android.tv.settings");
 
     private final ArrayList<AppEntry> apps = new ArrayList<>();
     private final ArrayList<Tile> tiles = new ArrayList<>();
@@ -523,7 +522,6 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         String pkg = a.component.getPackageName();
         int p = PREFERRED.indexOf(pkg);
         if (p >= 0) return p;
-        if (LAST.contains(pkg)) return 10_000;
         return 1_000;
     }
 

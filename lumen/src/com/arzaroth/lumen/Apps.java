@@ -15,11 +15,16 @@ import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 final class Apps {
     static final int NEUTRAL = 0xFF8FA6C8;
+
+    /** Apps Home leaves out of the dock and grid: the top bar already opens them. */
+    private static final Set<String> HIDDEN = new HashSet<>(Arrays.asList("com.android.tv.settings"));
 
     private Apps() {}
 
@@ -31,7 +36,7 @@ final class Apps {
         HashSet<String> seen = new HashSet<>();
         for (ResolveInfo ri : found) {
             ActivityInfo ai = ri.activityInfo;
-            if (ai == null || ai.packageName.equals(c.getPackageName())) continue;
+            if (ai == null || ai.packageName.equals(c.getPackageName()) || HIDDEN.contains(ai.packageName)) continue;
             ComponentName cn = new ComponentName(ai.packageName, ai.name);
             if (!seen.add(cn.flattenToShortString())) continue;
             Drawable banner = bannerOf(pm, cn);
