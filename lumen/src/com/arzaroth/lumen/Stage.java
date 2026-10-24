@@ -909,13 +909,13 @@ final class Stage extends View {
             vy[i] = dy / d * v * 0.8f + (rnd.nextFloat() - 0.5f) * 160 * unit - 140 * unit;
             loose[i] = true;
         }
-        for (int i = 0; i < 170; i++) {
+        for (int i = 0; i < 120; i++) {
             float a = rnd.nextFloat() * 6.2832f;
             float v = (500 + rnd.nextFloat() * 1500) * unit;
             spark(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.75f, 0.3f + rnd.nextFloat() * 0.7f, 2.4f,
                     380 * unit, rnd.nextInt(3) == 0 ? 0 : 1 + rnd.nextInt(SPARK_COLORS - 1));
         }
-        for (int i = 0; i < 46; i++) {
+        for (int i = 0; i < 30; i++) {
             float a = -1.5708f + (rnd.nextFloat() - 0.5f) * 2.4f;
             float v = (90 + rnd.nextFloat() * 340) * unit;
             spark(cx + (rnd.nextFloat() - 0.5f) * logo.width() * 0.5f, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v,
@@ -932,7 +932,7 @@ final class Stage extends View {
     }
 
     private void supernova(float cx, float cy) {
-        for (int i = 0; i < 240; i++) {
+        for (int i = 0; i < 160; i++) {
             float a = rnd.nextFloat() * 6.2832f;
             float v = (300 + rnd.nextFloat() * 1700) * unit;
             emit(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.62f, 0.4f + rnd.nextFloat() * 0.6f, 1.2f,
