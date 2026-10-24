@@ -6,6 +6,16 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- On an app switch, the new logo materialises out of its tile's banner and flies up into place.
+- Lumen settings › Sky › Nebula turns the nebula off, keeping the glow on the horizon.
+
+### Fixed
+
+- Hyperspace's stars fly out past the edges of the screen instead of freezing as streaks and pulling back.
+- The converging entrance comes in from around the logo instead of flying back from where an exit left it.
+
 ## [1.2.2] - 2026-10-24
 
 ### Fixed

@@ -6,6 +6,7 @@
 - **Parallax**: the sky's layers slide as the focus moves along the dock and down the rows; on by
   default.
 - Each app also gets its own nebula and airglow tint; they cross-fade on an app switch.
+- **Nebula**: on by default; off keeps only the airglow on the horizon.
 
 The machinery is in [../architecture/cosmos.md](../architecture/cosmos.md).
 

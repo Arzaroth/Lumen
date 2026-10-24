@@ -15,6 +15,16 @@ The night sky behind the logo.
    (harder near the horizon); one may flare as a nova. Plus sprite glints.
 4. **Meteors** from the theme's radiant, satellites and the odd satellite train.
 
+With the nebula turned off (`setNebula`), each theme's `glow` bitmap (the airglow alone, same size)
+is drawn in its place, so the horizon keeps its glow at the same cost.
+
+## Hyperspace
+
+`setWarp` (from the stage's hyperspace exit) dims the sky and turns the bright stars into streaks
+that fly outward (`warpTravel` builds while the warp is on), faster the nearer and the further out
+they are; as the warp eases off they keep flying while they fade and the resting stars fade back in.
+Nothing is pulled back.
+
 ## Theme
 
 `Cosmos.theme` picks, per app, a radiant, a meteor rate and tint and an airglow hue chosen to stand

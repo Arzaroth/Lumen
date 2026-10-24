@@ -68,7 +68,10 @@ uninstalled system app does not. See [architecture/tv-scripts.md](architecture/t
 
 - Logos stand on a common floor (bottom-aligned in their box) so the line under them stays put;
   animations centre on the logo's own cells (`art`), not the box.
-- Explosion rays barely brake and fade by age: rays that decelerated to a stop read as a bug.
+- Explosion rays barely brake and fade by age: rays that decelerated to a stop read as a bug. For
+  the same reason entrances never overshoot (`settle`, not a back-out curve), converge never flies
+  cells back from where an exit left them, and hyperspace's star streaks fly away instead of
+  retracting.
 - The update screen is drawn in Lumen's own language (stardust, thin Outfit, the sky behind) after a
   fiery "forge" version clashed with the rest.
 - A scattered logo leaves at most 1200 ghosts: they draw on top of the next logo and doubled the mesh.

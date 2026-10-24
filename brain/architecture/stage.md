@@ -24,7 +24,12 @@ vortex, the core light, the 3D projection, the print beam) uses `art`, never the
   ripple, show (fireworks only), storm, flag, spin. Exits `X_*`: detonate, vortex, dust, melt,
   glitch, launch (fireworks only), hyperspace, zoom, shatter. Lists per style and pace
   (`COSMOS_*`, `FIREWORK_*`, `CALM_*`, `QUICK_EXITS` for app switches).
-- Switching apps mid-cycle speeds the current exit up (`speed`) or starts a quick one.
+- Switching apps mid-cycle speeds the current exit up (`speed`) or starts a quick one. When the
+  activity passes the focused tile's banner (`setScene(app, animate, banner)`), the next entrance is
+  `E_TILE`: each cell starts white-hot at its spot on the banner (`source`, minus the floor `lift`)
+  and glides up on an arc into place.
+- Entrances ease with `settle` (exponential, no overshoot). Converge restarts any hidden or faded
+  cell from a ring around the logo.
 - `ghost` hands the old logo's visible cells to fading ghosts, thinned to `GHOST_CAP` (1200).
 
 ## Effects
