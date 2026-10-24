@@ -6,6 +6,15 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Lumen settings are grouped into Sky, Home screen, Remote, Boot intro and Advanced settings.
+- Advanced settings checks for an update each time it opens.
+
+### Fixed
+
+- With Sky rotation on, the stars no longer dim every few seconds and the sky no longer slows the frame.
+
 ## [1.1.0] - 2026-10-24
 
 ### Added
