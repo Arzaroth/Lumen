@@ -30,6 +30,8 @@ final class Cosmos {
     private static final double SIDEREAL_DEG_PER_S = 360.0 / 86164.0905, VIEW_DEG = 50.0;
     /** How far each layer slides, as a share of the width, at full parallax: the Milky Way, the nebula, the bright stars and meteors. */
     private static final float FAR = 0.012f, MID = 0.026f, NEAR = 0.042f;
+    /** The same depths up and down, as a share of the height; the field is baked this much taller above and below. */
+    private static final float FAR_Y = 0.012f, MID_Y = 0.026f, NEAR_Y = 0.042f;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
     private static final int NEB_W = 400, NEB_H = 225;
 
@@ -76,7 +78,8 @@ final class Cosmos {
     private Shader glowNow, glowBefore;
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
     private boolean still, turning;
-    private float par, parTarget;
+    private float par, parTarget, parY, parYTarget, liveTop;
+    private int margin;
 
     private final float[] liveRate = new float[LIVE], livePhase = new float[LIVE], liveBirth = new float[LIVE], liveAmp = new float[LIVE];
     private int nova = -1;
@@ -152,7 +155,12 @@ final class Cosmos {
         if (w == width && h == height) return;
         width = w;
         height = h;
-        new Thread(() -> sky = sky(w, h), "lumen-sky").start();
+        int m = (int) Math.ceil(h * FAR_Y) + 1;
+        new Thread(() -> {
+            Sky made = sky(w, h + 2 * m);
+            margin = m;
+            sky = made;
+        }, "lumen-sky").start();
         if (theme != null) glowNow = airglow(theme);
     }
 
@@ -420,9 +428,13 @@ final class Cosmos {
         meteors = rate;
     }
 
-    /** Where the eye looks across the sky, from -1 (far left) to 1; the layers glide there at their depths. */
-    void setParallax(float x) {
+    /**
+     * Where the eye looks across the sky, from -1 (far left) to 1, and down it, from 0 (level) to 1;
+     * the layers glide there at their depths.
+     */
+    void setParallax(float x, float y) {
         parTarget = Math.max(-1f, Math.min(1f, x));
+        parYTarget = Math.max(0f, Math.min(1f, y));
     }
 
     /** Turns the sky with the Earth, or holds it still. */
@@ -432,7 +444,7 @@ final class Cosmos {
 
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
     boolean moving() {
-        if (introT >= 0f || !still || par != parTarget || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
+        if (introT >= 0f || !still || par != parTarget || parY != parYTarget || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
         for (int i = 0; i < METEORS; i++) if (mAge[i] < mLife[i]) return true;
         return false;
     }
@@ -482,8 +494,11 @@ final class Cosmos {
 
     void update(float dt) {
         clock += dt;
-        par += (parTarget - par) * (1f - (float) Math.exp(-dt * 3.5f));
+        float glide = 1f - (float) Math.exp(-dt * 3.5f);
+        par += (parTarget - par) * glide;
         if (Math.abs(parTarget - par) < 0.0005f) par = parTarget;
+        parY += (parYTarget - parY) * glide;
+        if (Math.abs(parYTarget - parY) < 0.0005f) parY = parYTarget;
         if (!still) drift += dt;
         if (introT >= 0f) {
             introT += dt;
@@ -596,13 +611,15 @@ final class Cosmos {
             double turn = turned();
             left = (float) Math.floor(wrap(turn - par * width * FAR, tw));
             near = (float) wrap(turn - par * width * NEAR, tw);
+            float top = -margin - (float) Math.floor(parY * height * FAR_Y);
+            liveTop = -margin - parY * height * NEAR_Y;
             blit.setAlpha(Math.round(255 * fade));
-            if (left > 0f) c.drawBitmap(sk.field, left - tw, 0, blit);
-            if (left < width) c.drawBitmap(sk.field, left, 0, blit);
+            if (left > 0f) c.drawBitmap(sk.field, left - tw, top, blit);
+            if (left < width) c.drawBitmap(sk.field, left, top, blit);
         }
-        float mid = -par * width * MID;
-        if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade, mid);
-        if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade, mid);
+        float mid = -par * width * MID, midY = -parY * height * MID_Y;
+        if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade, mid, midY);
+        if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade, mid, midY);
         if (glowBefore != null && travel < 1f) {
             glowPaint.setShader(glowBefore);
             glowPaint.setAlpha(Math.round(255 * (1 - travel)));
@@ -616,7 +633,7 @@ final class Cosmos {
         if (sk != null) drawLive(c, sk, near, fade);
         drawSprites(c, sk, near);
         c.save();
-        c.translate(-par * width * NEAR, 0);
+        c.translate(-par * width * NEAR, -parY * height * NEAR_Y);
         drawTrails(c);
         c.restore();
     }
@@ -627,13 +644,13 @@ final class Cosmos {
     }
 
     /** The nebula, drifting and breathing very slowly. */
-    private void drawNebula(Canvas c, Bitmap nebula, float alpha, float shift) {
+    private void drawNebula(Canvas c, Bitmap nebula, float alpha, float shift, float shiftY) {
         if (nebula == null || alpha <= 0.01f || width == 0) return;
         float sx = (float) width / NEB_W, sy = (float) height / NEB_H;
         float zoom = 1.12f + 0.03f * (float) Math.sin(drift * 0.013f);
         float ox = (float) Math.sin(drift * 0.021f) * width * 0.015f, oy = (float) Math.cos(drift * 0.017f) * height * 0.012f;
         nebulaMatrix.setScale(sx * zoom, sy * zoom);
-        nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox + shift, -(zoom - 1) * height / 2 + oy);
+        nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox + shift, -(zoom - 1) * height / 2 + oy + shiftY);
         nebulaPaint.setAlpha(Math.round(255 * alpha));
         c.drawBitmap(nebula, nebulaMatrix, nebulaPaint);
     }
@@ -653,7 +670,7 @@ final class Cosmos {
         for (int i = 0; i < n; i++) {
             float x = screenX(sk, i, left);
             if (Float.isNaN(x)) continue;
-            float y = sk.y[i], b = sk.b[i];
+            float y = sk.y[i] + liveTop, b = sk.b[i];
             float depth = 0.3f + 0.7f * y / height;
             float scint = still ? 1f : 1f + liveAmp[i] * depth * (0.6f * (float) Math.sin(clock * liveRate[i] + livePhase[i])
                     + 0.4f * (float) Math.sin(clock * liveRate[i] * 1.7f + livePhase[i] * 3f));
@@ -686,7 +703,7 @@ final class Cosmos {
         for (int i = 0; i < bright; i++) {
             float x = screenX(sk, i, left);
             if (Float.isNaN(x)) continue;
-            float y = sk.y[i], z = Math.min(1f, sk.b[i] / 1.2f);
+            float y = sk.y[i] + liveTop, z = Math.min(1f, sk.b[i] / 1.2f);
             float depth = 0.3f + 0.7f * y / height;
             float scint = still ? 0.85f : 0.85f + 0.15f * liveAmp[i] * depth * 2f * (float) Math.sin(clock * liveRate[i] + livePhase[i]);
             float size = (1.6f + 3.6f * z) * s;
@@ -720,7 +737,7 @@ final class Cosmos {
             float x = screenX(sk, nova, left), g = novaGlow();
             if (!Float.isNaN(x)) {
                 float r = (6f + 22f * g) * s;
-                quad(spriteV, q, x - r, sk.y[nova], x + r, sk.y[nova], r, r, 0);
+                quad(spriteV, q, x - r, sk.y[nova] + liveTop, x + r, sk.y[nova] + liveTop, r, r, 0);
                 tint(spriteC, q++, Apps.withAlpha(0xFFFFF2E6, Math.round(200 * g * skyIn)));
             }
         }

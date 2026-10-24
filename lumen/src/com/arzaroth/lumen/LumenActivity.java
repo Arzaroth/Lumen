@@ -211,7 +211,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
         stage.setSkyStill(backdrop == 2);
         stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
-        if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index));
+        if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index), parallaxDownOf(index));
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
         stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
         stage.setFlat(prefs.getInt(Prefs.LOGO, 0) == 1);
@@ -564,7 +564,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             clock.setAccent(t.app.accent);
             date.setAccent(t.app.accent);
             stage.setScene(t.app, animate);
-            stage.setParallax(parallaxOf(index));
+            stage.setParallax(parallaxOf(index), parallaxDownOf(index));
             if (index < COLS) lastDockIndex = index;
         } else {
             highlight.show(false, animate);
@@ -577,6 +577,13 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         int cols = Math.min(COLS, tiles.size());
         if (cols < 2 || prefs.getInt(Prefs.PARALLAX, 0) != 0) return 0f;
         return 2f * (i % COLS) / (cols - 1) - 1f;
+    }
+
+    /** The focused row, from 0 on the dock to 1 on the last row of apps; 0 with parallax off. */
+    private float parallaxDownOf(int i) {
+        int last = (tiles.size() - 1) / COLS;
+        if (last < 1 || prefs.getInt(Prefs.PARALLAX, 0) != 0) return 0f;
+        return (float) (i / COLS) / last;
     }
 
     private void setTitle(final AppEntry app, boolean animate) {

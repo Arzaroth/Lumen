@@ -302,9 +302,9 @@ final class Stage extends View {
         cosmos.setTurning(on);
     }
 
-    /** The sky's parallax, from -1 (looking left) to 1. */
-    void setParallax(float x) {
-        cosmos.setParallax(x);
+    /** The sky's parallax, from -1 (looking left) to 1, and from 0 (level) to 1 (looking down). */
+    void setParallax(float x, float y) {
+        cosmos.setParallax(x, y);
         if (running) postInvalidateOnAnimation();
     }
 
