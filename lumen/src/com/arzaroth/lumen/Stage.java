@@ -308,6 +308,11 @@ final class Stage extends View {
         cosmos.setTurning(on);
     }
 
+    void setWeather(float clouds, float rain, float snow) {
+        cosmos.setWeather(clouds, rain, snow);
+        if (running) postInvalidateOnAnimation();
+    }
+
     void setNebula(boolean on) {
         cosmos.setNebula(on);
         invalidate();

@@ -86,6 +86,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private boolean moving, longFired, firstLayout = true;
     private SharedPreferences prefs;
     private LumenSettings settings;
+    private Weather weather;
+    private String temperature;
     private Ascent ascent;
     private View more;
     private boolean moreShown;
@@ -116,6 +118,11 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         prefs = getSharedPreferences("lumen", MODE_PRIVATE);
         restoreKey = prefs.getString("focus", null);
         settings = new LumenSettings(this, this, prefs);
+        weather = new Weather(this, prefs, now -> {
+            temperature = Weather.temperature(now.celsius, Locale.getDefault());
+            stage.setWeather(now.clouds, now.rain, now.snow);
+            updateClock();
+        });
         measure();
         buildViews();
         applySettings();
@@ -171,6 +178,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         clock.setRunning(true);
         date.setRunning(true);
         stage.setRunning(true);
+        weather.setOn(prefs.getInt(Prefs.WEATHER, 0) == 1);
         if (prefs.getInt(Prefs.ORDER, 0) == 1) reorder();
     }
 
@@ -181,6 +189,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         clock.setRunning(false);
         date.setRunning(false);
         stage.setRunning(false);
+        weather.setOn(false);
         if (zone == ZONE_TILES && index < tiles.size()) {
             prefs.edit().putString("focus", tiles.get(index).app.key()).apply();
         }
@@ -218,6 +227,12 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setSkyStill(backdrop == 2);
         stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
         stage.setNebula(prefs.getInt(Prefs.NEBULA, 0) == 0);
+        boolean outside = prefs.getInt(Prefs.WEATHER, 0) == 1;
+        weather.setOn(outside && resumed);
+        if (!outside) {
+            temperature = null;
+            stage.setWeather(0f, 0f, 0f);
+        }
         reorder();
         if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index), parallaxDownOf(index));
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
@@ -889,7 +904,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         int format = prefs.getInt(Prefs.CLOCK, 0);
         boolean h24 = format == 0 ? DateFormat.is24HourFormat(this) : format == 1;
         clock.setFormat(h24);
-        date.setText(DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), now));
+        CharSequence day = DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), now);
+        date.setText(temperature == null ? day : day + "  \u00b7  " + temperature);
     }
 
     private void watchNetwork() {

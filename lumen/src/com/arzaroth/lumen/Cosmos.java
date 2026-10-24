@@ -33,6 +33,8 @@ final class Cosmos {
     private static final float FAR_Y = 0.012f, MID_Y = 0.026f, NEAR_Y = 0.042f;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
     private static final int NEB_W = 400, NEB_H = 225;
+    /** Rain streaks or snowflakes at full strength. */
+    private static final int PRECIP = 240;
     /** How far the nebula is zoomed in at rest, so its edges stay off screen as it drifts and slides. */
     private static final float NEB_ZOOM = 1.12f;
 
@@ -81,6 +83,11 @@ final class Cosmos {
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
     private boolean still, turning, nebulaOn = true;
     private float par, parTarget, parY, parYTarget, liveTop, warpTravel;
+    private float clouds, cloudsTarget, rain, rainTarget, snow, snowTarget;
+    private final float[] dropX = new float[PRECIP], dropY = new float[PRECIP], dropS = new float[PRECIP];
+    private final float[] dropV = new float[PRECIP * 8], dropT = new float[PRECIP * 8];
+    private final int[] dropC = new int[PRECIP * 4];
+    private boolean dropsPlaced;
     private int margin;
 
     private final float[] liveRate = new float[LIVE], livePhase = new float[LIVE], liveBirth = new float[LIVE], liveAmp = new float[LIVE];
@@ -117,6 +124,12 @@ final class Cosmos {
         spritePaint.setXfermode(add);
         addPaint.setXfermode(add);
 
+        for (int q = 0; q < PRECIP; q++) {
+            dropT[q * 8 + 2] = SPRITE;
+            dropT[q * 8 + 4] = SPRITE;
+            dropT[q * 8 + 5] = SPRITE;
+            dropT[q * 8 + 7] = SPRITE;
+        }
         for (int q = 0; q < INDEXED; q++) {
             int v = q * 4, t = q * 8, i = q * 6;
             if (q < QUADS) {
@@ -463,6 +476,16 @@ final class Cosmos {
         parYTarget = Math.max(0f, Math.min(1f, y));
     }
 
+    /**
+     * The weather outside, each from 0 to 1: clouds veil the stars and thin the meteors, rain falls as
+     * streaks and snow as flakes in front of the sky. The sky eases into a change over a few seconds.
+     */
+    void setWeather(float clouds, float rain, float snow) {
+        cloudsTarget = clouds;
+        rainTarget = rain;
+        snowTarget = snow;
+    }
+
     /** Shows each app's nebula, or only the glow of the air on the horizon. */
     void setNebula(boolean on) {
         nebulaOn = on;
@@ -475,7 +498,8 @@ final class Cosmos {
 
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
     boolean moving() {
-        if (introT >= 0f || !still || par != parTarget || parY != parYTarget || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
+        if (introT >= 0f || !still || par != parTarget || parY != parYTarget || rain > 0f || snow > 0f
+                || clouds != cloudsTarget || rain != rainTarget || snow != snowTarget || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
         for (int i = 0; i < METEORS; i++) if (mAge[i] < mLife[i]) return true;
         return false;
     }
@@ -527,6 +551,10 @@ final class Cosmos {
         clock += dt;
         float glide = 1f - (float) Math.exp(-dt * 3.5f);
         warpTravel = warp > 0f ? warpTravel + dt * warp * warp * width * 1.4f : 0f;
+        clouds = toward(clouds, cloudsTarget, dt / 4f);
+        rain = toward(rain, rainTarget, dt / 4f);
+        snow = toward(snow, snowTarget, dt / 4f);
+        fall(dt);
         par += (parTarget - par) * glide;
         if (Math.abs(parTarget - par) < 0.0005f) par = parTarget;
         parY += (parYTarget - parY) * glide;
@@ -548,7 +576,7 @@ final class Cosmos {
         nextMeteor -= dt;
         if (nextMeteor <= 0 && theme != null && !still && meteors > 0) {
             meteor(rnd.nextInt(30) == 0 || burst % 9 == 4);
-            float rate = theme.rate * meteors * (storm > 0 ? 9f * Math.min(1f, storm) : 1f);
+            float rate = theme.rate * meteors * (storm > 0 ? 9f * Math.min(1f, storm) : 1f) * (1f - 0.9f * clouds);
             nextMeteor = burst > 0 ? 0.02f + rnd.nextFloat() * 0.05f : (float) (-Math.log(1 - rnd.nextFloat() * 0.99f) / rate);
             if (burst > 0) burst--;
         }
@@ -636,7 +664,7 @@ final class Cosmos {
     void drawBack(Canvas c) {
         c.drawColor(0xFF000000);
         Sky sk = sky;
-        float fade = skyIn * (1f - 0.7f * warp);
+        float fade = skyIn * (1f - 0.7f * warp) * (1f - 0.6f * clouds);
         float left = 0f, near = 0f;
         if (sk != null) {
             int tw = sk.field.getWidth();
@@ -658,6 +686,61 @@ final class Cosmos {
         c.translate(-par * width * NEAR, -parY * height * NEAR_Y);
         drawTrails(c);
         c.restore();
+        drawPrecipitation(c);
+    }
+
+    private static float toward(float v, float target, float step) {
+        return v < target ? Math.min(target, v + step) : Math.max(target, v - step);
+    }
+
+    private void fall(float dt) {
+        if (width == 0 || rain <= 0f && snow <= 0f) return;
+        if (!dropsPlaced) {
+            for (int i = 0; i < PRECIP; i++) {
+                dropX[i] = rnd.nextFloat() * width;
+                dropY[i] = rnd.nextFloat() * height;
+                dropS[i] = rnd.nextFloat();
+            }
+            dropsPlaced = true;
+        }
+        boolean raining = rain >= snow;
+        for (int i = 0; i < PRECIP; i++) {
+            float v = raining ? (900 + 500 * dropS[i]) * s : (45 + 55 * dropS[i]) * s;
+            dropY[i] += v * dt;
+            dropX[i] += raining ? -0.18f * v * dt : (float) Math.sin(clock * 0.8f + dropS[i] * 20f) * 22 * s * dt;
+            if (dropY[i] > height + 40 * s) {
+                dropY[i] = -40 * s * rnd.nextFloat();
+                dropX[i] = rnd.nextFloat() * width * 1.15f;
+            }
+            if (dropX[i] < -20 * s) dropX[i] += width + 40 * s;
+            else if (dropX[i] > width + 20 * s) dropX[i] -= width + 40 * s;
+        }
+    }
+
+    /** Rain as slanted streaks, snow as soft flakes, as many as the weather is strong. */
+    private void drawPrecipitation(Canvas c) {
+        float strength = Math.max(rain, snow);
+        int n = Math.round(strength * PRECIP);
+        if (n == 0 || !dropsPlaced) return;
+        boolean raining = rain >= snow;
+        int q = 0;
+        for (int i = 0; i < n; i++) {
+            float x = dropX[i], y = dropY[i];
+            if (raining) {
+                float len = (26 + 34 * dropS[i]) * s;
+                quad(dropV, q, x + 0.18f * len, y - len, x, y, 0.6f * s, 0.9f * s, 0);
+                tint(dropC, q++, Apps.withAlpha(0xFFBFD3FF, Math.round(95 * strength * skyIn)));
+            } else {
+                float r = (5f + 6f * dropS[i]) * s;
+                quad(dropV, q, x - r, y, x + r, y, r, r, 0);
+                tint(dropC, q++, Apps.withAlpha(0xFFFFFFFF, Math.round(230 * strength * skyIn)));
+            }
+        }
+        if (raining) {
+            c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, dropV, 0, null, 0, dropC, 0, quads, 0, q * 6, addPaint);
+        } else {
+            c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, dropV, 0, dropT, 0, dropC, 0, quads, 0, q * 6, spritePaint);
+        }
     }
 
     private static double wrap(double x, int tw) {
