@@ -57,6 +57,10 @@ final class Volcano implements Backdrop {
         }
     }
 
+    /** Embers and fire: white-hot to deep orange, a smoky red-black behind the update. */
+    static final Palette PALETTE = new Palette(0xFFFFF1C2, 0xFFFF9A3C, new int[] {0xFFFFE6C0, 0xFFFF8A3D},
+            new int[] {0xFFFFF1C2, 0xFFFFC27A, 0xFFFF8A3D, 0xFFFF5A1F}, 0xFFFF7A2A, 0xFF0C0504, 0xFFFFB27A);
+
     private static final float FAR = 0.012f, MID = 0.026f, NEAR = 0.042f, FAR_Y = 0.012f, MID_Y = 0.026f, NEAR_Y = 0.042f;
     /** Where the crater sits on screen, as fractions of the width and height; left, out of the logo's way. */
     private static final float CRATER_X = 0.22f, CRATER_Y = 0.46f;

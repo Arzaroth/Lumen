@@ -28,5 +28,7 @@ public class ThemesTest {
         assertEquals("volcano", volcano.id());
         assertEquals("Volcanoes", volcano.name());
         assertTrue(volcano.backdrop(0.5f) instanceof Volcano);
+        assertEquals(Palette.SPACE, Themes.byId("space").palette());
+        assertEquals(Volcano.PALETTE, volcano.palette());
     }
 }

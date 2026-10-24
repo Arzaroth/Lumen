@@ -288,6 +288,23 @@ public class ActivityTest {
     }
 
     @Test
+    public void theThemeLightsTheClockAndTheUpdate() {
+        apps(3);
+        LumenActivity a = launch(null).get();
+        android.content.SharedPreferences prefs = a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE);
+        prefs.edit().putString(Prefs.THEME, "volcano").commit();
+        a.applySettings();
+        assertTrue(Robo.get(Robo.get(a, "stage"), "backdrop") instanceof Volcano);
+        int[] dust = Robo.get(Robo.get(a, "clock"), "dust");
+        assertEquals(Volcano.PALETTE.dust[0], dust[0]);
+        assertEquals(Volcano.PALETTE.glow, (int) Robo.get(Robo.get(a, "ascent"), "glow"));
+        prefs.edit().putString(Prefs.THEME, "space").commit();
+        a.applySettings();
+        assertTrue(Robo.get(Robo.get(a, "stage"), "backdrop") instanceof Cosmos);
+        assertEquals(Palette.SPACE.glow, (int) Robo.get(Robo.get(a, "ascent"), "glow"));
+    }
+
+    @Test
     public void theRealSkyIsAskedForWhereTheTvIs() throws Exception {
         try (LocalWeb web = new LocalWeb()) {
             Place.lookup = web.base + "/where";

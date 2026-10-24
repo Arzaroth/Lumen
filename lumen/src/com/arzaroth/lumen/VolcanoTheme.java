@@ -16,4 +16,9 @@ final class VolcanoTheme implements Theme {
     public Backdrop backdrop(float scale) {
         return new Volcano(scale);
     }
+
+    @Override
+    public Palette palette() {
+        return Volcano.PALETTE;
+    }
 }

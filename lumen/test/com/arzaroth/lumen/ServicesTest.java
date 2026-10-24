@@ -149,6 +149,15 @@ public class ServicesTest {
     }
 
     @Test
+    public void theClockFaceTakesTheThemesCalmLight() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        activity.getSharedPreferences("lumen", Context.MODE_PRIVATE).edit().putString(Prefs.THEME, "volcano").commit();
+        Class<?> face = Class.forName("com.arzaroth.lumen.LumenDream$ClockFace");
+        View view = (View) face.getDeclaredConstructor(Context.class).newInstance(activity);
+        assertEquals(Volcano.PALETTE.calm, (int) Robo.get(Robo.get(view, "clock"), "accent"));
+    }
+
+    @Test
     public void theClockFaceMovesEveryMinute() throws Exception {
         long[] now = {1_793_000_000_000L};
         Wall.clock = () -> now[0];
