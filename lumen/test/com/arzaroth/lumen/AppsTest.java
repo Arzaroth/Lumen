@@ -1,6 +1,7 @@
 package com.arzaroth.lumen;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.robolectric.Shadows.shadowOf;
@@ -46,7 +47,7 @@ public class AppsTest {
     }
 
     @Test
-    public void loadsLeanbackAppsOnceEachAndSkipsItself() {
+    public void loadsLeanbackAppsOnceEachSkippingItselfAndSettings() {
         install("org.example.kodi", "org.example.jellyfin");
         PackageManager pm = Robo.context().getPackageManager();
         Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
@@ -55,8 +56,10 @@ public class AppsTest {
         ResolveInfo broken = new ResolveInfo();
         shadowOf(pm).addResolveInfoForIntent(query, broken);
         shadowOf(pm).addResolveInfoForIntent(query, leanback("org.example.ghost", "ghost"));
+        install("com.android.tv.settings");
         ArrayList<AppEntry> apps = Apps.load(Robo.context(), 160, 90);
         assertEquals(3, apps.size());
+        for (AppEntry app : apps) assertNotEquals("com.android.tv.settings", app.component.getPackageName());
         assertEquals(160, apps.get(0).banner.getWidth());
     }
 
