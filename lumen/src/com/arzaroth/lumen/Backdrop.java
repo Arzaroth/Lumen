@@ -12,7 +12,7 @@ import java.util.Random;
  * (brain/architecture/gpu-budget.md).
  *
  * Only the first group is required. The rest have no-op defaults, so a backdrop only answers what
- * makes sense for it: a volcano has no use for the real sky.
+ * makes sense for it: a landscape has no use for the real sky.
  */
 interface Backdrop {
     /** One app's look in this backdrop, chosen from its logo's colours. Built off the UI thread. */

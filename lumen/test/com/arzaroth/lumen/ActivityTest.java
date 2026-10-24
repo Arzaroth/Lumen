@@ -288,20 +288,22 @@ public class ActivityTest {
     }
 
     @Test
-    public void theThemeLightsTheClockAndTheUpdate() {
+    public void theThemesPaletteLightsTheClockAndTheUpdate() {
         apps(3);
         LumenActivity a = launch(null).get();
-        android.content.SharedPreferences prefs = a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE);
-        prefs.edit().putString(Prefs.THEME, "volcano").commit();
-        a.applySettings();
-        assertTrue(Robo.get(Robo.get(a, "stage"), "backdrop") instanceof Volcano);
         int[] dust = Robo.get(Robo.get(a, "clock"), "dust");
-        assertEquals(Volcano.PALETTE.dust[0], dust[0]);
-        assertEquals(Volcano.PALETTE.glow, (int) Robo.get(Robo.get(a, "ascent"), "glow"));
-        prefs.edit().putString(Prefs.THEME, "space").commit();
-        a.applySettings();
-        assertTrue(Robo.get(Robo.get(a, "stage"), "backdrop") instanceof Cosmos);
+        assertEquals(Palette.SPACE.dust[0], dust[0]);
         assertEquals(Palette.SPACE.glow, (int) Robo.get(Robo.get(a, "ascent"), "glow"));
+        Palette ember = new Palette(0xFFFFF1C2, 0xFFFF9A3C, new int[] {0xFFFFE6C0, 0xFFFF8A3D},
+                new int[] {0xFFFFF1C2, 0xFFFF8A3D}, 0xFFFF7A2A, 0xFF0C0504, 0xFFFFB27A);
+        ClockView clock = Robo.get(a, "clock");
+        clock.setPalette(ember);
+        Ascent ascent = Robo.get(a, "ascent");
+        ascent.setPalette(ember);
+        assertEquals(ember.dust[1], dust[2]);
+        assertEquals(ember.glow, (int) Robo.get(ascent, "glow"));
+        a.applySettings();
+        assertEquals(Palette.SPACE.glow, (int) Robo.get(ascent, "glow"));
     }
 
     @Test
