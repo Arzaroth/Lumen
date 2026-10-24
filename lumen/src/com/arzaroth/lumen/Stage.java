@@ -1127,7 +1127,7 @@ final class Stage extends View {
             switch (enterKind) {
                 case E_CONVERGE: {
                     float u = (t - delay[i]) / 0.85f;
-                    float e = u <= 0 ? 0 : u >= 1 ? 1 : backOut(u);
+                    float e = u <= 0 ? 0 : u >= 1 ? 1 : settle(u);
                     place(i, fx[i] + (tx - fx[i]) * e, fy[i] + (ty - fy[i]) * e, inv);
                     if (u > 0) pa[i] = Math.max(pa[i], Math.min(1f, u * 3f));
                     break;
@@ -1175,7 +1175,7 @@ final class Stage extends View {
                 case E_SWEEP: {
                     float u = (t - delay[i]) / 0.75f;
                     if (u <= 0) break;
-                    float e = u >= 1 ? 1 : backOut(u), arc = (float) Math.sin(Math.min(1f, u) * Math.PI);
+                    float e = u >= 1 ? 1 : settle(u), arc = (float) Math.sin(Math.min(1f, u) * Math.PI);
                     place(i, tx + (1 - e) * logo.width() * 0.7f, ty + arc * cell * 2.5f * (seed[i] - 0.5f), inv);
                     pz[i] = -arc * logo.width() * 0.12f;
                     pa[i] = Math.min(1f, u * 3f);
@@ -1547,10 +1547,9 @@ final class Stage extends View {
         chroma = Math.max(0, chroma - dt * 2f);
     }
 
-    private static float backOut(float t) {
-        float c1 = 1.25f, c3 = c1 + 1;
-        float u = t - 1;
-        return 1 + c3 * u * u * u + c1 * u * u;
+    /** Fast, then gliding into place: never past it, so nothing stops in mid-air and turns back. */
+    private static float settle(float t) {
+        return 1 - (float) Math.pow(2, -10 * t);
     }
 
     private static float bounceOut(float t) {
