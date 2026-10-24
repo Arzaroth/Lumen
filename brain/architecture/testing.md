@@ -9,7 +9,8 @@ and tests can render frames to PNG to look at them.
 - `Wall.clock`: the wall clock; Robolectric does not fake `System.currentTimeMillis`.
 - `Robo`: the context, real canvases, `idle(ms)` to move the main looper's clock, `layout`, `frames`,
   and reflection helpers (`get`, `set`, `call`).
-- `Releases`: a local HTTP server standing in for GitHub's latest release and its APK.
+- `Releases`: a local HTTP server standing in for GitHub's latest release and its APK; `LocalWeb`,
+  one answering fixed pages (ipinfo, Open-Meteo) through `Place.lookup` and `Weather.forecast`.
 - `Updater.releases` and `Updater.hold`: the release URL and the pause before installing.
 - Views that post work need a window: attach them to `Robolectric.buildActivity(...)`.
 

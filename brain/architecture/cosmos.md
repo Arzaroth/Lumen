@@ -18,6 +18,12 @@ The night sky behind the logo.
 With the nebula turned off (`setNebula`), each theme's `glow` bitmap (the airglow alone, same size)
 is drawn in its place, so the horizon keeps its glow at the same cost.
 
+## Weather
+
+`setWeather(clouds, rain, snow)` eases the sky toward the weather: clouds scale the alpha of every
+sky layer (no new layer) and the meteor rate; rain and snow are one additive mesh of up to
+`PRECIP` (240) streaks or soft flakes, drawn after the meteors.
+
 ## Hyperspace
 
 `setWarp` (from the stage's hyperspace exit) dims the sky and turns the bright stars into streaks
