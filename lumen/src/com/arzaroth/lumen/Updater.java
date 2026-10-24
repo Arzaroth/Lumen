@@ -18,13 +18,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -115,7 +112,7 @@ final class Updater {
         set(State.CHECKING);
         worker.execute(() -> {
             try {
-                JSONObject release = new JSONObject(read(releases));
+                JSONObject release = new JSONObject(Net.read(releases));
                 String tag = release.getString("tag_name").replaceFirst("^v", "");
                 String url = null;
                 JSONArray assets = release.optJSONArray("assets");
@@ -163,7 +160,7 @@ final class Updater {
                 if (Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
                 id = installer.createSession(params);
                 try (PackageInstaller.Session session = installer.openSession(id)) {
-                    HttpURLConnection c = open(url);
+                    HttpURLConnection c = Net.open(url);
                     long length = c.getContentLengthLong();
                     try (InputStream in = c.getInputStream(); OutputStream out = session.openWrite("lumen.apk", 0, length)) {
                         byte[] buf = new byte[1 << 16];
@@ -200,24 +197,5 @@ final class Updater {
     private void set(State s) {
         state = s;
         changed.run();
-    }
-
-    private static HttpURLConnection open(String url) throws IOException {
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-        c.setConnectTimeout(10_000);
-        c.setReadTimeout(30_000);
-        c.setRequestProperty("User-Agent", "Lumen");
-        if (c.getResponseCode() != HttpURLConnection.HTTP_OK) throw new IOException("HTTP " + c.getResponseCode());
-        return c;
-    }
-
-    private static String read(String url) throws IOException {
-        HttpURLConnection c = open(url);
-        try (InputStream in = c.getInputStream()) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
-            return out.toString(StandardCharsets.UTF_8.name());
-        }
     }
 }
