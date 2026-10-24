@@ -6,6 +6,8 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-24
+
 ### Added
 
 - A sky that lives: stars that scintillate, a nebula generated for each app that drifts and breathes, the odd nova and satellite train.
@@ -38,5 +40,6 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Arzaroth/Lumen/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Arzaroth/Lumen/releases/tag/v1.0.0
