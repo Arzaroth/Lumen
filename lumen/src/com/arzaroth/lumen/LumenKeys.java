@@ -4,7 +4,6 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
@@ -14,7 +13,6 @@ public final class LumenKeys extends AccessibilityService {
     private static boolean homeInFront;
 
     static final String SMARTTUBE = "org.smarttube.stable";
-    private static final long RELAUNCH_WINDOW_MS = 10 * 60 * 1000;
 
     static void setHomeInFront(boolean front) {
         homeInFront = front;
@@ -25,19 +23,7 @@ public final class LumenKeys extends AccessibilityService {
     protected void onServiceConnected() {
         instance = this;
         filterKeys(homeInFront && enabled());
-        relaunchAfterUpdate();
-    }
-
-    /**
-     * Android kills Lumen to replace it and goes back to whatever ran before; the system binds this
-     * service again right after, and a bound accessibility service may bring Home back to the front.
-     */
-    private void relaunchAfterUpdate() {
-        SharedPreferences prefs = getSharedPreferences("lumen", MODE_PRIVATE);
-        long at = prefs.getLong(Prefs.RELAUNCH, 0);
-        if (at == 0) return;
-        prefs.edit().remove(Prefs.RELAUNCH).apply();
-        if (Wall.millis() - at < RELAUNCH_WINDOW_MS) start(new Intent(this, LumenActivity.class));
+        Relaunch.home(this, true);
     }
 
     private boolean enabled() {
