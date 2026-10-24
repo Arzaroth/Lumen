@@ -24,7 +24,7 @@ final class Ascent extends View {
     enum Phase { OFF, GATHER, RISE, FADE }
 
     private static final int MAX = 1600, DIGIT = 220, DOT = 40, SPRITE = 32;
-    private static final float TRAVEL_T = 1.3f, GATHER_T = 1.2f, RISE_MAX = 20f, FADE_T = 1.6f;
+    private static final float TRAVEL_T = 1.3f, GATHER_T = 1.2f, LIGHT_T = 1.4f, RING_T = 1.8f, RISE_MAX = 20f, FADE_T = 1.6f;
     private static final int[] TINTS = {0xFFFFFFFF, 0xFFDDE6FF, 0xFFBFD4FF, 0xFFFFF2D8};
 
     private final float s;
@@ -36,7 +36,7 @@ final class Ascent extends View {
     private final int[] colors = new int[(MAX + 1) * 4];
     private final short[] indices = new short[(MAX + 1) * 6];
     private final Paint dust = new Paint(Paint.FILTER_BITMAP_FLAG), scrim = new Paint(), ring = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint number = new Paint(Paint.ANTI_ALIAS_FLAG), sampler = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint number = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint header = new Paint(Paint.ANTI_ALIAS_FLAG), detail = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint track = new Paint(Paint.ANTI_ALIAS_FLAG), bar = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Phase phase = Phase.OFF;
@@ -69,8 +69,7 @@ final class Ascent extends View {
         number.setTypeface(Fonts.outfit(c, 200));
         number.setTextSize(200 * s);
         number.setColor(0xFFFFFFFF);
-        sampler.setTypeface(Fonts.outfit(c, 400));
-        sampler.setTextSize(200 * s);
+        number.setShadowLayer(16 * s, 0, 0, 0xFF9FB4FF);
         header.setTypeface(Fonts.outfit(c, 600));
         header.setTextSize(18 * s);
         header.setLetterSpacing(0.12f);
@@ -152,7 +151,7 @@ final class Ascent extends View {
             char ch = version.charAt(k);
             float adv = number.measureText(version, k, k + 1);
             int n = Character.isDigit(ch) ? DIGIT : DOT;
-            float[] pts = Glyphs.sample(sampler, ch, adv, n);
+            float[] pts = Glyphs.sample(number, ch, adv, n);
             for (int i = 0; i < n && count < MAX; i++, count++) {
                 tx[count] = x + pts[2 * i];
                 ty[count] = baseline + pts[2 * i + 1];
@@ -197,8 +196,8 @@ final class Ascent extends View {
         for (; calledCount < due; calledCount++) called[calledCount] = clock;
         boolean settled = calledCount == count && (count == 0 || clock - called[count - 1] >= TRAVEL_T);
         if (phase == Phase.RISE && settled && ringT < 0f && lit == 0f) ringT = 0f;
-        lit = phase == Phase.RISE && settled ? Math.min(1f, lit + dt * 1.5f) : phase == Phase.FADE ? Math.max(0f, lit - dt * 2f) : lit;
-        if (ringT >= 0f && (ringT += dt) > 1.6f) ringT = -1f;
+        lit = phase == Phase.RISE && settled ? Math.min(1f, lit + dt / LIGHT_T) : phase == Phase.FADE ? Math.max(0f, lit - dt * 2f) : lit;
+        if (ringT >= 0f && (ringT += dt) > RING_T) ringT = -1f;
         if (phase == Phase.RISE && phaseT > RISE_MAX) letGo();
         if (phase == Phase.FADE) {
             for (int i = 0; i < count; i++) {
@@ -250,26 +249,29 @@ final class Ascent extends View {
         int q = 0;
         float bloom = number.measureText(version) * 0.75f;
         quad(q, cx, baseline - number.getTextSize() * 0.36f, bloom);
-        tint(q++, Apps.withAlpha(0xFF9FB4FF, Math.round(70 * shown * Math.max(target * 0.5f, lit))));
+        float solid = smooth(lit);
+        tint(q++, Apps.withAlpha(0xFF9FB4FF, Math.round(70 * shown * Math.max(target * 0.5f, solid))));
         for (int i = 0; i < count; i++) {
+            float melt = 1f - smooth((lit - (seed[i] % 1f) * 0.7f) / 0.3f);
+            if (melt <= 0f) continue;
             float x = position(i, true), y = position(i, false);
             boolean home = called[i] >= 0f && clock - called[i] >= TRAVEL_T;
             float twinkle = 0.55f + 0.45f * (float) Math.sin(clock * (2f + seed[i] % 3f) + seed[i]);
             float a = called[i] < 0f ? 0.35f * twinkle : home ? 0.75f + 0.25f * twinkle : 1f;
-            float r = (called[i] < 0f ? 2.2f : 3.2f) * s * (1f - 0.5f * lit);
+            float r = (called[i] < 0f ? 2.2f : 3.2f) * s * (0.4f + 0.6f * melt);
             quad(q, x, y, r);
-            tint(q++, Apps.withAlpha(tint[i], Math.round(255 * a * shown * (1f - 0.6f * lit))));
+            tint(q++, Apps.withAlpha(tint[i], Math.round(255 * a * shown * melt)));
         }
         c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, verts, 0, texs, 0, colors, 0, indices, 0, q * 6, dust);
 
         if (lit > 0f) {
-            number.setAlpha(Math.round(255 * lit * shown));
+            number.setAlpha(Math.round(255 * solid * shown));
             c.drawText(version, cx - number.measureText(version) / 2f, baseline, number);
         }
         if (ringT >= 0f) {
-            float p = ringT / 1.6f, e = 1f - (1f - p) * (1f - p);
+            float p = ringT / RING_T, e = 1f - (1f - p) * (1f - p) * (1f - p);
             ring.setStrokeWidth((3f - 2f * p) * s);
-            ring.setColor(Apps.withAlpha(0xFFFFFFFF, Math.round(200 * (1f - p) * shown)));
+            ring.setColor(Apps.withAlpha(0xFFFFFFFF, Math.round(210 * smooth(p / 0.12f) * (1f - p) * (1f - p) * shown)));
             c.drawCircle(cx, baseline - number.getTextSize() * 0.36f, bloom * (0.5f + 1.4f * e), ring);
         }
 

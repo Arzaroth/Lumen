@@ -63,7 +63,7 @@ public class AscentTest {
         assertEquals(Ascent.Phase.GATHER, ascent.phase());
         ascent.follow(Updater.State.INSTALLING, "1.2.0", 100);
         assertEquals(Ascent.Phase.RISE, ascent.phase());
-        play(3f);
+        play(5f);
         assertEquals(1f, Robo.<Float>get(ascent, "lit"), 0f);
         assertFalse(Robo.<Boolean>get(ascent, "confirming"));
         ascent.follow(Updater.State.CONFIRMING, "1.2.0", 100);
