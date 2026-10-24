@@ -6,10 +6,11 @@ plugins {
     jacoco
 }
 
-// The release key: from the environment in CI (secrets), from ~/.config/lumen/signing.properties
-// on a workstation. Without either, release builds are signed with the debug key.
+// The release key: from the environment in CI (secrets), from ~/.config/lumen/keystore.properties
+// on a workstation. Without either, release builds are signed with the debug key, unless
+// LUMEN_REQUIRE_RELEASE_KEY is set.
 val signing = Properties().apply {
-    val local = File(System.getProperty("user.home"), ".config/lumen/signing.properties")
+    val local = File(System.getProperty("user.home"), ".config/lumen/keystore.properties")
     if (local.exists()) local.inputStream().use { load(it) }
     System.getenv("LUMEN_KEYSTORE")?.let { setProperty("storeFile", it) }
     System.getenv("LUMEN_KEYSTORE_PASSWORD")?.let { setProperty("storePassword", it) }
@@ -17,6 +18,10 @@ val signing = Properties().apply {
     System.getenv("LUMEN_KEY_PASSWORD")?.let { setProperty("keyPassword", it) }
 }
 val hasReleaseKey = signing.getProperty("storeFile")?.let { File(it).exists() } == true
+if (!hasReleaseKey && System.getenv("LUMEN_REQUIRE_RELEASE_KEY") != null) {
+    throw GradleException("LUMEN_REQUIRE_RELEASE_KEY is set but no release keystore was found")
+}
+val version = "1.0.0"
 
 android {
     namespace = "com.arzaroth.lumen"
@@ -26,8 +31,8 @@ android {
         applicationId = "com.arzaroth.lumen"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = version.split(".").fold(0) { code, part -> code * 100 + part.toInt() }
+        versionName = version
     }
 
     sourceSets["main"].apply {
