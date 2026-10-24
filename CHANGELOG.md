@@ -8,7 +8,7 @@ All notable changes to Lumen are recorded here. The format follows
 
 ### Fixed
 
-- With Real sky on, the sky no longer turns to a flat band below the dock: it carries on down to the bottom of the screen.
+- With Real sky on, the sky no longer turns to a flat, starless band below the dock: it carries on, stars included, down to the bottom of the screen.
 
 ## [1.7.0] - 2026-10-25
 

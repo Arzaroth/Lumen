@@ -269,6 +269,12 @@ public class CosmosTest {
         assertTrue(done.getAsBoolean());
     }
 
+    private static float rowBlue(android.graphics.Bitmap b, int y) {
+        float sum = 0;
+        for (int x = 0; x < b.getWidth(); x++) sum += android.graphics.Color.blue(b.getPixel(x, y));
+        return sum / b.getWidth();
+    }
+
     @Test
     public void theRealSkyFollowsTheNightAndTheMoon() throws Exception {
         long[] now = {1792872000000L};
@@ -280,11 +286,15 @@ public class CosmosTest {
         until(c, () -> real(c));
         run(c, 1.5f);
         android.graphics.Bitmap field = Robo.get(Robo.get(c, "sky"), "field");
-        int margin = Robo.get(c, "margin"), x = field.getWidth() / 3;
-        for (int y = Math.round(H * 0.85f) + margin; y < field.getHeight() - 2; y++) {
-            int a = field.getPixel(x, y), b = field.getPixel(x, y + 2);
-            assertTrue("a step under the horizon at row " + y, Math.abs(android.graphics.Color.blue(a) - android.graphics.Color.blue(b)) <= 3);
-        }
+        int margin = Robo.get(c, "margin");
+        float above = 0, below = 0;
+        for (int y = Math.round(H * 0.78f); y < Math.round(H * 0.86f); y++) above += rowBlue(field, y + margin) / Math.round(H * 0.08f);
+        for (int y = Math.round(H * 0.92f); y < H; y++) below += rowBlue(field, y + margin) / (H - Math.round(H * 0.92f));
+        assertTrue("a band along the bottom: " + above + " above, " + below + " below", Math.abs(below - above) < above * 0.25f);
+        float[] starY = Robo.get(Robo.get(c, "sky"), "y");
+        int low = 0;
+        for (float sy : starY) if (sy - margin > H * 0.9f && sy - margin < H) low++;
+        assertTrue("no stars along the bottom of the screen", low > 0);
         assertFalse(Float.isNaN(Robo.<Float>get(c, "moonX")));
         now[0] += 3_600_000L * 24 * 5;
         Robo.set(c, "bakeClock", 119.9f);

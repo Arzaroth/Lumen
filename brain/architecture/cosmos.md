@@ -27,7 +27,8 @@ plus live stars, sorted by brightness) built from the Yale Bright Star Catalogue
 changed again is dropped.
 
 - Framing: facing south (north below the equator), `REAL_FOV` 120 degrees wide, the horizon at
-  `REAL_HORIZON` (94% down). `look` maps a screen point to altitude and azimuth, `fix` a star to the
+  `REAL_HORIZON`, just below the bottom edge, so the whole screen is sky and stars reach the bottom;
+  under it the sky keeps its horizon colour. `look` maps a screen point to altitude and azimuth, `fix` a star to the
   field; the field reaches `marginX` past each side for the parallax.
 - The Milky Way keeps the imagined sky's colouring but follows the galactic latitude of each cell,
   its noise sampled in galactic coordinates so its clouds stay put on the sky. Stars fainter than

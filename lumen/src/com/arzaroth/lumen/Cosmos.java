@@ -86,8 +86,8 @@ final class Cosmos implements Backdrop {
         }
     }
 
-    /** How the real sky is framed: facing south (north below the equator), this wide, the horizon this low. */
-    private static final float REAL_FOV = 120f, REAL_HORIZON = 0.94f;
+    /** How the real sky is framed: facing south (north below the equator), this wide, the horizon this low, just under the screen so stars reach its bottom edge. */
+    private static final float REAL_FOV = 120f, REAL_HORIZON = 1.03f;
     private static final float REAL_REPROJECT_S = 1f, REAL_REBAKE_S = 120f, REAL_FADE_S = 2f;
 
     private final float s;
