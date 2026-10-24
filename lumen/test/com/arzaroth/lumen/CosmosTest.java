@@ -158,4 +158,28 @@ public class CosmosTest {
         c.setTurning(false);
         run(c, 0.1f);
     }
+
+    @Test
+    public void parallaxGlidesTheLayersThenSettles() {
+        Cosmos c = ready();
+        c.setTheme(theme(11, 0xFF00897B), false);
+        c.setStill(true);
+        c.setMeteors(0f);
+        run(c, 3f);
+        Robo.set(c, "satLife", 0f);
+        run(c, 0.2f);
+        assertFalse(c.moving());
+        c.setParallax(4f);
+        assertTrue(c.moving());
+        assertEquals(1f, Robo.<Float>get(c, "parTarget"), 0f);
+        run(c, 0.3f);
+        float midway = Robo.get(c, "par");
+        assertTrue(midway > 0.3f && midway < 1f);
+        run(c, 4f);
+        assertFalse(c.moving());
+        c.setParallax(-1f);
+        c.setTurning(true);
+        run(c, 4f);
+        assertEquals(-1f, Robo.<Float>get(c, "par"), 0f);
+    }
 }

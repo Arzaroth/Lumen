@@ -172,6 +172,22 @@ public class ActivityTest {
     }
 
     @Test
+    public void theSkyLooksTowardTheFocusedColumn() {
+        apps(8);
+        LumenActivity a = launch(null).get();
+        Cosmos cosmos = Robo.get(Robo.get(a, "stage"), "cosmos");
+        Robo.set(a, "index", 0);
+        Robo.call(a, "applyFocus", false);
+        assertEquals(-1f, Robo.<Float>get(cosmos, "parTarget"), 0f);
+        for (int i = 0; i < 4; i++) key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
+        assertEquals(1f, Robo.<Float>get(cosmos, "parTarget"), 0f);
+        a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE).edit().putInt(Prefs.PARALLAX, 1).commit();
+        a.applySettings();
+        assertEquals(0f, Robo.<Float>get(cosmos, "parTarget"), 0f);
+        assertEquals(0f, (float) Robo.<Float>call(a, "parallaxOf", 3), 0f);
+    }
+
+    @Test
     public void tilesLaunchAndRearrange() {
         apps(8);
         LumenActivity a = launch(null).get();
