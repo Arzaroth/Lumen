@@ -6,6 +6,17 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-24
+
+### Changed
+
+- About a third less GPU work per frame: the glow of the air on the horizon is baked into each app's nebula instead of drawn over half the screen. The explosions no longer stutter on this TV.
+- The version on the update screen crystallises out of its own dust, and its ring of light eases in and out.
+
+### Fixed
+
+- Explosion rays dim as they slow, so none hangs in the air.
+
 ## [1.1.9] - 2026-10-24
 
 ### Fixed
@@ -118,7 +129,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.1.9...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Arzaroth/Lumen/compare/v1.1.9...v1.2.0
 [1.1.9]: https://github.com/Arzaroth/Lumen/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/Arzaroth/Lumen/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/Arzaroth/Lumen/compare/v1.1.6...v1.1.7
