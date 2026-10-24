@@ -23,11 +23,15 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
   night sky drawn once at screen resolution (Milky Way, ~20k stars) that turns at the Earth's real
   rate, east to west, with twinkling stars, a meteor
   shower from a per-app radiant, a passing satellite and an airglow chosen to contrast with the logo.
-  A fireworks style is kept in `Stage` as an alternative
+- Themes: Space (that night sky), Fireworks (the same sky, the logo dancing under rockets and
+  shells) and Volcano (an erupting volcano under the stars, its lava flickering and sparks rising).
+  A theme can be a pack, a picture and a `theme.json` of animated layers, no code needed
+  ([brain/architecture/themes.md](brain/architecture/themes.md))
 - Greeting, thin Outfit clock and date; frosted pills for Inputs (glass dropdown: Live TV + HDMI
   inputs via the TV input framework), network (Wi-Fi name or Ethernet) and Settings
 - Settings dropdown: the TV's System settings, or Lumen settings (applied at once and remembered),
-  grouped into Sky (backdrop, animations, meteors, sky rotation, parallax), Home screen (3D or flat
+  grouped into Theme, Backdrop (animations, motion, parallax, weather, then the theme's own
+  settings such as meteors, sky rotation, nebula and the real sky), Home screen (3D or flat
   logo, greeting, clock format, tile order reset), Remote (the remote's buttons on Home, YouTube or
   SmartTube), Boot intro and Advanced (seasonal events, updates, version). Advanced settings ›
   Seasonal events › Spooky doot turns [doot](https://github.com/boubou666/doot) off after two
