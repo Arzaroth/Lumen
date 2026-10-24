@@ -113,9 +113,10 @@ final class Stage extends View {
     private int count;
     private final int[] slots = new int[2 * K];
     private int half;
-    private float bottom = 1f;
     /** The floor every logo stands on: how far under the logo box, and how far its line reaches past it. */
     private float floorGap, floorReach;
+    /** Where the logo's cells actually are, inside its box: the centre the animations play around. */
+    private final RectF art = new RectF();
 
     private Mosaic pending;
     private boolean hasPending;
@@ -327,6 +328,7 @@ final class Stage extends View {
         floorGap = cell * 4f;
         floorReach = cell * 14f;
         floorY = logo.bottom + floorGap;
+        art.set(logo);
         clipBottom = reflectionLimit;
         cosmos.layout(logo, screenW, screenH);
         laidOut = true;
@@ -573,9 +575,19 @@ final class Stage extends View {
         half = newHalf;
         System.arraycopy(m.sparks, 0, sparkColors, 0, SPARK_COLORS);
         float lift = 1f - m.bottom;
-        bottom = 1f;
         gridRows = m.rows;
         cell = logo.width() / m.cols;
+        float left = 1f, right = 0f, top = 1f;
+        for (int i = 0; i < m.count; i++) {
+            left = Math.min(left, m.gx[i]);
+            right = Math.max(right, m.gx[i]);
+            top = Math.min(top, m.gy[i] + lift);
+        }
+        if (m.count > 0) {
+            art.set(target(left, true) - cell / 2, target(top, false) - cell / 2, target(right, true) + cell / 2, logo.bottom);
+        } else {
+            art.set(logo);
+        }
         flashShader = new RadialGradient(0, 0, 1, new int[] {0xFFFFFFFF, Apps.withAlpha(m.sparks[2], 0xC0), 0x00000000},
                 new float[] {0f, 0.35f, 1f}, Shader.TileMode.CLAMP);
         coreShader = new RadialGradient(0, 0, 1, new int[] {0xFFFFFFFF, Apps.withAlpha(accent, 0xA0), 0x00000000},
@@ -591,8 +603,8 @@ final class Stage extends View {
             bk[i] = (byte) (newHalf + m.bucket[i]);
             if (first || i >= count) {
                 float a = rnd.nextFloat() * 6.2832f, d = logo.width() * (0.7f + rnd.nextFloat() * 0.6f);
-                px[i] = logo.centerX() + (float) Math.cos(a) * d;
-                py[i] = logo.centerY() + (float) Math.sin(a) * d * 0.6f;
+                px[i] = art.centerX() + (float) Math.cos(a) * d;
+                py[i] = art.centerY() + (float) Math.sin(a) * d * 0.6f;
                 pa[i] = 0;
             }
         }
@@ -639,7 +651,7 @@ final class Stage extends View {
             invalidate();
             return;
         }
-        float cx = logo.centerX(), cy = logo.centerY();
+        float cx = art.centerX(), cy = art.centerY();
         for (int i = 0; i < count; i++) {
             float tx = target(gx[i], true), ty = target(gy[i], false);
             loose[i] = false;
@@ -752,7 +764,7 @@ final class Stage extends View {
         phaseT = 0;
         speed = quick ? 1.4f : 1f;
         burst = false;
-        float cx = logo.centerX(), cy = logo.centerY();
+        float cx = art.centerX(), cy = art.centerY();
         for (int i = 0; i < count; i++) {
             loose[i] = false;
             switch (exitKind) {
@@ -1093,8 +1105,8 @@ final class Stage extends View {
     }
 
     private void enter(float dt) {
-        float inv = 1f / Math.max(dt, 0.001f), cx = logo.centerX(), cy = logo.centerY(), t = phaseT;
-        float beamY = logo.top + t / 1.25f * (bottom * logo.height() + cell * 3);
+        float inv = 1f / Math.max(dt, 0.001f), cx = art.centerX(), cy = art.centerY(), t = phaseT;
+        float beamY = art.top + t / 1.25f * (art.height() + cell * 3);
         for (int i = 0; i < count; i++) {
             float tx = target(gx[i], true), ty = target(gy[i], false);
             switch (enterKind) {
@@ -1181,7 +1193,7 @@ final class Stage extends View {
             }
             return;
         }
-        float t = phaseT, cx = logo.centerX(), cy = logo.centerY();
+        float t = phaseT, cx = art.centerX(), cy = art.centerY();
         float scale = 1f;
         if (holdKind == H_PULSE) {
             float b = (t % 0.95f) / 0.95f;
@@ -1260,7 +1272,7 @@ final class Stage extends View {
     }
 
     private void exit(float dt) {
-        float t = phaseT, cx = logo.centerX(), cy = logo.centerY(), inv = 1f / Math.max(dt, 0.001f);
+        float t = phaseT, cx = art.centerX(), cy = art.centerY(), inv = 1f / Math.max(dt, 0.001f);
         switch (exitKind) {
             case X_DETONATE:
                 if (t < CHARGE_T) {
@@ -1608,7 +1620,7 @@ final class Stage extends View {
         // Halos overlap several dense cells: one in three (one in two while moving) at higher strength
         // looks the same for a fraction of the fill.
         int stride = phase == HOLD ? 3 : 2;
-        float focal = logo.width() * 2.4f, lcx = logo.centerX(), lcy = logo.centerY();
+        float focal = logo.width() * 2.4f, lcx = art.centerX(), lcy = art.centerY();
         for (int i = 0; i < count; i++) {
             if (pa[i] <= 0.01f) continue;
             int color = slots[bk[i]];
@@ -1671,7 +1683,7 @@ final class Stage extends View {
             tint(coreC[2], faceQ[2]++, Apps.withAlpha(color, alpha));
             return;
         }
-        float focal = logo.width() * 2.4f, cx = logo.centerX(), cy = logo.centerY();
+        float focal = logo.width() * 2.4f, cx = art.centerX(), cy = art.centerY();
         float ax = axes[0], ay = axes[1], az = axes[2], bx = axes[3], by = axes[4], bz = axes[5];
         float dx = x - cx, dy = y - cy, dz = z + focal;
         for (int k = 0; k < 3; k++) {
@@ -1784,10 +1796,10 @@ final class Stage extends View {
             }
             if (phase == EXIT && exitKind == X_DETONATE && phaseT < CHARGE_T) {
                 float p = phaseT / CHARGE_T, r = logo.width() * (0.12f + 0.5f * p * p);
-                drawLight(c, coreShader, null, logo.centerX(), logo.centerY(), r, r, 0.25f + 0.75f * p);
+                drawLight(c, coreShader, null, art.centerX(), art.centerY(), r, r, 0.25f + 0.75f * p);
             } else if (phase == EXIT && exitKind == X_VORTEX && phaseT < VORTEX_T) {
                 float p = phaseT / VORTEX_T, r = logo.width() * (0.08f + 0.3f * p);
-                drawLight(c, coreShader, null, logo.centerX(), logo.centerY(), r, r, p);
+                drawLight(c, coreShader, null, art.centerX(), art.centerY(), r, r, p);
             }
             if (glowQ > 0) {
                 c.drawVertices(Canvas.VertexMode.TRIANGLES, glowQ * 8, glowV, 0, glowT, 0, glowC, 0, quads, 0, glowQ * 6, glowPaint);
@@ -1804,10 +1816,10 @@ final class Stage extends View {
                 }
             }
             if (phase == ENTER && enterKind == E_PRINT && phaseT < 1.3f) {
-                float y = logo.top + phaseT / 1.25f * (bottom * logo.height() + cell * 3);
+                float y = art.top + phaseT / 1.25f * (art.height() + cell * 3);
                 float fade = Math.min(1f, Math.min(phaseT, 1.3f - phaseT) * 8f);
-                drawLight(c, whiteLight, beamTint, logo.centerX(), y, logo.width() * 0.62f, cell * 5f, fade);
-                drawLight(c, whiteLight, null, logo.centerX(), y, logo.width() * 0.55f, cell * 1.5f, fade);
+                drawLight(c, whiteLight, beamTint, art.centerX(), y, logo.width() * 0.62f, cell * 5f, fade);
+                drawLight(c, whiteLight, null, art.centerX(), y, logo.width() * 0.55f, cell * 1.5f, fade);
             }
             drawRings(c);
             float fr = logo.width() * (0.45f + (1 - flash) * 0.9f);
