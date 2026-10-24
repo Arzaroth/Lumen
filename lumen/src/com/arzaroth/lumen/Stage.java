@@ -935,7 +935,7 @@ final class Stage extends View {
         for (int i = 0; i < 240; i++) {
             float a = rnd.nextFloat() * 6.2832f;
             float v = (300 + rnd.nextFloat() * 1700) * unit;
-            emit(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.62f, 0.5f + rnd.nextFloat() * 0.9f, 2.1f,
+            emit(cx, cy, (float) Math.cos(a) * v, (float) Math.sin(a) * v * 0.62f, 0.4f + rnd.nextFloat() * 0.6f, 1.2f,
                     60 * unit, rnd.nextInt(4) == 0 ? 0 : 2 + rnd.nextInt(SPARK_COLORS - 2), 0.05f, 1.3f, TWINKLE, -1);
         }
         ring(cx, cy, 1900 * unit, 5 * s, 0xFFFFFFFF, 0.3f);
