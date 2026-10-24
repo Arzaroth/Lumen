@@ -66,6 +66,8 @@ docs. Don't grep the whole tree; use the indexes.
 | Why is the star field drawn on whole pixels? | [architecture/cosmos.md](architecture/cosmos.md) |
 | How do I add an entrance, a hold or an exit? | [architecture/stage.md](architecture/stage.md) |
 | Why do explosion rays never brake to a stop? | [architecture/stage.md](architecture/stage.md) |
+| How is the real sky computed, and how accurate is it? | [architecture/cosmos.md](architecture/cosmos.md) |
+| Where does Lumen get its location and the weather? | [features/sky.md](features/sky.md) |
 | How do I add a setting? | [features/settings.md](features/settings.md), [architecture/menus.md](architecture/menus.md) |
 | Why can't Lumen just be set as Home? | [architecture/tv-scripts.md](architecture/tv-scripts.md) |
 | What must never be disabled on a TV? | [architecture/tv-scripts.md](architecture/tv-scripts.md) |

@@ -18,6 +18,24 @@ The night sky behind the logo.
 With the nebula turned off (`setNebula`), each theme's `glow` bitmap (the airglow alone, same size)
 is drawn in its place, so the horizon keeps its glow at the same cost.
 
+## Real sky
+
+`setRealSky(latLon, stars)` swaps the imagined field for `realSky`: a bake of the same shape (field
+plus live stars, sorted by brightness) built from the Yale Bright Star Catalogue
+(`lumen/assets/stars.bin`, loaded once by `Stage.setRealSky`) for the place `Place` finds.
+
+- Framing: facing south (north below the equator), `REAL_FOV` 120 degrees wide, the horizon at
+  `REAL_HORIZON` (94% down). `look` maps a screen point to altitude and azimuth, `fix` a star to the
+  field; the field reaches `marginX` past each side for the parallax.
+- The Milky Way keeps the imagined sky's colouring but follows the galactic latitude of each cell,
+  its noise sampled in galactic coordinates so its clouds stay put on the sky. Stars fainter than
+  the catalogue come from `faintStars`, seeded per one-degree patch of sky so they keep their places.
+- `reproject` moves the live stars, the planets and the Moon every second; `rebuild` bakes a new
+  field every two minutes and `fieldFade` cross-fades it over the old. `drawMoon` draws the Moon a
+  few times its size, lit to its phase.
+- The arithmetic (sidereal time, coordinates, Sun, Moon, planets) is in `Heavens`, tested against
+  known positions.
+
 ## Weather
 
 `setWeather(clouds, rain, snow)` eases the sky toward the weather: clouds scale the alpha of every

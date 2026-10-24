@@ -64,6 +64,19 @@ faster first try). See [features/updates.md](features/updates.md).
 **Why.** Followed from CleanYourTV's rules: a disabled package comes back with one command, an
 uninstalled system app does not. See [architecture/tv-scripts.md](architecture/tv-scripts.md).
 
+## 0008 The real sky, framed like the imagined one
+
+**Decision.** The real sky is baked into the same structure as the imagined one (a field and live
+stars), facing south over 120 degrees, from the Yale Bright Star Catalogue plus faint stars seeded
+per patch of sky, with planets and the Moon from simplified orbital elements.
+
+**Why.** Reusing the bake keeps every effect (parallax, weather, meteors, nebula) and the GPU cost
+unchanged. The catalogue is public domain and 72 KB packed; a degree of accuracy is plenty at 16
+pixels a degree. Faint stars and a noise-textured Milky Way keep the real sky as rich as the
+imagined one; seeding them per patch keeps them fixed on the sky. Rejected: a full-sky projection
+redrawn every frame (per-frame cost), and rebaking every minute (the sky moves 8 px in two minutes,
+which a cross-fade hides, for half the CPU).
+
 ## Smaller decisions
 
 - Logos stand on a common floor (bottom-aligned in their box) so the line under them stays put;

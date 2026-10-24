@@ -38,6 +38,8 @@ in code, docs and commits; the **Avoid** list names the synonyms that blur it.
 - **Live stars** - the brightest stars, drawn every frame so they can scintillate.
 - **Nebula** - an app's own gas cloud, generated per theme; it also carries the airglow.
 - **Airglow** - the faint glow of the air above the horizon, tinted per app.
+- **Real sky** - the option that shows the true stars above home instead of the imagined field.
+- **Heavens** - the astronomy behind the real sky: where a star or a body stands for a place and a time.
 - **Theme** - one app's sky: radiant, meteor rate and tint, airglow, nebula.
 - **Radiant** - the point meteors stream away from.
 - **Parallax** - the sky's layers sliding at different depths with the focus.
