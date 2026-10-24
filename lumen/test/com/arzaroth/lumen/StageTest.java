@@ -194,6 +194,36 @@ public class StageTest {
         run(s, 3f);
     }
 
+    /** A banner whose mark sits high, ending well above the middle. */
+    static AppEntry high(String pkg) {
+        Bitmap b = Bitmap.createBitmap(320, 180, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        c.drawColor(0xFF101010);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(0xFFFFB300);
+        c.drawRect(60, 10, 260, 60, p);
+        return new AppEntry(new ComponentName(pkg, pkg + ".Main"), pkg, b, 0xFFFFB300);
+    }
+
+    private static float lowest(Stage s) {
+        float[] gy = Robo.get(s, "gy");
+        float low = 0;
+        for (int i = 0, n = Robo.get(s, "count"); i < n; i++) low = Math.max(low, gy[i]);
+        return low;
+    }
+
+    @Test
+    public void everyLogoStandsOnTheSameFloor() {
+        Stage s = ready(logo("org.example.floor", 0xFF1E88E5));
+        float floor = Robo.get(s, "floorY");
+        assertEquals(1f, lowest(s), 1e-4f);
+        s.setScene(high("org.example.high"), false);
+        settle(s);
+        run(s, 0.3f);
+        assertEquals(1f, lowest(s), 1e-4f);
+        assertEquals(floor, (float) Robo.get(s, "floorY"), 0f);
+    }
+
     @Test
     public void bannersOfEveryKindBecomeMosaics() {
         Stage s = ready(blank("org.example.blank"));
