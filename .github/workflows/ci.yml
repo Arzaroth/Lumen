@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [master]
 
 permissions:
   contents: read
@@ -37,8 +37,8 @@ jobs:
       - name: Lint
         run: ./gradlew --no-daemon :lumen:lintRelease
 
-      - name: Test
-        run: ./gradlew --no-daemon :lumen:testDebugUnitTest
+      - name: Tests, with the line-coverage floor
+        run: scripts/coverage.sh --check
 
   scripts:
     runs-on: ubuntu-latest
