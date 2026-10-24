@@ -24,7 +24,7 @@ import java.util.Random;
  */
 final class Cosmos {
     private static final int LIVE = 800, TWINKLERS = 120, SPIKED = 10, METEORS = 48, TRAIN = 14, SPRITE = 64;
-    private static final int QUADS = TWINKLERS + 2 * SPIKED + METEORS + TRAIN + 3, INDEXED = Math.max(QUADS, LIVE);
+    private static final int QUADS = 2 * TWINKLERS + 2 * SPIKED + METEORS + TRAIN + 3, INDEXED = Math.max(QUADS, LIVE);
     private static final float TRAVEL_T = 1.2f, NOVA_T = 9f;
     private static final double SIDEREAL_DEG_PER_S = 360.0 / 86164.0905, VIEW_DEG = 50.0;
     /** How far each layer slides, as a share of the width, at full parallax: the Milky Way, the nebula, the bright stars and meteors. */
@@ -78,7 +78,7 @@ final class Cosmos {
     private Theme theme, previous;
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
     private boolean still, turning;
-    private float par, parTarget, parY, parYTarget, liveTop;
+    private float par, parTarget, parY, parYTarget, liveTop, warpTravel;
     private int margin;
 
     private final float[] liveRate = new float[LIVE], livePhase = new float[LIVE], liveBirth = new float[LIVE], liveAmp = new float[LIVE];
@@ -418,6 +418,11 @@ final class Cosmos {
         }
     }
 
+    /**
+     * The jump to light speed, from 0 to 1: the bright stars stretch into streaks and fly out past the
+     * edges, faster the nearer and the further out they are; as it eases off they keep flying while
+     * they fade, and the resting sky fades back in where it was. Nothing is ever pulled back.
+     */
     void setWarp(float w) {
         warp = w;
     }
@@ -497,6 +502,7 @@ final class Cosmos {
     void update(float dt) {
         clock += dt;
         float glide = 1f - (float) Math.exp(-dt * 3.5f);
+        warpTravel = warp > 0f ? warpTravel + dt * warp * warp * width * 1.4f : 0f;
         par += (parTarget - par) * glide;
         if (Math.abs(parTarget - par) < 0.0005f) par = parTarget;
         parY += (parYTarget - parY) * glide;
@@ -707,15 +713,20 @@ final class Cosmos {
                 size *= 1f + 2.2f * (float) Math.exp(-age * 7f);
                 scint = Math.max(scint, (float) Math.exp(-age * 5f));
             }
-            int color = Apps.withAlpha(sk.color[i], Math.round((40 + 120 * z) * scint * shown * (introT >= 0f ? 1f : skyIn)));
+            int alpha = Math.round((40 + 120 * z) * scint * shown * (introT >= 0f ? 1f : skyIn));
             if (warp > 0.05f) {
                 float dx = x - cx, dy = y - cy, d = (float) Math.sqrt(dx * dx + dy * dy) + 0.001f;
-                float len = warp * (30 + 260 * z) * s;
-                quad(spriteV, q, x - dx / d * len, y - dy / d * len, x, y, size * 0.6f, size * 0.6f, size);
-            } else {
-                quad(spriteV, q, x - size, y, x + size, y, size, size, 0);
+                float out = warpTravel * (0.4f + 0.8f * z) * (0.3f + d / (width * 0.5f));
+                float hx = x + dx / d * out, hy = y + dy / d * out, len = warp * (30 + 260 * z) * s;
+                if (hx > -len && hx < width + len && hy > -len && hy < height + len) {
+                    quad(spriteV, q, hx - dx / d * len, hy - dy / d * len, hx, hy, size * 0.6f, size * 0.6f, size);
+                    tint(spriteC, q++, Apps.withAlpha(sk.color[i], Math.round(alpha * Math.min(1f, warp * 1.5f))));
+                }
             }
-            tint(spriteC, q++, color);
+            if (warp < 1f) {
+                quad(spriteV, q, x - size, y, x + size, y, size, size, 0);
+                tint(spriteC, q++, Apps.withAlpha(sk.color[i], Math.round(alpha * (1f - warp))));
+            }
             if (i < SPIKED && warp <= 0.05f) {
                 float spike = size * (4f + 2f * scint);
                 int faint = Apps.withAlpha(sk.color[i], Math.round(80 * scint * skyIn));
