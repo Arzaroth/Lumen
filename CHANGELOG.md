@@ -6,6 +6,8 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-24
+
 ### Added
 
 - On an app switch, the new logo materialises out of its tile's banner and flies up into place.
@@ -151,7 +153,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Arzaroth/Lumen/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/Arzaroth/Lumen/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/Arzaroth/Lumen/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Arzaroth/Lumen/compare/v1.1.9...v1.2.0
