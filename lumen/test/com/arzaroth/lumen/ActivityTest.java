@@ -17,6 +17,7 @@ import android.net.wifi.WifiManager;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.KeyEvent;
+import android.view.View;
 
 import org.junit.After;
 import org.junit.Before;
@@ -182,9 +183,16 @@ public class ActivityTest {
         for (int i = 0; i < 4; i++) key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
         assertEquals(1f, Robo.<Float>get(cosmos, "parTarget"), 0f);
         assertEquals(0f, Robo.<Float>get(cosmos, "parYTarget"), 0f);
+        View more = Robo.get(a, "more");
+        assertTrue(Robo.<Boolean>get(a, "moreShown"));
         key(a, KeyEvent.KEYCODE_DPAD_DOWN);
         assertEquals(1f, Robo.<Float>get(cosmos, "parYTarget"), 0f);
+        assertFalse(Robo.<Boolean>get(a, "moreShown"));
+        Robo.idle(600);
+        assertEquals(0f, more.getAlpha(), 0f);
         key(a, KeyEvent.KEYCODE_DPAD_UP);
+        Robo.idle(1000);
+        assertEquals(1f, more.getAlpha(), 0.01f);
         a.getSharedPreferences("lumen", android.content.Context.MODE_PRIVATE).edit().putInt(Prefs.PARALLAX, 1).commit();
         a.applySettings();
         assertEquals(0f, Robo.<Float>get(cosmos, "parTarget"), 0f);

@@ -140,4 +140,14 @@ public class ViewsTest {
         };
         assertTrue(Fonts.outfit(broken, 777) != null);
     }
+
+    @Test
+    public void theChevronDrawsAThinV() {
+        Chevron more = new Chevron(Robo.context(), 1f);
+        Robo.layout(more, 44, 16);
+        android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(44, 16, android.graphics.Bitmap.Config.ARGB_8888);
+        more.draw(new android.graphics.Canvas(b));
+        org.junit.Assert.assertTrue(b.getPixel(22, 13) >>> 24 > 0);
+        org.junit.Assert.assertEquals(0, b.getPixel(22, 2) >>> 24);
+    }
 }
