@@ -6,6 +6,8 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-24
+
 ### Changed
 
 - Updates install without a confirmation once Lumen installed itself (Android 12 and later), and Lumen comes back to the front when the update is done instead of the last app.
@@ -86,7 +88,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/Arzaroth/Lumen/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/Arzaroth/Lumen/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/Arzaroth/Lumen/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/Arzaroth/Lumen/compare/v1.1.1...v1.1.2
