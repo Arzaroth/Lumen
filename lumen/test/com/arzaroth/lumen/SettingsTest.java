@@ -31,7 +31,7 @@ public class SettingsTest implements LumenSettings.Host {
     private SharedPreferences prefs;
     private LumenSettings settings;
     private final ArrayList<String> log = new ArrayList<>();
-    private final ArrayList<Updater.State> forged = new ArrayList<>();
+    private final ArrayList<Updater.State> shownUpdates = new ArrayList<>();
     private Canvas canvas;
 
     @Override
@@ -55,8 +55,8 @@ public class SettingsTest implements LumenSettings.Host {
     }
 
     @Override
-    public void forge(Updater.State state, String latest, int progress) {
-        forged.add(state);
+    public void showUpdate(Updater.State state, String latest, int progress) {
+        shownUpdates.add(state);
     }
 
     @Override

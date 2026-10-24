@@ -85,7 +85,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private boolean moving, longFired, firstLayout = true;
     private SharedPreferences prefs;
     private LumenSettings settings;
-    private Forge forge;
+    private Ascent ascent;
     private ConnectivityManager.NetworkCallback netCallback;
     private String restoreKey;
     private int loadGeneration;
@@ -261,9 +261,9 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     }
 
     @Override
-    public void forge(Updater.State state, String latest, int progress) {
+    public void showUpdate(Updater.State state, String latest, int progress) {
         if (state == Updater.State.DOWNLOADING && menu.isOpen()) menu.close();
-        forge.follow(state, latest, progress);
+        ascent.follow(state, latest, progress);
     }
 
     @Override
@@ -424,8 +424,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         nlp.topMargin = px(80);
         root.addView(hint, nlp);
 
-        forge = new Forge(this, s);
-        root.addView(forge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        ascent = new Ascent(this, s);
+        root.addView(ascent, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         content.setAlpha(0f);
         setContentView(root);
@@ -618,11 +618,11 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
-        if (forge.shown()) {
+        if (ascent.shown()) {
             switch (e.getKeyCode()) {
                 case KeyEvent.KEYCODE_BACK:
                 case KeyEvent.KEYCODE_ESCAPE:
-                    if (e.getAction() == KeyEvent.ACTION_UP) forge.cool();
+                    if (e.getAction() == KeyEvent.ACTION_UP) ascent.dismiss();
                     return true;
                 case KeyEvent.KEYCODE_VOLUME_UP:
                 case KeyEvent.KEYCODE_VOLUME_DOWN:
