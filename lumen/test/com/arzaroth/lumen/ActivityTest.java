@@ -158,6 +158,8 @@ public class ActivityTest {
         key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
         key(a, KeyEvent.KEYCODE_BACK);
         key(a, KeyEvent.KEYCODE_BACK);
+        assertTrue(menu.isOpen());
+        key(a, KeyEvent.KEYCODE_BACK);
         assertFalse(menu.isOpen());
         a.resetOrder();
         waitForApps(a);

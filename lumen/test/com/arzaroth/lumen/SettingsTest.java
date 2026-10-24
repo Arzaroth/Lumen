@@ -90,7 +90,7 @@ public class SettingsTest implements LumenSettings.Host {
         menu.open(settings.root());
         menu.move(1);
         menu.activate();
-        down(12);
+        down(4);
         menu.activate();
         menu.activate();
         menu.activate();
@@ -107,13 +107,22 @@ public class SettingsTest implements LumenSettings.Host {
         menu.move(1);
         menu.activate();
         draw();
+        assertEquals(5, ((Menu.Page) Robo.call(menu, "top")).rows.size());
+
+        menu.activate();
+        assertEquals("Sky", ((Menu.Page) Robo.call(menu, "top")).title);
         menu.side(1);
         assertEquals(1, prefs.getInt(Prefs.BACKDROP, 0));
         assertEquals("apply", log.get(1));
-        down(10);
-        menu.activate();
-        assertEquals("intro", log.get(log.size() - 1));
+        down(3);
+        menu.side(1);
+        assertEquals(1, prefs.getInt(Prefs.TURN, 0));
+        menu.pop();
+
         menu.move(1);
+        menu.activate();
+        assertEquals("Home screen", ((Menu.Page) Robo.call(menu, "top")).title);
+        down(3);
         menu.activate();
         draw();
         menu.activate();
@@ -122,6 +131,22 @@ public class SettingsTest implements LumenSettings.Host {
         menu.side(1);
         menu.activate();
         assertEquals("reset", log.get(log.size() - 1));
+        menu.pop();
+
+        menu.move(1);
+        menu.activate();
+        assertEquals("Remote", ((Menu.Page) Robo.call(menu, "top")).title);
+        menu.move(1);
+        menu.side(1);
+        assertEquals(1, prefs.getInt(Prefs.YOUTUBE, 0));
+        menu.pop();
+
+        menu.move(1);
+        menu.activate();
+        assertEquals("Boot intro", ((Menu.Page) Robo.call(menu, "top")).title);
+        menu.move(1);
+        menu.activate();
+        assertEquals("intro", log.get(log.size() - 1));
     }
 
     @Test
@@ -176,7 +201,7 @@ public class SettingsTest implements LumenSettings.Host {
         menu.open(settings.root());
         menu.move(1);
         menu.activate();
-        down(12);
+        down(4);
         menu.activate();
         return Robo.call(menu, "top");
     }

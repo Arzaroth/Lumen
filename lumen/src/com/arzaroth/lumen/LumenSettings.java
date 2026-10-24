@@ -45,20 +45,40 @@ final class LumenSettings {
     }
 
     private Menu.Page lumen() {
-        return new Menu.Page("Lumen settings", 640)
+        return new Menu.Page("Lumen settings", 520)
+                .add(Menu.Row.sub("Sky", this::sky))
+                .add(Menu.Row.sub("Home screen", this::home))
+                .add(Menu.Row.sub("Remote", this::remote))
+                .add(Menu.Row.sub("Boot intro", this::intro))
+                .add(Menu.Row.sub("Advanced settings", this::openAdvanced));
+    }
+
+    private Menu.Page sky() {
+        return new Menu.Page("Sky", 640)
                 .add(choice("Backdrop", Prefs.BACKDROP, 0, "Night sky", "Fireworks", "Still sky"))
                 .add(choice("Animations", Prefs.PACE, 0, "Lively", "Calm", "Off"))
                 .add(choice("Meteors", Prefs.METEORS, Prefs.METEORS_DEFAULT, "Off", "Few", "Shower", "Storm"))
-                .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"))
+                .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"));
+    }
+
+    private Menu.Page home() {
+        return new Menu.Page("Home screen", 640)
                 .add(choice("Logo", Prefs.LOGO, 0, "3D voxels", "Flat"))
                 .add(choice("Greeting", Prefs.GREETING, 0, "On", "Off"))
                 .add(choice("Clock", Prefs.CLOCK, 0, "System", "24-hour", "12-hour"))
+                .add(Menu.Row.action("Reset tile order", this::askReset));
+    }
+
+    private Menu.Page remote() {
+        return new Menu.Page("Remote", 640)
                 .add(choice("Remote buttons", Prefs.KEYS, 0, "On", "Off"))
-                .add(choice("YouTube button", Prefs.YOUTUBE, 0, "YouTube", "SmartTube"))
+                .add(choice("YouTube button", Prefs.YOUTUBE, 0, "YouTube", "SmartTube"));
+    }
+
+    private Menu.Page intro() {
+        return new Menu.Page("Boot intro", 520)
                 .add(choice("Boot intro", Prefs.INTRO, 0, "On", "Off"))
-                .add(Menu.Row.action("Play the intro", host::playIntro))
-                .add(Menu.Row.action("Reset tile order", this::askReset))
-                .add(Menu.Row.sub("Advanced settings", this::openAdvanced));
+                .add(Menu.Row.action("Play the intro", host::playIntro));
     }
 
     /** Opening Advanced settings asks GitHub again, unless an update is already under way. */
