@@ -85,6 +85,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private boolean moving, longFired, firstLayout = true;
     private SharedPreferences prefs;
     private LumenSettings settings;
+    private Forge forge;
     private ConnectivityManager.NetworkCallback netCallback;
     private String restoreKey;
     private int loadGeneration;
@@ -260,6 +261,12 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     }
 
     @Override
+    public void forge(Updater.State state, String latest, int progress) {
+        if (state == Updater.State.DOWNLOADING && menu.isOpen()) menu.close();
+        forge.follow(state, latest, progress);
+    }
+
+    @Override
     public Menu menu() {
         return menu;
     }
@@ -416,6 +423,9 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         FrameLayout.LayoutParams nlp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         nlp.topMargin = px(80);
         root.addView(hint, nlp);
+
+        forge = new Forge(this, s);
+        root.addView(forge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         content.setAlpha(0f);
         setContentView(root);
@@ -608,6 +618,20 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
+        if (forge.shown()) {
+            switch (e.getKeyCode()) {
+                case KeyEvent.KEYCODE_BACK:
+                case KeyEvent.KEYCODE_ESCAPE:
+                    if (e.getAction() == KeyEvent.ACTION_UP) forge.cool();
+                    return true;
+                case KeyEvent.KEYCODE_VOLUME_UP:
+                case KeyEvent.KEYCODE_VOLUME_DOWN:
+                case KeyEvent.KEYCODE_VOLUME_MUTE:
+                    return super.dispatchKeyEvent(e);
+                default:
+                    return true;
+            }
+        }
         boolean down = e.getAction() == KeyEvent.ACTION_DOWN;
         switch (e.getKeyCode()) {
             case KeyEvent.KEYCODE_DPAD_CENTER:

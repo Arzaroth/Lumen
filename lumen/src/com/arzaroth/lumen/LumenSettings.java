@@ -19,6 +19,9 @@ final class LumenSettings {
 
         void playIntro();
 
+        /** The update moved on: the forge follows it on screen. */
+        void forge(Updater.State state, String latest, int progress);
+
         Menu menu();
     }
 
@@ -117,6 +120,7 @@ final class LumenSettings {
     }
 
     private void refresh() {
+        host.forge(updater.state(), updater.latest(), updater.progress());
         Menu menu = host.menu();
         if (advanced != null && menu.showing(advanced)) menu.swap(advanced());
     }
