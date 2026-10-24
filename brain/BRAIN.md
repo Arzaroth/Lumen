@@ -35,6 +35,7 @@ docs. Don't grep the whole tree; use the indexes.
 | [overview.md](architecture/overview.md) | The app's pieces, the view tree, where each feature lives. Read first. |
 | [stage.md](architecture/stage.md) | The voxel logo: mosaics, the enter/hold/exit cycle, sparks, ghosts, meshes. |
 | [cosmos.md](architecture/cosmos.md) | The sky: baked field, live stars, per-app nebula and airglow, meteors, parallax, rotation. |
+| [themes.md](architecture/themes.md) | Themes: the Theme and Backdrop interfaces, how to write one, the plan to a store. |
 | [gpu-budget.md](architecture/gpu-budget.md) | What a frame costs on the TV, how to measure it, the rules that keep it smooth. |
 | [menus.md](architecture/menus.md) | The glass dropdown, its pages and rows, navigation. |
 | [tv-scripts.md](architecture/tv-scripts.md) | Backup, debloat, install, restore: the safety rules and the Home guard. |
@@ -68,6 +69,7 @@ docs. Don't grep the whole tree; use the indexes.
 | Why do explosion rays never brake to a stop? | [architecture/stage.md](architecture/stage.md) |
 | How is the real sky computed, and how accurate is it? | [architecture/cosmos.md](architecture/cosmos.md) |
 | Where does Lumen get its location and the weather? | [features/sky.md](features/sky.md) |
+| How do I write a theme? | [architecture/themes.md](architecture/themes.md) |
 | How do I add a setting? | [features/settings.md](features/settings.md), [architecture/menus.md](architecture/menus.md) |
 | Why can't Lumen just be set as Home? | [architecture/tv-scripts.md](architecture/tv-scripts.md) |
 | What must never be disabled on a TV? | [architecture/tv-scripts.md](architecture/tv-scripts.md) |

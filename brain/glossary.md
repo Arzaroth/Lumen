@@ -40,7 +40,12 @@ in code, docs and commits; the **Avoid** list names the synonyms that blur it.
 - **Airglow** - the faint glow of the air above the horizon, tinted per app.
 - **Real sky** - the option that shows the true stars above home instead of the imagined field.
 - **Heavens** - the astronomy behind the real sky: where a star or a body stands for a place and a time.
-- **Theme** - one app's sky: radiant, meteor rate and tint, airglow, nebula.
+- **Theme** - the whole look of Lumen (Space, Volcanoes...): a backdrop and the light of every effect.
+  See [architecture/themes.md](architecture/themes.md). Avoid: skin.
+- **Backdrop** - what a theme draws behind the logo; Cosmos is Space's.
+- **Look** - one app's appearance in a backdrop (its nebula, radiant, meteor colour in space);
+  formerly a "theme" in Cosmos.
+- **Theme (old sense)** - one app's sky: radiant, meteor rate and tint, airglow, nebula.
 - **Radiant** - the point meteors stream away from.
 - **Parallax** - the sky's layers sliding at different depths with the focus.
 - **Sky rotation** - the sky turning at the Earth's real rate (a setting, off by default).

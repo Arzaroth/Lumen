@@ -77,6 +77,15 @@ imagined one; seeding them per patch keeps them fixed on the sky. Rejected: a fu
 redrawn every frame (per-frame cost), and rebaking every minute (the sky moves 8 px in two minutes,
 which a cross-fade hides, for half the CPU).
 
+## 0009 Themes as interfaces, for code and for packs
+
+**Decision.** Lumen's look is a `Theme` with a `Backdrop`; built-in themes are code implementing
+them, community themes will be both declarative packs (JSON and images on a generic engine, safe to
+download) and code plugins (separate APKs, behind an explicit switch).
+
+**Why.** Packs make a store safe for anyone; plugins keep room for what an engine cannot express.
+Moving Space onto the interfaces first, unchanged, proves the seam before anything new depends on it.
+
 ## Smaller decisions
 
 - Logos stand on a common floor (bottom-aligned in their box) so the line under them stays put;
