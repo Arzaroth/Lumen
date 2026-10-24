@@ -6,6 +6,16 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-24
+
+### Changed
+
+- A stronger parallax.
+
+### Fixed
+
+- Every logo stands on the same floor, so the line under it no longer jumps between apps.
+
 ## [1.1.1] - 2026-10-24
 
 ### Added
@@ -56,7 +66,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/Arzaroth/Lumen/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Arzaroth/Lumen/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Arzaroth/Lumen/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Arzaroth/Lumen/releases/tag/v1.0.0
