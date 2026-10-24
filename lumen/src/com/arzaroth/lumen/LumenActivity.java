@@ -32,6 +32,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -86,6 +87,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     private SharedPreferences prefs;
     private LumenSettings settings;
     private Ascent ascent;
+    private View more;
+    private boolean moreShown;
     private ConnectivityManager.NetworkCallback netCallback;
     private String restoreKey;
     private int loadGeneration;
@@ -393,6 +396,13 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         blp.topMargin = bandTop;
         content.addView(band, blp);
 
+        more = new Chevron(this, s);
+        more.setAlpha(0f);
+        FrameLayout.LayoutParams mlp2 = new FrameLayout.LayoutParams(px(44), px(16));
+        mlp2.leftMargin = (width - px(44)) / 2;
+        mlp2.topMargin = bandBottom + px(19);
+        content.addView(more, mlp2);
+
         appsHeader = text(600, 20, 0x66FFFFFF);
         appsHeader.setLetterSpacing(0.16f);
         appsHeader.setText(R.string.all_apps);
@@ -608,6 +618,21 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         return zone == ZONE_TILES ? index / COLS : 0;
     }
 
+    /** Shows the chevron under the dock with a small nod downwards, or fades it away. */
+    private void hintMore(boolean show, boolean animate) {
+        if (show == moreShown) return;
+        moreShown = show;
+        float to = show ? 1f : 0f;
+        more.animate().cancel();
+        if (show && animate) {
+            more.setTranslationY(-px(8));
+            more.animate().alpha(to).translationY(0).setStartDelay(250).setDuration(520).setInterpolator(new OvershootInterpolator(2.5f)).start();
+        } else {
+            more.setTranslationY(0);
+            more.animate().alpha(to).setStartDelay(0).setDuration(animate ? 200 : 0).setInterpolator(new DecelerateInterpolator()).start();
+        }
+    }
+
     private float scrollTarget() {
         int row = focusedRow();
         if (row < 1) return 0;
@@ -619,6 +644,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         boolean inGrid = focusedRow() >= 1;
         stage.setDim(inGrid ? 0.28f : 1f);
         appsHeader.animate().alpha(inGrid ? 1f : 0f).setDuration(animate ? 300 : 0).start();
+        hintMore(!inGrid && tiles.size() > COLS, animate);
         if (firstLayout) return;
         content.animate().translationY(scrollTarget()).setStartDelay(0).setDuration(animate ? 460 : 0).setInterpolator(new DecelerateInterpolator(2.2f)).start();
     }
