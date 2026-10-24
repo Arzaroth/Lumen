@@ -26,12 +26,14 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
   A fireworks style is kept in `Stage` as an alternative
 - Greeting, thin Outfit clock and date; frosted pills for Inputs (glass dropdown: Live TV + HDMI
   inputs via the TV input framework), network (Wi-Fi name or Ethernet) and Settings
-- Settings dropdown: the TV's System settings, or Lumen settings (Left/Right to change, applied at
-  once and remembered): backdrop (night sky, fireworks, still sky), animations (lively, calm, off),
-  meteors, 3D or flat logo, greeting, clock format, the remote's buttons on Home and whether the
-  YouTube button opens YouTube or SmartTube, and a tile order reset. Advanced settings › Seasonal
-  events › Spooky doot turns [doot](https://github.com/boubou666/doot) off after two questions
-  (the second one swaps its buttons) and one last doot, or back on
+- Settings dropdown: the TV's System settings, or Lumen settings (applied at once and remembered),
+  grouped into Sky (backdrop, animations, meteors, sky rotation, parallax), Home screen (3D or flat
+  logo, greeting, clock format, tile order reset), Remote (the remote's buttons on Home, YouTube or
+  SmartTube), Boot intro and Advanced (seasonal events, updates, version). Advanced settings ›
+  Seasonal events › Spooky doot turns [doot](https://github.com/boubou666/doot) off after two
+  questions (the second one swaps its buttons) and one last doot, or back on
+- Updates itself from GitHub releases: the new version gathers out of stardust as it downloads,
+  installs without a prompt once Lumen installed itself, and Lumen comes back to the front
 - Glass dock band of 5 apps, a spring-animated glass highlight, focused tile lifts with a real shadow
   and shows its name; all apps in a grid below that scrolls the dock up like tvOS
 - Deterministic D-pad: Up/Down move exactly one row, Up from the dock reaches the top bar, Back
@@ -52,7 +54,7 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
   against burn-in
 - Remote keys: on Google TV the remote's Input, YouTube, Netflix and Disney+ buttons are wired to the
   stock launcher; an accessibility service (`LumenKeys`) takes them while Lumen is on screen
-- Plain Java, no dependencies, no INTERNET permission, 156 KB APK, minSdk 26
+- Plain Java, no dependencies, about 220 KB APK, minSdk 26; signed with its own release key
 
 ## Layout
 
@@ -66,17 +68,19 @@ the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) project, 
 | `scripts/install.sh` | Builds Lumen, installs it, makes it Home, disables the stock launcher only behind a guard that re-enables it if Lumen does not take Home; grants `DUMP`, which doot's receiver requires of whoever sends it a doot |
 | `scripts/restore.sh` | Re-enables everything, gives Home back, restores the screensaver, uninstalls Lumen (`--keep-lumen` to keep it) |
 | `scripts/measure.sh`, `scripts/frames.sh` | Reboot + RAM measurement, D-pad frame-time measurement |
-| `lumen/` | Launcher source; `lumen/build.sh` builds with the bare SDK (aapt2, javac, d8, apksigner) |
+| `lumen/` | Launcher source (`src/`), tests (`test/`), built with Gradle |
+| `brain/` | The knowledge base: how everything works, start at `brain/BRAIN.md` |
+| `assets/` | The screenshots in this README |
 | `backup/` | Per-TV state written by `backup.sh` and the other scripts; gitignored (holds serials and device names) |
 | `shots/` | Verification screenshots; gitignored |
 
 ## Requirements
 
-`adb` and [mise](https://mise.jdx.dev). `mise install` brings JDK 17 and the SDK command-line tools,
-then once: `mise exec -- sdkmanager "build-tools;34.0.0" "platforms;android-34"`. Run the scripts
-through `mise exec --` so `ANDROID_HOME` and Java are set. JDK 17 matters: d8 from build-tools 34
-crashes on classes compiled by newer JDKs. `lumen/build.sh` creates `~/.android/debug.keystore` if it
-is missing. To try it without a TV: an emulator from `system-images;android-34;android-tv;x86`
+`adb` and [mise](https://mise.jdx.dev); `mise install` brings JDK 17 and the Android SDK. Then
+`mise exec -- ./gradlew :lumen:assembleRelease` builds the APK and `mise exec -- scripts/coverage.sh`
+runs the tests. Release builds are signed with the key in `~/.config/lumen/keystore.properties`
+when present, the debug key otherwise. Run the TV scripts through `mise exec --` so `ANDROID_HOME`
+and Java are set. To try it without a TV: an emulator from `system-images;android-34;android-tv;x86`
 with the `tv_1080p` device.
 
 ## Results on the emulator (Android TV 14, 1 GB RAM)
@@ -177,7 +181,11 @@ Undo everything: `scripts/restore.sh`.
 
 ## Status
 
-Done on the emulator and on the Thomson (`192.168.5.200`, reached from a machine on the same
-`192.168.5.x` subnet; the first machine on `192.168.42.x` could not reach it through the UniFi
-gateway). Backup in `backup/`, undo with `scripts/restore.sh` (turn debugging back on first). USB and
-Network debugging are off again: the TV answers ping, TCP 5555 refuses, no Wireless debugging on mDNS.
+In daily use on the Thomson (`192.168.5.200`), updated in place from GitHub releases. Network
+debugging has to be switched back on after each reboot of the TV. Backup in `backup/`, undo with
+`scripts/restore.sh`.
+
+## Licence
+
+MIT OR WTFPL, at your choice: see [LICENSE](LICENSE). The Outfit font is under the SIL Open Font
+License, see [THIRD-PARTY.md](THIRD-PARTY.md).
