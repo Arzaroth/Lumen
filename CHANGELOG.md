@@ -6,6 +6,11 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The update screen plays out in full before Android replaces Lumen.
+- Lumen tries to come back as soon as it is replaced, so the last app shows for less time, if at all.
+
 ## [1.1.6] - 2026-10-24
 
 ### Added
