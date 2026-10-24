@@ -73,6 +73,7 @@ public final class LumenKeys extends AccessibilityService {
             } else {
                 Intent launch = getPackageManager().getLeanbackLaunchIntentForPackage(app);
                 start(launch != null ? launch : new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + app)));
+                if (launch != null) Habits.record(getSharedPreferences("lumen", MODE_PRIVATE), app);
             }
         }
         return true;

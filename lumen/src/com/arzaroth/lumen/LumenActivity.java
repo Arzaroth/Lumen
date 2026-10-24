@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class LumenActivity extends Activity implements LumenSettings.Host {
     static final String ACTION_INPUTS = "com.arzaroth.lumen.INPUTS";
@@ -170,6 +171,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         clock.setRunning(true);
         date.setRunning(true);
         stage.setRunning(true);
+        if (prefs.getInt(Prefs.ORDER, 0) == 1) reorder();
     }
 
     @Override
@@ -204,7 +206,9 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     }
 
     private void launchFromMenu(Intent i) {
-        if (start(i)) menu.close();
+        if (!start(i)) return;
+        menu.close();
+        if (i.getComponent() != null) Habits.record(prefs, i.getComponent().getPackageName());
     }
 
     @Override
@@ -214,6 +218,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setSkyStill(backdrop == 2);
         stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
         stage.setNebula(prefs.getInt(Prefs.NEBULA, 0) == 0);
+        reorder();
         if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index), parallaxDownOf(index));
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
         stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
@@ -501,6 +506,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
     }
 
     private void order(ArrayList<AppEntry> list) {
+        final Map<String, Double> use = prefs.getInt(Prefs.ORDER, 0) == 1 ? Habits.scores(prefs) : new HashMap<>();
         final HashMap<String, Integer> rank = new HashMap<>();
         String saved = prefs.getString("order", "");
         if (!saved.isEmpty()) {
@@ -508,6 +514,8 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             for (int i = 0; i < keys.length; i++) rank.put(keys[i], i);
         }
         Collections.sort(list, (a, b) -> {
+            int byUse = Double.compare(use.getOrDefault(b.component.getPackageName(), 0.0), use.getOrDefault(a.component.getPackageName(), 0.0));
+            if (byUse != 0) return byUse;
             Integer ra = rank.get(a.key()), rb = rank.get(b.key());
             if (ra != null && rb != null) return ra - rb;
             if (ra != null) return -1;
@@ -523,6 +531,14 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         int p = PREFERRED.indexOf(pkg);
         if (p >= 0) return p;
         return 1_000;
+    }
+
+    /** With the dock ordered by use, puts the apps back in order when it changed, keeping the focus on its app. */
+    private void reorder() {
+        if (tiles.isEmpty()) return;
+        ArrayList<AppEntry> next = new ArrayList<>(apps);
+        order(next);
+        if (!next.equals(apps)) applyApps(next);
     }
 
     private void saveOrder() {
@@ -814,6 +830,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             startActivity(intent, ActivityOptions.makeScaleUpAnimation(t, 0, 0, t.imgW, t.imgH).toBundle());
+            Habits.record(prefs, t.app.component.getPackageName());
         } catch (ActivityNotFoundException | SecurityException ex) {
             Toast.makeText(this, t.app.label + " can't be opened", Toast.LENGTH_SHORT).show();
         }
@@ -847,6 +864,10 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
 
     private void startMoving() {
         if (tiles.isEmpty()) return;
+        if (prefs.getInt(Prefs.ORDER, 0) == 1) {
+            prefs.edit().putInt(Prefs.ORDER, 0).apply();
+            saveOrder();
+        }
         moving = true;
         tiles.get(index).setWiggling(true);
         hint.animate().alpha(1f).setDuration(200).start();

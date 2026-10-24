@@ -71,6 +71,7 @@ final class LumenSettings {
                 .add(choice("Logo", Prefs.LOGO, 0, "3D voxels", "Flat"))
                 .add(choice("Greeting", Prefs.GREETING, 0, "On", "Off"))
                 .add(choice("Clock", Prefs.CLOCK, 0, "System", "24-hour", "12-hour"))
+                .add(choice("Order", Prefs.ORDER, 0, "Manual", "Most used"))
                 .add(Menu.Row.action("Reset tile order", this::askReset));
     }
 

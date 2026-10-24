@@ -136,6 +136,9 @@ public class SettingsTest implements LumenSettings.Host {
         menu.activate();
         assertEquals("Home screen", ((Menu.Page) Robo.call(menu, "top")).title);
         down(3);
+        menu.side(1);
+        assertEquals(1, prefs.getInt(Prefs.ORDER, 0));
+        menu.move(1);
         menu.activate();
         draw();
         menu.activate();
