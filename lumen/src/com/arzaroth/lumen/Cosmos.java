@@ -232,36 +232,7 @@ final class Cosmos implements Backdrop {
 
     // ------------------------------------------------------------------ the sky, once
 
-    private static float hash(int x, int y, int seed) {
-        int h = x * 374761393 + y * 668265263 + seed * 362437;
-        h = (h ^ (h >>> 13)) * 1274126177;
-        return ((h ^ (h >>> 16)) & 0xFFFFFF) / 16777215f;
-    }
 
-    private static float noise(float x, float y, int seed) {
-        int ix = (int) Math.floor(x), iy = (int) Math.floor(y);
-        float fx = x - ix, fy = y - iy;
-        float ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
-        float a = hash(ix, iy, seed), b = hash(ix + 1, iy, seed), c = hash(ix, iy + 1, seed), d = hash(ix + 1, iy + 1, seed);
-        return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
-    }
-
-    private static float fbm(float x, float y, int seed, int octaves) {
-        float v = 0, amp = 0.5f, norm = 0;
-        for (int o = 0; o < octaves; o++) {
-            v += amp * noise(x, y, seed + o * 31);
-            norm += amp;
-            x = x * 2.03f + 17f;
-            y = y * 2.03f + 9f;
-            amp *= 0.5f;
-        }
-        return v / norm;
-    }
-
-    private static float smooth(float a, float b, float x) {
-        float t = Math.max(0f, Math.min(1f, (x - a) / (b - a)));
-        return t * t * (3 - 2 * t);
-    }
 
     /**
      * The sky at screen resolution, twice the screen wide and seamless across its ends so it can
@@ -285,11 +256,11 @@ final class Cosmos implements Backdrop {
                 float core = (float) Math.exp(-(across / 0.15f) * (across / 0.15f));
                 float clouds = seamless(px, v, 3.2f, tw, h, 11, 5);
                 float knots = seamless(px, v, 9f, tw, h, 23, 4);
-                float lane = smooth(0.48f, 0.66f, seamless(px, v, 5.5f, tw, h, 37, 5));
+                float lane = Noise.smooth(0.48f, 0.66f, seamless(px, v, 5.5f, tw, h, 37, 5));
                 float rift = lane * (float) Math.exp(-((across + 0.015f) / 0.055f) * ((across + 0.015f) / 0.055f));
                 float light = core * (0.25f + 1.1f * clouds * clouds + 0.5f * knots * clouds) * (1f - 0.85f * rift);
                 light *= 0.75f + 0.25f * (float) Math.sin(2 * phase + 1);
-                float warm = smooth(0.5f, 0.9f, core * clouds * 1.4f);
+                float warm = Noise.smooth(0.5f, 0.9f, core * clouds * 1.4f);
                 float t = 1f - py / h;
                 int i = y * gw + x;
                 gr[i] = 0.008f + 0.02f * (1 - t) + light * (0.13f + 0.12f * warm);
@@ -309,7 +280,7 @@ final class Cosmos implements Backdrop {
                 float wx = fx - x0;
                 int a = y0 * gw + x0, b = y0 * gw + (x0 + 1) % gw, c = a + gw, d = b + gw;
                 float r = bilerp(gr, a, b, c, d, wx, wy), g = bilerp(gg, a, b, c, d, wx, wy), bl = bilerp(gb, a, b, c, d, wx, wy);
-                float dither = (hash(x, y, 3) - 0.5f) / 255f;
+                float dither = (Noise.hash(x, y, 3) - 0.5f) / 255f;
                 px[y * tw + x] = Color.rgb(c255(r + dither), c255(g + dither), c255(bl + dither));
             }
         }
@@ -399,11 +370,11 @@ final class Cosmos implements Backdrop {
                 float v = (lat + 90f) / 90f;
                 float clouds = seamless(lon, v, 3.2f, 360, 90, 11, 5);
                 float knots = seamless(lon, v, 9f, 360, 90, 23, 4);
-                float lane = smooth(0.48f, 0.66f, seamless(lon, v, 5.5f, 360, 90, 37, 5));
+                float lane = Noise.smooth(0.48f, 0.66f, seamless(lon, v, 5.5f, 360, 90, 37, 5));
                 float rift = lane * (float) Math.exp(-((across + 0.015f) / 0.055f) * ((across + 0.015f) / 0.055f));
                 float light = core * (0.25f + 1.1f * clouds * clouds + 0.5f * knots * clouds) * (1f - 0.85f * rift);
                 light *= 0.55f + 0.45f * (float) Math.cos(Math.toRadians(lon));
-                float warm = smooth(0.5f, 0.9f, core * clouds * 1.4f);
+                float warm = Noise.smooth(0.5f, 0.9f, core * clouds * 1.4f);
                 gr[i] = 0.008f + 0.02f * (1 - t) + light * (0.13f + 0.12f * warm);
                 gg[i] = 0.014f + 0.035f * (1 - t) + light * (0.17f + 0.08f * warm);
                 gb[i] = 0.04f + 0.08f * (1 - t) + light * (0.27f + 0.02f * warm);
@@ -421,7 +392,7 @@ final class Cosmos implements Backdrop {
                 float wx = fx - x0;
                 int a = y0 * gw + x0, b = a + 1, c = a + gw, d = b + gw;
                 float r = bilerp(gr, a, b, c, d, wx, wy), g = bilerp(gg, a, b, c, d, wx, wy), bl = bilerp(gb, a, b, c, d, wx, wy);
-                float dither = (hash(x, y, 3) - 0.5f) / 255f;
+                float dither = (Noise.hash(x, y, 3) - 0.5f) / 255f;
                 px[y * fw + x] = Color.rgb(c255(r + dither), c255(g + dither), c255(bl + dither));
             }
         }
@@ -590,7 +561,7 @@ final class Cosmos implements Backdrop {
 
     private static float seamless(float x, float v, float scale, int tw, int h, int seed, int octaves) {
         float u = x / h * scale, period = (float) tw / h * scale, t = x / tw;
-        return fbm(u, v * scale, seed, octaves) * (1 - t) + fbm(u - period, v * scale, seed, octaves) * t;
+        return Noise.fbm(u, v * scale, seed, octaves) * (1 - t) + Noise.fbm(u - period, v * scale, seed, octaves) * t;
     }
 
     private static float bilerp(float[] v, int a, int b, int c, int d, float wx, float wy) {
@@ -666,12 +637,12 @@ final class Cosmos implements Backdrop {
                     shape = Math.max(shape, (float) Math.exp(-(p * p + q * q)));
                 }
                 if (shape < 0.01f) continue;
-                float wx = fbm(u * 3f, v * 3f, seed, 3) * 2f, wy = fbm(u * 3f + 5f, v * 3f, seed + 9, 3) * 2f;
-                float gas = fbm(u * 4f + wx, v * 4f + wy, seed + 17, 5);
-                float other = fbm(u * 5f - wy, v * 5f + wx, seed + 29, 4);
-                float dust = smooth(0.55f, 0.72f, fbm(u * 7f + wx, v * 7f, seed + 41, 4));
-                float g = smooth(0.38f, 0.8f, gas) * shape * (1f - 0.75f * dust) * strength;
-                float o = smooth(0.45f, 0.85f, other) * shape * (1f - 0.75f * dust) * strength * 0.7f;
+                float wx = Noise.fbm(u * 3f, v * 3f, seed, 3) * 2f, wy = Noise.fbm(u * 3f + 5f, v * 3f, seed + 9, 3) * 2f;
+                float gas = Noise.fbm(u * 4f + wx, v * 4f + wy, seed + 17, 5);
+                float other = Noise.fbm(u * 5f - wy, v * 5f + wx, seed + 29, 4);
+                float dust = Noise.smooth(0.55f, 0.72f, Noise.fbm(u * 7f + wx, v * 7f, seed + 41, 4));
+                float g = Noise.smooth(0.38f, 0.8f, gas) * shape * (1f - 0.75f * dust) * strength;
+                float o = Noise.smooth(0.45f, 0.85f, other) * shape * (1f - 0.75f * dust) * strength * 0.7f;
                 px[y * NEB_W + x] = Color.rgb(c255(a[0] * g + b[0] * o), c255(a[1] * g + b[1] * o), c255(a[2] * g + b[2] * o));
             }
         }
@@ -860,7 +831,7 @@ final class Cosmos implements Backdrop {
         if (!still) drift += dt;
         if (introT >= 0f) {
             introT += dt;
-            float rise = smooth(0.3f, 2.4f, introT);
+            float rise = Noise.smooth(0.3f, 2.4f, introT);
             skyIn = sky != null ? Math.min(rise, skyIn + dt / 0.8f) : 0f;
             if (introT > 2.4f && skyIn >= rise) introT = -1f;
         } else if (sky != null) {
