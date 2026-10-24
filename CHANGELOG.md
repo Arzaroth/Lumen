@@ -6,6 +6,8 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-25
+
 ### Added
 
 - Lumen settings › Theme › Volcano: a volcano erupting under the stars, its lava glowing and flickering, sparks rising from the vent and the stars twinkling; the clock, the logo's sparks, the update and the screensaver turn to embers with it.
@@ -197,7 +199,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/Arzaroth/Lumen/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Arzaroth/Lumen/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Arzaroth/Lumen/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Arzaroth/Lumen/compare/v1.3.2...v1.4.0
