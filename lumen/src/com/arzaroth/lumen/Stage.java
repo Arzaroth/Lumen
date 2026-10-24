@@ -114,6 +114,8 @@ final class Stage extends View {
     private final int[] slots = new int[2 * K];
     private int half;
     private float bottom = 1f;
+    /** The floor every logo stands on: how far under the logo box, and how far its line reaches past it. */
+    private float floorGap, floorReach;
 
     private Mosaic pending;
     private boolean hasPending;
@@ -322,7 +324,9 @@ final class Stage extends View {
         logo.set(area.centerX() - lw / 2, area.centerY() - lh / 2, area.centerX() + lw / 2, area.centerY() + lh / 2);
         cell = lw / COLS;
         unit = lw / 760f;
-        floorY = logo.bottom + cell * 2.5f;
+        floorGap = cell * 4f;
+        floorReach = cell * 14f;
+        floorY = logo.bottom + floorGap;
         clipBottom = reflectionLimit;
         cosmos.layout(logo, screenW, screenH);
         laidOut = true;
@@ -568,22 +572,22 @@ final class Stage extends View {
         for (int k = 0; k < K; k++) slots[newHalf + k] = m.palette[k];
         half = newHalf;
         System.arraycopy(m.sparks, 0, sparkColors, 0, SPARK_COLORS);
-        bottom = m.bottom;
+        float lift = 1f - m.bottom;
+        bottom = 1f;
         gridRows = m.rows;
         cell = logo.width() / m.cols;
-        floorY = logo.top + m.bottom * logo.height() + cell * 5f;
         flashShader = new RadialGradient(0, 0, 1, new int[] {0xFFFFFFFF, Apps.withAlpha(m.sparks[2], 0xC0), 0x00000000},
                 new float[] {0f, 0.35f, 1f}, Shader.TileMode.CLAMP);
         coreShader = new RadialGradient(0, 0, 1, new int[] {0xFFFFFFFF, Apps.withAlpha(accent, 0xA0), 0x00000000},
                 new float[] {0f, 0.3f, 1f}, Shader.TileMode.CLAMP);
         beamTint = new PorterDuffColorFilter(m.sparks[2], PorterDuff.Mode.MULTIPLY);
-        horizon.setShader(new LinearGradient(logo.left - cell * 14, 0, logo.right + cell * 14, 0,
+        horizon.setShader(new LinearGradient(logo.left - floorReach, 0, logo.right + floorReach, 0,
                 new int[] {0x00000000, Apps.withAlpha(m.sparks[2], 0x90), Apps.withAlpha(m.sparks[3], 0x90), 0x00000000},
                 new float[] {0f, 0.35f, 0.65f, 1f}, Shader.TileMode.CLAMP));
         boolean first = count == 0;
         for (int i = 0; i < m.count; i++) {
             gx[i] = m.gx[i];
-            gy[i] = m.gy[i];
+            gy[i] = m.gy[i] + lift;
             bk[i] = (byte) (newHalf + m.bucket[i]);
             if (first || i >= count) {
                 float a = rnd.nextFloat() * 6.2832f, d = logo.width() * (0.7f + rnd.nextFloat() * 0.6f);
@@ -1771,7 +1775,7 @@ final class Stage extends View {
                 corePaint.setColorFilter(null);
                 c.restore();
             }
-            c.drawRect(logo.left - cell * 14, floorY - s, logo.right + cell * 14, floorY + 1.5f * s, horizon);
+            c.drawRect(logo.left - floorReach, floorY - s, logo.right + floorReach, floorY + 1.5f * s, horizon);
 
             for (int i = 0; i < LIGHTS; i++) {
                 if (lightLife[i] > 0) {
