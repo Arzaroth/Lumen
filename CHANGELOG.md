@@ -6,6 +6,8 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-25
+
 ### Fixed
 
 - With Real sky on, the sky no longer turns to a flat, starless band below the dock: it carries on, stars included, down to the bottom of the screen.
@@ -203,7 +205,8 @@ All notable changes to Lumen are recorded here. The format follows
 - `scripts/install.sh` builds and installs Lumen and makes it Home behind a guard; `scripts/restore.sh` undoes everything.
 - Per-TV debloat lists, backups, and measurement scripts.
 
-[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/Arzaroth/Lumen/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/Arzaroth/Lumen/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/Arzaroth/Lumen/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Arzaroth/Lumen/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Arzaroth/Lumen/compare/v1.4.0...v1.5.0
