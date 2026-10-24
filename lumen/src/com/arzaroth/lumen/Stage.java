@@ -26,6 +26,7 @@ import android.view.View;
 import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
+import java.util.function.Supplier;
 
 /**
  * The empty middle of Home. The focused app's banner becomes a logo of lit voxels under a night sky
@@ -120,7 +121,7 @@ final class Stage extends View {
     private float floorGap, floorReach, lift;
     /** Where the next logo materialises from: its tile's banner, when the focus has just moved to it. */
     private final RectF source = new RectF();
-    private boolean fromTile;
+    private Supplier<RectF> bannerOf;
     /** Where the logo's cells actually are, inside its box: the centre the animations play around. */
     private final RectF art = new RectF();
 
@@ -368,12 +369,14 @@ final class Stage extends View {
         setScene(app, animate, null);
     }
 
-    /** Shows `app`; when its tile's banner is given, the new logo first materialises out of it. */
-    void setScene(final AppEntry app, final boolean animate, RectF banner) {
+    /**
+     * Shows `app`; when its tile's banner can be found, the new logo first materialises out of it.
+     * Asked for only once the entrance starts: by then the rows may have scrolled.
+     */
+    void setScene(final AppEntry app, final boolean animate, Supplier<RectF> banner) {
         if (app == shownApp) return;
         shownApp = app;
-        fromTile = animate && banner != null;
-        if (fromTile) source.set(banner);
+        bannerOf = animate ? banner : null;
         final int gen = ++generation;
         final int artW = Math.max(COLS, Math.round(logo.width())), artH = Math.max(ROWS, Math.round(logo.height()));
         builder.removeCallbacksAndMessages(null);
@@ -646,8 +649,10 @@ final class Stage extends View {
     }
 
     private void startEnter() {
-        if (lively()) enterKind = hasPending && fromTile ? E_TILE : chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
-        if (hasPending) fromTile = false;
+        RectF banner = hasPending && bannerOf != null ? bannerOf.get() : null;
+        if (hasPending) bannerOf = null;
+        if (banner != null) source.set(banner);
+        if (lively()) enterKind = banner != null ? E_TILE : chooseFrom(enterKind, pace == CALM ? CALM_ENTERS : ALL_ENTERS);
         int reused = lively() && enterKind == E_CONVERGE ? (hasPending ? Math.min(count, pending.count) : count) : 0;
         ghost(reused);
         if (hasPending) adopt();

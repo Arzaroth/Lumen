@@ -572,7 +572,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             setTitle(t.app, animate);
             clock.setAccent(t.app.accent);
             date.setAccent(t.app.accent);
-            stage.setScene(t.app, animate, animate ? bannerOnStage(t) : null);
+            stage.setScene(t.app, animate, () -> bannerOnStage(t));
             stage.setParallax(parallaxOf(index), parallaxDownOf(index));
             if (index < COLS) lastDockIndex = index;
         } else {
@@ -581,8 +581,9 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         scroll(animate);
     }
 
-    /** Where a tile's banner is drawn, in the stage's coordinates. */
+    /** Where a tile's banner is drawn now, in the stage's coordinates; null once the tile has left the window. */
     private RectF bannerOnStage(Tile t) {
+        if (!t.isAttachedToWindow()) return null;
         int[] at = new int[2], origin = new int[2];
         t.getLocationInWindow(at);
         stage.getLocationInWindow(origin);
