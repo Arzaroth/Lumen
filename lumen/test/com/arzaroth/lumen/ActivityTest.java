@@ -188,6 +188,34 @@ public class ActivityTest {
     }
 
     @Test
+    public void theForgeTakesTheScreenWhileTheUpdateBurns() {
+        apps(8);
+        LumenActivity a = launch(null).get();
+        Menu menu = Robo.get(a, "menu");
+        Forge forge = Robo.get(a, "forge");
+        key(a, KeyEvent.KEYCODE_DPAD_UP);
+        key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
+        key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
+        key(a, KeyEvent.KEYCODE_DPAD_CENTER);
+        assertTrue(menu.isOpen());
+        a.forge(Updater.State.CHECKING, null, 0);
+        assertTrue(menu.isOpen());
+        a.forge(Updater.State.DOWNLOADING, "9.0.0", 10);
+        assertFalse(menu.isOpen());
+        assertTrue(forge.shown());
+        int focused = Robo.get(a, "index");
+        key(a, KeyEvent.KEYCODE_DPAD_DOWN);
+        key(a, KeyEvent.KEYCODE_DPAD_RIGHT);
+        assertEquals(focused, (int) Robo.<Integer>get(a, "index"));
+        a.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_VOLUME_UP));
+        key(a, KeyEvent.KEYCODE_BACK);
+        assertEquals(Forge.Phase.BURN, forge.phase());
+        a.forge(Updater.State.INSTALLING, "9.0.0", 100);
+        key(a, KeyEvent.KEYCODE_ESCAPE);
+        assertEquals(Forge.Phase.COOL, forge.phase());
+    }
+
+    @Test
     public void tilesLaunchAndRearrange() {
         apps(8);
         LumenActivity a = launch(null).get();
