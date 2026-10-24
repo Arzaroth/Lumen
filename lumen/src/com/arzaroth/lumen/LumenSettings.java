@@ -58,7 +58,8 @@ final class LumenSettings {
                 .add(choice("Backdrop", Prefs.BACKDROP, 0, "Night sky", "Fireworks", "Still sky"))
                 .add(choice("Animations", Prefs.PACE, 0, "Lively", "Calm", "Off"))
                 .add(choice("Meteors", Prefs.METEORS, Prefs.METEORS_DEFAULT, "Off", "Few", "Shower", "Storm"))
-                .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"));
+                .add(choice("Sky rotation", Prefs.TURN, 0, "Off", "On"))
+                .add(choice("Parallax", Prefs.PARALLAX, 0, "On", "Off"));
     }
 
     private Menu.Page home() {

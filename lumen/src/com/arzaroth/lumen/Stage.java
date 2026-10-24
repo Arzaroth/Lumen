@@ -298,6 +298,12 @@ final class Stage extends View {
         cosmos.setTurning(on);
     }
 
+    /** The sky's parallax, from -1 (looking left) to 1. */
+    void setParallax(float x) {
+        cosmos.setParallax(x);
+        if (running) postInvalidateOnAnimation();
+    }
+
     /** Freezes the sky: no twinkling, no meteors. */
     void setSkyStill(boolean still) {
         cosmos.setStill(still);

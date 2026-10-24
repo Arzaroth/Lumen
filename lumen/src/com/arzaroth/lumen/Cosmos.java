@@ -28,6 +28,8 @@ final class Cosmos {
     private static final int QUADS = TWINKLERS + 2 * SPIKED + METEORS + TRAIN + 3, INDEXED = Math.max(QUADS, LIVE);
     private static final float TRAVEL_T = 1.2f, NOVA_T = 9f;
     private static final double SIDEREAL_DEG_PER_S = 360.0 / 86164.0905, VIEW_DEG = 50.0;
+    /** How far each layer slides, as a share of the width, at full parallax: the Milky Way, the nebula, the bright stars and meteors. */
+    private static final float FAR = 0.005f, MID = 0.011f, NEAR = 0.018f;
     private static final int[] EMISSION = {0xFF7CFFB0, 0xFF8FD8FF, 0xFFFFC27A, 0xFFC9A2FF, 0xFFB6FFF0};
     private static final int NEB_W = 400, NEB_H = 225;
 
@@ -74,6 +76,7 @@ final class Cosmos {
     private Shader glowNow, glowBefore;
     private float travel = 1f, clock, drift, warp, storm, nextMeteor = 1f, nextSatellite = 12f, meteors = 1f;
     private boolean still, turning;
+    private float par, parTarget;
 
     private final float[] liveRate = new float[LIVE], livePhase = new float[LIVE], liveBirth = new float[LIVE], liveAmp = new float[LIVE];
     private int nova = -1;
@@ -417,6 +420,11 @@ final class Cosmos {
         meteors = rate;
     }
 
+    /** Where the eye looks across the sky, from -1 (far left) to 1; the layers glide there at their depths. */
+    void setParallax(float x) {
+        parTarget = Math.max(-1f, Math.min(1f, x));
+    }
+
     /** Turns the sky with the Earth, or holds it still. */
     void setTurning(boolean on) {
         turning = on;
@@ -424,7 +432,7 @@ final class Cosmos {
 
     /** Whether the sky still needs frames: anything in flight, fading or twinkling. */
     boolean moving() {
-        if (introT >= 0f || !still || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
+        if (introT >= 0f || !still || par != parTarget || warp > 0 || travel < 1f || skyIn < 1f || satLife > 0) return true;
         for (int i = 0; i < METEORS; i++) if (mAge[i] < mLife[i]) return true;
         return false;
     }
@@ -474,6 +482,8 @@ final class Cosmos {
 
     void update(float dt) {
         clock += dt;
+        par += (parTarget - par) * (1f - (float) Math.exp(-dt * 3.5f));
+        if (Math.abs(parTarget - par) < 0.0005f) par = parTarget;
         if (!still) drift += dt;
         if (introT >= 0f) {
             introT += dt;
@@ -580,16 +590,19 @@ final class Cosmos {
         c.drawColor(0xFF000000);
         Sky sk = sky;
         float fade = skyIn * (1f - 0.7f * warp);
-        float left = 0f;
+        float left = 0f, near = 0f;
         if (sk != null) {
             int tw = sk.field.getWidth();
-            left = (float) Math.floor(turned() % tw);
+            double turn = turned();
+            left = (float) Math.floor(wrap(turn - par * width * FAR, tw));
+            near = (float) wrap(turn - par * width * NEAR, tw);
             blit.setAlpha(Math.round(255 * fade));
             if (left > 0f) c.drawBitmap(sk.field, left - tw, 0, blit);
             if (left < width) c.drawBitmap(sk.field, left, 0, blit);
         }
-        if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade);
-        if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade);
+        float mid = -par * width * MID;
+        if (previous != null && travel < 1f) drawNebula(c, previous.nebula, (1 - travel) * fade, mid);
+        if (theme != null) drawNebula(c, theme.nebula, (previous != null ? travel : 1f) * fade, mid);
         if (glowBefore != null && travel < 1f) {
             glowPaint.setShader(glowBefore);
             glowPaint.setAlpha(Math.round(255 * (1 - travel)));
@@ -600,19 +613,27 @@ final class Cosmos {
             glowPaint.setAlpha(Math.round(255 * travel * skyIn * (0.85f + 0.15f * (float) Math.sin(clock * 0.3f))));
             c.drawRect(0, height * 0.45f, width, height, glowPaint);
         }
-        if (sk != null) drawLive(c, sk, left, fade);
-        drawSprites(c, sk, left);
+        if (sk != null) drawLive(c, sk, near, fade);
+        drawSprites(c, sk, near);
+        c.save();
+        c.translate(-par * width * NEAR, 0);
         drawTrails(c);
+        c.restore();
+    }
+
+    private static double wrap(double x, int tw) {
+        double m = x % tw;
+        return m < 0 ? m + tw : m;
     }
 
     /** The nebula, drifting and breathing very slowly. */
-    private void drawNebula(Canvas c, Bitmap nebula, float alpha) {
+    private void drawNebula(Canvas c, Bitmap nebula, float alpha, float shift) {
         if (nebula == null || alpha <= 0.01f || width == 0) return;
         float sx = (float) width / NEB_W, sy = (float) height / NEB_H;
         float zoom = 1.06f + 0.03f * (float) Math.sin(drift * 0.013f);
         float ox = (float) Math.sin(drift * 0.021f) * width * 0.015f, oy = (float) Math.cos(drift * 0.017f) * height * 0.012f;
         nebulaMatrix.setScale(sx * zoom, sy * zoom);
-        nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox, -(zoom - 1) * height / 2 + oy);
+        nebulaMatrix.postTranslate(-(zoom - 1) * width / 2 + ox + shift, -(zoom - 1) * height / 2 + oy);
         nebulaPaint.setAlpha(Math.round(255 * alpha));
         c.drawBitmap(nebula, nebulaMatrix, nebulaPaint);
     }

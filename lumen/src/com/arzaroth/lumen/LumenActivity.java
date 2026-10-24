@@ -210,6 +210,7 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
         stage.setStyle(backdrop == 1 ? Stage.FIREWORKS : Stage.COSMOS);
         stage.setSkyStill(backdrop == 2);
         stage.setSkyTurning(prefs.getInt(Prefs.TURN, 0) == 1);
+        if (zone == ZONE_TILES && !tiles.isEmpty()) stage.setParallax(parallaxOf(index));
         stage.setPace(prefs.getInt(Prefs.PACE, Stage.LIVELY));
         stage.setMeteors(new float[] {0f, 0.35f, 1f, 2.5f}[prefs.getInt(Prefs.METEORS, Prefs.METEORS_DEFAULT)]);
         stage.setFlat(prefs.getInt(Prefs.LOGO, 0) == 1);
@@ -553,11 +554,19 @@ public final class LumenActivity extends Activity implements LumenSettings.Host 
             clock.setAccent(t.app.accent);
             date.setAccent(t.app.accent);
             stage.setScene(t.app, animate);
+            stage.setParallax(parallaxOf(index));
             if (index < COLS) lastDockIndex = index;
         } else {
             highlight.show(false, animate);
         }
         scroll(animate);
+    }
+
+    /** The focused column, from -1 at the left edge to 1 at the right; 0 with parallax off. */
+    private float parallaxOf(int i) {
+        int cols = Math.min(COLS, tiles.size());
+        if (cols < 2 || prefs.getInt(Prefs.PARALLAX, 0) != 0) return 0f;
+        return 2f * (i % COLS) / (cols - 1) - 1f;
     }
 
     private void setTitle(final AppEntry app, boolean animate) {
