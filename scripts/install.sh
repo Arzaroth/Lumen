@@ -20,7 +20,7 @@ fi
 "$HERE/gradlew" -p "$HERE" -q :lumen:assembleRelease
 
 adb push "$HERE/lumen/build/outputs/apk/release/lumen-release.apk" /data/local/tmp/lumen.apk >/dev/null
-echo "install $(sh pm install -r -g /data/local/tmp/lumen.apk)"
+echo "install $(sh pm install -r -g -i "$PKG" /data/local/tmp/lumen.apk)"
 sh rm -f /data/local/tmp/lumen.apk
 if sh pm path "$LEGACY" | grep -q package:; then
   echo "retire  $LEGACY -> $(sh pm uninstall "$LEGACY")"
