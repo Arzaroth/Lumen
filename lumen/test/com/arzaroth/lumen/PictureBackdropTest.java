@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -125,6 +126,57 @@ public class PictureBackdropTest {
         assertFalse(b.moving());
         b.setStill(false);
         assertTrue(b.moving());
+    }
+
+    /** A painter handing over smoke over a star, a lit overlay and one flow. */
+    static Pack.Painting painting(int w, int h) {
+        Bitmap picture = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        picture.eraseColor(0xFF080A18);
+        picture.setPixel(w / 2, h / 4, 0xFFE0E0E0);
+        picture.setPixel(w / 5, h / 5, 0xFFE0E0E0);
+        Pack.Painting p = new Pack.Painting(picture);
+        Bitmap cloud = Bitmap.createBitmap(w / 4, h / 4, Bitmap.Config.ARGB_8888);
+        cloud.eraseColor(0xC0302828);
+        p.smoke = new Bitmap[] {cloud, cloud};
+        p.smokeX = w / 2f - w / 4f;
+        p.smokeY = h / 4f - h / 4f;
+        p.smokeScale = 2f;
+        p.originX = w / 2f;
+        p.originY = h / 2f;
+        p.over = Bitmap.createBitmap(20, 20, Bitmap.Config.ARGB_8888);
+        p.over.eraseColor(0x80FF8000);
+        p.overX = w / 2f - 10;
+        p.overY = h / 2f - 10;
+        p.flows = java.util.Arrays.asList(new float[] {1f, w / 2f, h / 2f, w * 0.6f, h * 0.7f, w * 0.65f, h * 0.9f}, new float[] {0.5f, 1f, 1f});
+        return p;
+    }
+
+    @Test
+    public void aPaintedPackMovesItsSmokeAndRunsItsLava() throws Exception {
+        Pack pack = Pack.painted("{\"id\":\"painted\",\"image\":\"x\",\"layers\":[{\"type\":\"stars\",\"above\":0.5,\"count\":5}]}",
+                PictureBackdropTest::painting);
+        try {
+            pack.files.open("x");
+            fail("a painted pack has no files");
+        } catch (java.io.IOException expected) {
+            assertTrue(expected.getMessage().contains("painted"));
+        }
+        PictureBackdrop b = new PictureBackdrop(pack, 0.2f);
+        b.layout(new RectF(110, 30, 300, 130), W, H);
+        for (int i = 0; i < 400 && Robo.get(b, "scene") == null; i++) Thread.sleep(25);
+        Object scene = Robo.get(b, "scene");
+        assertEquals(1, ((float[]) Robo.get(scene, "starX")).length);
+        assertEquals(2, ((float[]) Robo.get(scene, "flowHeat")).length);
+        int before = screen.getPixel(W / 2, H / 4);
+        run(b, 9f);
+        int during = screen.getPixel(W / 2, H / 4);
+        assertTrue(Color.red(during) != Color.red(before) || Color.red(during) > 0x20);
+        run(b, 6f);
+        b.storm(1f);
+        run(b, 0.5f);
+        b.setStill(true);
+        run(b, 4f);
+        assertFalse(b.moving());
     }
 
     @Test

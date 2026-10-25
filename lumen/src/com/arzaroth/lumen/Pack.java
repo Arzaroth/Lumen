@@ -23,6 +23,31 @@ final class Pack {
         InputStream open(String name) throws IOException;
     }
 
+    /** Paints the pack's picture at a size, for a theme drawn in code instead of shipped as an image. */
+    interface Painter {
+        Painting paint(int width, int height);
+    }
+
+    /**
+     * What a painter hands over: the picture, and what moves on it. Smoke is two takes of the same
+     * cloud, crossfading as each rises from `origin`; `over` is drawn on top of the smoke, lit; each
+     * flow is a path lava runs down, its heat first and then its points. Coordinates are picture
+     * pixels.
+     */
+    static final class Painting {
+        final android.graphics.Bitmap picture;
+        android.graphics.Bitmap[] smoke;
+        /** Where the smoke sits, and how many picture pixels one of its pixels covers. */
+        float smokeX, smokeY, smokeScale = 1f, originX, originY;
+        android.graphics.Bitmap over;
+        float overX, overY;
+        List<float[]> flows = Collections.emptyList();
+
+        Painting(android.graphics.Bitmap picture) {
+            this.picture = picture;
+        }
+    }
+
     /** One animated layer over the picture; which fields count depends on `type`. */
     static final class Layer {
         final String type;
@@ -57,8 +82,9 @@ final class Pack {
     final Palette palette;
     final List<Layer> layers;
     final Files files;
+    final Painter painter;
 
-    private Pack(String id, String name, String image, float[] from, float[] to, Palette palette, List<Layer> layers, Files files) {
+    private Pack(String id, String name, String image, float[] from, float[] to, Palette palette, List<Layer> layers, Files files, Painter painter) {
         this.id = id;
         this.name = name;
         this.image = image;
@@ -67,6 +93,7 @@ final class Pack {
         this.palette = palette;
         this.layers = layers;
         this.files = files;
+        this.painter = painter;
     }
 
     /** Reads `theme.json` from `files`. */
@@ -80,6 +107,17 @@ final class Pack {
     }
 
     static Pack parse(String json, Files files) throws JSONException {
+        return parse(json, files, null);
+    }
+
+    /** A pack whose picture `painter` paints for each screen; its `image` is never read. */
+    static Pack painted(String json, Painter painter) throws JSONException {
+        return parse(json, name -> {
+            throw new IOException("a painted pack has no files");
+        }, painter);
+    }
+
+    private static Pack parse(String json, Files files, Painter painter) throws JSONException {
         JSONObject o = new JSONObject(json);
         JSONObject anchor = o.optJSONObject("anchor");
         float[] from = {0.5f, 0.5f}, to = {0.5f, 0.5f};
@@ -94,7 +132,7 @@ final class Pack {
             layers.add(new Layer(l.optString("type"), l));
         }
         return new Pack(o.getString("id"), o.optString("name", o.getString("id")), o.getString("image"), from, to,
-                palette(o.optJSONObject("palette")), Collections.unmodifiableList(layers), files);
+                palette(o.optJSONObject("palette")), Collections.unmodifiableList(layers), files, painter);
     }
 
     private static Palette palette(JSONObject p) {

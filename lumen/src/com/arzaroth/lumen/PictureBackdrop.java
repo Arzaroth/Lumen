@@ -41,6 +41,9 @@ final class PictureBackdrop implements Backdrop {
         final Bitmap picture, glow;
         final float k, left, top, glowX, glowY;
         final float[] starX, starY, starB, starPhase;
+        Pack.Painting painting;
+        float[][] flowX = new float[0][], flowY = new float[0][], flowAt = new float[0][];
+        float[] flowHeat = new float[0];
 
         Scene(Bitmap picture, Bitmap glow, float k, float left, float top, float glowX, float glowY, float[] starX, float[] starY,
                 float[] starB, float[] starPhase) {
@@ -59,7 +62,9 @@ final class PictureBackdrop implements Backdrop {
     }
 
     private static final float FAR = 0.012f, FAR_Y = 0.012f;
-    private static final int SPARKS = 400, SPRITE = 32, MAX_STARS = 400, QUADS = SPARKS + MAX_STARS;
+    private static final int SPARKS = 400, SPRITE = 32, MAX_STARS = 400, PULSES = 400, QUADS = SPARKS + MAX_STARS + PULSES;
+    /** How long one take of the smoke leads, rising and growing from its origin, and how long the next takes to fade in over it, in seconds. */
+    private static final float SMOKE_T = 14f, SMOKE_OVERLAP = 3f;
 
     private final Pack pack;
     private final float s;
@@ -73,7 +78,8 @@ final class PictureBackdrop implements Backdrop {
     private final int[] sparkColors;
     private final Paint picture = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG), glowPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint dot = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Matrix matrix = new Matrix();
+    private final Matrix matrix = new Matrix(), smokeMatrix = new Matrix();
+    private final Paint smokePaint = new Paint(Paint.FILTER_BITMAP_FLAG), overPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Precipitation precipitation;
     private volatile Scene scene;
     private Scene shaderFor;
@@ -93,6 +99,7 @@ final class PictureBackdrop implements Backdrop {
         sparkColors = sparkLayer != null ? sparkLayer.colors("colors", 0xFFFFA040) : new int[] {0xFFFFA040};
         PorterDuffXfermode add = new PorterDuffXfermode(PorterDuff.Mode.ADD);
         glowPaint.setXfermode(add);
+        overPaint.setXfermode(add);
         Bitmap sprite = Bitmap.createBitmap(SPRITE, SPRITE, Bitmap.Config.ARGB_8888);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setShader(new RadialGradient(SPRITE / 2f, SPRITE / 2f, SPRITE / 2f,
@@ -147,15 +154,21 @@ final class PictureBackdrop implements Backdrop {
 
     /** The pack on a `w` by `h` screen: the picture placed, what burns in it, and where its stars are. */
     private Scene bake(int w, int h) {
+        float mx = w * FAR + 2, my = h * FAR_Y + 2;
         Bitmap image;
-        try (InputStream in = pack.files.open(pack.image)) {
-            image = BitmapFactory.decodeStream(in);
-        } catch (IOException e) {
-            image = null;
+        Pack.Painting painting = null;
+        if (pack.painter != null) {
+            painting = pack.painter.paint(Math.round(w + 2 * mx), Math.round(h + 2 * my));
+            image = painting.picture;
+        } else {
+            try (InputStream in = pack.files.open(pack.image)) {
+                image = BitmapFactory.decodeStream(in);
+            } catch (IOException e) {
+                image = null;
+            }
         }
         if (image == null) return null;
         int iw = image.getWidth(), ih = image.getHeight();
-        float mx = w * FAR + 2, my = h * FAR_Y + 2;
         float ax = pack.to[0] * w, ay = pack.to[1] * h, fx = pack.from[0], fy = pack.from[1];
         float k = (w + 2 * mx) / iw;
         if (fx > 0) k = Math.max(k, (ax + mx) / (fx * iw));
@@ -230,21 +243,55 @@ final class PictureBackdrop implements Backdrop {
             for (int i = 0; i < n; i++) order[i] = i;
             final float[] f = found;
             Arrays.sort(order, (a, b) -> Float.compare(f[b * 3 + 2], f[a * 3 + 2]));
-            int m = Math.min(want, n);
+            Bitmap veil = painting != null && painting.smoke != null ? painting.smoke[0] : null;
+            int[] keep = new int[n];
+            int m = 0;
+            for (int i = 0; i < n && m < want; i++) {
+                int o = order[i];
+                if (veil != null) {
+                    int vx = Math.round((found[o * 3] - painting.smokeX) / painting.smokeScale);
+                    int vy = Math.round((found[o * 3 + 1] - painting.smokeY) / painting.smokeScale);
+                    if (vx >= 0 && vy >= 0 && vx < veil.getWidth() && vy < veil.getHeight() && Color.alpha(veil.getPixel(vx, vy)) > 20) continue;
+                }
+                keep[m++] = o;
+            }
             sx = new float[m];
             sy = new float[m];
             sb = new float[m];
             phase = new float[m];
             Random r = new Random(7);
             for (int i = 0; i < m; i++) {
-                int o = order[i];
+                int o = keep[i];
                 sx[i] = left + (found[o * 3] + 0.5f) * k;
                 sy[i] = top + (found[o * 3 + 1] + 0.5f) * k;
                 sb[i] = found[o * 3 + 2];
                 phase[i] = r.nextFloat() * 100f;
             }
         }
-        return new Scene(image, glow, k, left, top, glowX, glowY, sx, sy, sb, phase);
+        Scene scene = new Scene(image, glow, k, left, top, glowX, glowY, sx, sy, sb, phase);
+        scene.painting = painting;
+        if (painting != null && !painting.flows.isEmpty()) {
+            int f = painting.flows.size();
+            scene.flowX = new float[f][];
+            scene.flowY = new float[f][];
+            scene.flowAt = new float[f][];
+            scene.flowHeat = new float[f];
+            for (int i = 0; i < f; i++) {
+                float[] flow = painting.flows.get(i);
+                int pts = (flow.length - 1) / 2;
+                scene.flowHeat[i] = flow[0];
+                scene.flowX[i] = new float[pts];
+                scene.flowY[i] = new float[pts];
+                scene.flowAt[i] = new float[pts];
+                for (int q = 0; q < pts; q++) {
+                    scene.flowX[i][q] = left + flow[1 + 2 * q] * k;
+                    scene.flowY[i][q] = top + flow[2 + 2 * q] * k;
+                    if (q > 0) scene.flowAt[i][q] = scene.flowAt[i][q - 1]
+                            + (float) Math.hypot(scene.flowX[i][q] - scene.flowX[i][q - 1], scene.flowY[i][q] - scene.flowY[i][q - 1]);
+                }
+            }
+        }
+        return scene;
     }
 
     private static float lum(int c) {
@@ -391,7 +438,16 @@ final class PictureBackdrop implements Backdrop {
             glowPaint.setAlpha(Math.round(255 * Math.min(1f, (depth * flicker + 0.6f * flash) * fade)));
             c.drawBitmap(sc.glow, matrix, glowPaint);
         }
-        int q = 0;
+        drawSmoke(c, sc, ox, oy, fade);
+        Pack.Painting pt = sc.painting;
+        if (pt != null && pt.over != null) {
+            matrix.setScale(sc.k, sc.k);
+            matrix.postTranslate(sc.left + pt.overX * sc.k + ox, sc.top + pt.overY * sc.k + oy);
+            float flicker = 0.8f + 0.2f * Noise.fbm(clock * 1.7f, 9.1f, 29, 2);
+            overPaint.setAlpha(Math.round(255 * fade * Math.min(1f, flicker + 0.4f * flash)));
+            c.drawBitmap(pt.over, matrix, overPaint);
+        }
+        int q = drawFlows(sc, ox, oy, fade);
         if (!still) {
             for (int i = 0; i < sc.starX.length; i++) {
                 float tw = (float) Math.sin(clock * (0.6f + (sc.starPhase[i] % 1.3f)) + sc.starPhase[i]);
@@ -411,6 +467,69 @@ final class PictureBackdrop implements Backdrop {
         }
         if (q > 0) c.drawVertices(Canvas.VertexMode.TRIANGLES, q * 8, verts, 0, texs, 0, colors, 0, indices, 0, q * 6, dot);
         precipitation.draw(c, shown);
+    }
+
+    /**
+     * The painter's smoke: the two takes of the cloud in turn, each rising and growing from the
+     * origin for SMOKE_T seconds. The next fades in over it for the last SMOKE_OVERLAP of that time,
+     * and only then does the old one thin away; the rest of the time a single take is drawn.
+     */
+    private void drawSmoke(Canvas c, Scene sc, float ox, float oy, float fade) {
+        Pack.Painting pt = sc.painting;
+        if (pt == null || pt.smoke == null || pt.smoke.length < 2) return;
+        float phase = still ? 0.5f : clock / SMOKE_T, x = SMOKE_OVERLAP / SMOKE_T;
+        int take = (int) Math.floor(phase);
+        float f = phase - take;
+        if (f < x) smoke(c, sc, pt.smoke[(take + 1) & 1], 1f + f, 1f - Noise.smooth(0.6f * x, x, f), ox, oy, fade);
+        smoke(c, sc, pt.smoke[take & 1], f, Math.min(1f, f / x), ox, oy, fade);
+    }
+
+    /** One take of the smoke, `age` takes old (it lives a little over one), at `alpha`. */
+    private void smoke(Canvas c, Scene sc, Bitmap take, float age, float alpha, float ox, float oy, float fade) {
+        if (alpha * fade < 0.004f) return;
+        Pack.Painting pt = sc.painting;
+        float vx = sc.left + pt.originX * sc.k + ox, vy = sc.top + pt.originY * sc.k + oy;
+        float life = age / (1f + SMOKE_OVERLAP / SMOKE_T), grow = 0.95f + 0.09f * life;
+        smokeMatrix.setScale(sc.k * pt.smokeScale, sc.k * pt.smokeScale);
+        smokeMatrix.postTranslate(sc.left + pt.smokeX * sc.k + ox, sc.top + pt.smokeY * sc.k + oy);
+        smokeMatrix.postScale(grow, grow, vx, vy);
+        smokeMatrix.postTranslate(0, -life * height * 0.02f);
+        smokePaint.setAlpha(Math.round(255 * fade * alpha));
+        c.drawBitmap(take, smokeMatrix, smokePaint);
+    }
+
+    /** Molten lava running down the painter's flows: glowing beads, cooling from yellow to red as they go. Returns the quads used. */
+    private int drawFlows(Scene sc, float ox, float oy, float fade) {
+        int q = 0;
+        if (still) return q;
+        for (int f = 0; f < sc.flowX.length && q < PULSES; f++) {
+            float[] xs = sc.flowX[f], ys = sc.flowY[f], at = sc.flowAt[f];
+            float len = at[at.length - 1];
+            if (len < 1f) continue;
+            float heat = sc.flowHeat[f], speed = (18f + 22f * heat) * s, gap = 34f * s;
+            int beads = Math.max(2, (int) (len / gap));
+            for (int b = 0; b < beads && q < PULSES; b++) {
+                float d = (b * gap + clock * speed + f * 13.7f) % len, tail = Math.max(0f, d - 9f * s);
+                float u = d / len, warm = heat * (1f - 0.7f * u);
+                float flicker = 0.7f + 0.3f * (float) Math.sin(clock * 5f + b * 1.9f + f);
+                float hx = along(xs, at, d), hy = along(ys, at, d), tx = along(xs, at, tail), ty = along(ys, at, tail);
+                quad(q, tx + ox, ty + oy, hx + ox, hy + oy, (1.6f + 2.4f * warm) * s);
+                tint(q++, Apps.withAlpha(Apps.mix(0xFFFFE6A0, 0xFFFF4010, Math.min(1f, u * 1.3f)), Math.round(210 * warm * flicker * fade)));
+            }
+        }
+        return q;
+    }
+
+    /** The coordinate `vs` reaches at distance `d` along a path whose points are at distances `at`. */
+    private static float along(float[] vs, float[] at, float d) {
+        int lo = 0, hi = at.length - 1;
+        while (hi - lo > 1) {
+            int mid = (lo + hi) >>> 1;
+            if (at[mid] <= d) lo = mid;
+            else hi = mid;
+        }
+        float span = at[hi] - at[lo], t = span > 0f ? (d - at[lo]) / span : 0f;
+        return vs[lo] + (vs[hi] - vs[lo]) * Math.max(0f, Math.min(1f, t));
     }
 
     /** The sparks' colour at `u` of their life, through the layer's colours. */
