@@ -9,7 +9,7 @@ import java.util.List;
 
 /** The themes Lumen can wear: the built-in ones, Space first and the default, then the packs found. */
 final class Themes {
-    private static final List<Theme> BUILT_IN = Collections.unmodifiableList(java.util.Arrays.asList(SpaceTheme.SPACE, SpaceTheme.FIREWORKS));
+    private static final List<Theme> BUILT_IN = Collections.unmodifiableList(java.util.Arrays.asList(SpaceTheme.SPACE, SpaceTheme.FIREWORKS, DrawnVolcano.THEME));
     private static volatile List<Theme> all = BUILT_IN;
     private static boolean discovered;
 
