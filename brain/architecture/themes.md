@@ -35,6 +35,7 @@ kept by id (`theme` in the preferences).
 |---|---|---|---|---|
 | Space | built in | `Cosmos` ([cosmos.md](cosmos.md)) | Meteors, Sky rotation, Nebula, Real sky | `Palette.SPACE` |
 | Fireworks | built in | `Cosmos`, with the fireworks choreography | as Space | `Palette.SPACE` |
+| Volcano (drawn) | painted pack (`DrawnVolcano`) | `PictureBackdrop`, picture by `VolcanoPainter` | none | embers |
 | Volcano | pack (`assets/themes/volcano`) | `PictureBackdrop` | none | embers |
 
 Space and Fireworks are one class, `SpaceTheme`, in two instances. Space's options keep their old
@@ -79,6 +80,27 @@ layers bring it to life.
 
 Packs ship inside the APK for now; the next step is loading them from files, then the store.
 
+### Painted packs
+
+A pack can paint its picture in code instead of shipping it: `Pack.painted(json, painter)`. The
+painter gets the screen's size (with the parallax margins) once per screen, off the UI thread, and
+returns a `Pack.Painting`: the picture, and optionally what moves on it.
+
+- `smoke`: two takes of a cloud (here two plumes from different seeds), with where they sit, their
+  scale against the picture (they can be stored at half resolution) and the `origin` they rise
+  from. `PictureBackdrop` shows one take at a time, rising and growing over 14 s, and fades the
+  next in over it for 3 s; the old one thins only once covered, so the swap never shows, and most
+  frames draw a single take. Stars found under the smoke do not twinkle.
+- `over`: drawn on top of the smoke, added and flickering (the vent's fire column).
+- `flows`: paths lava runs down, a heat then points; beads of molten lava travel each, cooling from
+  yellow to red.
+
+`VolcanoPainter` paints the drawn volcano that way: the sky, stars, horizon mist and lit ash; the
+cone shaded from a relief of ravines; rivers traced downhill into the ravines, forking; and the
+plume as a density field of puffs budding smaller puffs, its surface lit by the vent from below.
+The picture takes about two seconds to paint at 1080p on a desktop. On the TV the drawn volcano
+costs what the photographic one does (11.9 ms of GPU median against 11.8).
+
 ## Where it is going
 
 1. The interfaces, with Space on them unchanged. (Done.)
@@ -92,13 +114,14 @@ Packs ship inside the APK for now; the next step is loading them from files, the
 
 Every theme must fit the GPU budget ([gpu-budget.md](gpu-budget.md)).
 
-A procedural volcano was built on these interfaces in October 2026 (an eruption at dusk after Anak
-Krakatau) and dropped: realism out of noise and strokes never got past looking cheap. It is in git
-history (`Volcano.java`, removed after `1b66561`). The Volcano pack took the photographic route
-instead.
+A first procedural volcano (an eruption at dusk after Anak Krakatau) was dropped: realism out of
+noise and strokes never got past looking cheap; it is in git history (`Volcano.java`, removed after
+`1b66561`). The Volcano pack took the photographic route; Volcano (drawn) came back to code with a
+method per part (a lit density field for the smoke, a relief for the cone, traced rivers).
 
 ## Sources
 
 - `lumen/src/com/arzaroth/lumen/Theme.java`, `Option.java`, `Backdrop.java`, `Palette.java`, `Themes.java`, `SpaceTheme.java`, `Pack.java`, `PackTheme.java`, `PictureBackdrop.java`, `Precipitation.java`, `Noise.java`, `Prefs.java` (`migrate`), `Stage.java` (`setTheme`, `setOption`), `LumenSettings.java` (`themeChoice`, `backdrop`)
+- `lumen/src/com/arzaroth/lumen/VolcanoPainter.java`, `DrawnVolcano.java`
 - `lumen/assets/themes/volcano/`
-- `lumen/test/com/arzaroth/lumen/ThemesTest.java`, `PackTest.java`, `PictureBackdropTest.java`, `StageTest.java` (`Plain`)
+- `lumen/test/com/arzaroth/lumen/ThemesTest.java`, `PackTest.java`, `PictureBackdropTest.java`, `VolcanoPainterTest.java`, `StageTest.java` (`Plain`)

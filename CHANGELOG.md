@@ -6,6 +6,10 @@ All notable changes to Lumen are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Lumen settings › Theme › Volcano (drawn): the volcano painted entirely in code, its ash billowing up from the vent, lava running down the ravines, sparks flying and the stars twinkling.
+
 ## [1.7.1] - 2026-10-25
 
 ### Fixed
